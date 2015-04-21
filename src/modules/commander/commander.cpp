@@ -54,7 +54,9 @@
 #include <systemlib/err.h>
 #include <systemlib/circuit_breaker.h>
 //#include <debug.h>
+#ifndef __PX4_POSIX
 #include <sys/prctl.h>
+#endif
 #include <sys/stat.h>
 #include <string.h>
 #include <math.h>
@@ -2567,8 +2569,10 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 
 void *commander_low_prio_loop(void *arg)
 {
+	#ifndef __PX4_POSIX
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander_low_prio", getpid());
+	#endif
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));

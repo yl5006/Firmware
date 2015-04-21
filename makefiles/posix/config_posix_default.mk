@@ -20,13 +20,13 @@ MODULES	+= systemcmds/param
 #
 # General system control
 #
-MODULES		+= modules/mavlink
+#MODULES		+= modules/mavlink
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/ekf_att_pos_estimator
+#MODULES		+= modules/ekf_att_pos_estimator
 
 #
 # Vehicle Control
@@ -37,10 +37,10 @@ MODULES		+= modules/mc_att_control
 # Library modules
 #
 MODULES		+= modules/systemlib
-MODULES		+= modules/systemlib/mixer
+#MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 MODULES		+= modules/dataman
-MODULES		+= modules/sdlog2
+#MODULES		+= modules/sdlog2
 MODULES		+= modules/simulator
 MODULES		+= modules/commander
 

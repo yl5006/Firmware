@@ -132,7 +132,6 @@
 #include <stdio.h>
 #include <poll.h>
 #include <fcntl.h>
-#include <sys/prctl.h>
 #include <math.h>
 #include <float.h>
 #include <mathlib/mathlib.h>

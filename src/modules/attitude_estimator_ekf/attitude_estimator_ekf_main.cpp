@@ -50,7 +50,6 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <float.h>
-#include <sys/prctl.h>
 #include <termios.h>
 #include <errno.h>
 #include <limits.h>

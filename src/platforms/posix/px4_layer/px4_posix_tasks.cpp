@@ -271,7 +271,7 @@ void px4_show_tasks()
 	for (idx=0; idx < PX4_MAX_TASKS; idx++)
 	{
 		if (taskmap[idx].isused) {
-			printf("   %-10s %lu\n", taskmap[idx].name.c_str(), taskmap[idx].pid);
+			printf("   %-10s %lu\n", taskmap[idx].name.c_str(), (unsigned long)taskmap[idx].pid);
 			count++;
 		}
 	}

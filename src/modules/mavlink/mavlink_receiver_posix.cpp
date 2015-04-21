@@ -48,7 +48,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <mqueue.h>
+#include <sys/fcntl.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
@@ -59,7 +59,9 @@
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
+#ifdef __PX4_LINUX
 #include <sys/prctl.h>
+#endif
 #include <termios.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -1493,7 +1495,10 @@ MavlinkReceiver::receive_thread(void *arg)
 	/* set thread name */
 	char thread_name[24];
 	sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+
+	#ifdef __PX4_LINUX
 	prctl(PR_SET_NAME, thread_name, getpid());
+	#endif
 
 	px4_pollfd_struct_t fds[1];
 	fds[0].fd = uart_fd;

@@ -120,7 +120,7 @@ ifeq ($(CONFIG_BOARD),)
 $(error Board config does not define CONFIG_BOARD)
 endif
 ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
-			-D__PX4_LINUX -D__PX4_POSIX \
+			-D__PX4_POSIX \
 			-Dnoreturn_function= \
 			-I$(PX4_BASE)/src/lib/eigen \
 			-I$(PX4_BASE)/src/platforms/posix/include \
@@ -206,7 +206,8 @@ ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 #EXTRA_LIBS		+= $(LIBM)
-EXTRA_LIBS		+= -pthread -lm -lrt
+EXTRA_LIBS		+= -pthread -lm 
+#-lrt
 
 # Flags we pass to the C compiler
 #
@@ -258,7 +259,7 @@ LDFLAGS			+= $(EXTRALDFLAGS) \
 
 # Compiler support library
 #
-LIBGCC			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name)
+LIBGCC			:= #$(shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name)
 
 # Files that the final link depends on
 #
@@ -302,19 +303,19 @@ endef
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -o $1 $2
+	$(Q) $(LD) -r -o $1 $2
 
 endef
 # Produce partially-linked $1 from files in $2
 #
-#$(Q) $(LD) -Ur -o $1 $2 # -Ur not supported in ld.gold
+#$(Q) $(LD) -r -o $1 $2 # -Ur not supported in ld.gold
 define PRELINKF
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -T$(LDSCRIPT) -o $1 $2
+	$(Q) $(LD) -r -o $1 $2
 
 endef
-#	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+#	$(Q) $(LD) -r -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 
 # Update the archive $1 with the files in $2
 #

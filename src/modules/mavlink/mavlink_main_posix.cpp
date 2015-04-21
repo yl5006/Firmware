@@ -590,7 +590,15 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, struct termios *
 
 	case 230400: speed = B230400; break;
 
+	#ifndef B460800
+		#define B460800 460800
+	#endif
+
 	case 460800: speed = B460800; break;
+
+	#ifndef B921600
+		#define B921600 921600
+	#endif
 
 	case 921600: speed = B921600; break;
 
@@ -729,9 +737,12 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
-// No FIONWRITE on Linux
-#ifndef __PX4_LINUX
-	(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
+// No FIONWRITE on POSIX
+#ifdef __PX4_POSIX
+	// fake a big buffer on larger systems
+	buf_free = 1000;
+#else
+	(void) ioctl(_uart_fd, FIONWRITESIOCOUTQ, (unsigned long)&buf_free);
 #endif
 
 	if (get_flow_control_enabled() && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {

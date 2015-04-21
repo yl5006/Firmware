@@ -340,7 +340,7 @@ __EXPORT int 		param_load_default(void);
 /** define an int32 parameter */
 #define PARAM_DEFINE_INT32(_name, _default)		\
 	static const					\
-	__attribute__((used, section("__param")))	\
+	__attribute__((used, section(".paramsec,__param")))	\
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_INT32,			\
@@ -350,7 +350,7 @@ __EXPORT int 		param_load_default(void);
 /** define a float parameter */
 #define PARAM_DEFINE_FLOAT(_name, _default)		\
 	static const					\
-	__attribute__((used, section("__param")))	\
+	__attribute__((used, section(".paramsec,__param")))	\
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_FLOAT,			\
@@ -360,7 +360,7 @@ __EXPORT int 		param_load_default(void);
 /** define a parameter that points to a structure */
 #define PARAM_DEFINE_STRUCT(_name, _default)		\
 	static const					\
-	__attribute__((used, section("__param")))	\
+	__attribute__((used, section(".paramsec,__param")))	\
 	struct param_info_s __param__##_name = {	\
 		#_name,					\
 		PARAM_TYPE_STRUCT + sizeof(_default),	\
