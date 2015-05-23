@@ -53,16 +53,8 @@ SRCS		 = \
 		   bson/tinybson.c \
 		   circuit_breaker.cpp \
 		   circuit_breaker_params.c \
+		   mcu_version.c \
 		   $(BUILD_DIR)git_version.c
-
-ifeq ($(PX4_TARGET_OS),nuttx)
-SRCS		+= err.c \
-		   up_cxxinitialize.c 
-endif
-
-ifneq ($(PX4_TARGET_OS),qurt)
-SRCS 		+= hx_stream.c 
-endif
 
 MAXOPTIMIZATION	 = -Os
 
