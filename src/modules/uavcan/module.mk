@@ -45,6 +45,7 @@ WFRAME_LARGER_THAN = 1400
 # Main
 SRCS += uavcan_main.cpp              \
         uavcan_clock.cpp             \
+        resources.cpp							\
         uavcan_params.c
 
 # Actuators

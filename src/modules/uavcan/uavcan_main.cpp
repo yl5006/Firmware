@@ -53,15 +53,16 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_main.hpp"
+#include "resources.hpp"
+#if defined(USE_FW_NODE_SERVER)
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
-
 #include <uavcan_posix/firmware_version_checker.hpp>
+#endif
 
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
 #define OK 0
-
 /**
  * @file uavcan_main.cpp
  *
@@ -70,25 +71,41 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  *         David Sidrane <david_s5@nscdg.com>
  */
+#define RESOURCE_DEBUG
+#if defined(RESOURCE_DEBUG)
+#define resources(s) ::printf(" %s\n",(s)); \
+                    if (UavcanNode::instance()) printf("UAVCAN  getNumFreeBlocks in bytes %d\n", \
+                          UavcanNode::instance()->get_node().getAllocator().getNumFreeBlocks() * \
+                          UavcanNode::instance()->get_node().getAllocator().getBlockSize()); \
+                    free_check(); \
+                   stack_check();
+#else
+#define resources(s)
+#endif
 
 /*
  * UavcanNode
  */
 UavcanNode *UavcanNode::_instance;
+#if defined(USE_FW_NODE_SERVER)
 uavcan::dynamic_node_id_server::CentralizedServer *UavcanNode::_server_instance;
 uavcan_posix::dynamic_node_id_server::FileEventTracer tracer;
 uavcan_posix::dynamic_node_id_server::FileStorageBackend storage_backend;
 uavcan_posix::FirmwareVersionChecker fw_version_checker;
-
+#endif
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	CDev("uavcan", UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock),
 	_node_mutex(),
-	_esc_controller(_node),
+#if !defined(USE_FW_NODE_SERVER)
+        _esc_controller(_node)
+#else
+        _esc_controller(_node),
 	_fileserver_backend(_node),
 	_node_info_retriever(_node),
 	_fw_upgrade_trigger(_node, fw_version_checker),
 	_fw_server(_node, _fileserver_backend)
+#endif
 {
 	_control_topics[0] = ORB_ID(actuator_controls_0);
 	_control_topics[1] = ORB_ID(actuator_controls_1);
@@ -154,7 +171,9 @@ UavcanNode::~UavcanNode()
 	perf_free(_perfcnt_node_spin_elapsed);
 	perf_free(_perfcnt_esc_mixer_output_elapsed);
 	perf_free(_perfcnt_esc_mixer_total_elapsed);
+#if defined(USE_FW_NODE_SERVER)
 	delete(_server_instance);
+#endif
 
 }
 
@@ -196,7 +215,9 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
+        resources("Before UavcanNode");
 	_instance = new UavcanNode(can.driver, uavcan_stm32::SystemClock::instance());
+        resources("After UavcanNode");
 
 	if (_instance == nullptr) {
 		warnx("Out of memory");
@@ -290,11 +311,15 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	}
 
 	// Sensor bridges
+        resources("Before make_all(_node, _sensor_bridges)");
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
+        resources("After make_all(_node, _sensor_bridges)");
 	auto br = _sensor_bridges.getHead();
 
 	while (br != nullptr) {
+	        resources("Before pr->init:");
 		ret = br->init();
+                resources("After pr->init:");
 
 		if (ret < 0) {
 			warnx("cannot init sensor bridge '%s' (%d)", br->get_name(), ret);
@@ -305,6 +330,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		br = br->getSibling();
 	}
 
+#if defined(USE_FW_NODE_SERVER)
 
 	/* Initialize the fw version checker.
 	* giving it it's path
@@ -343,7 +369,9 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	/* Create dynamic node id server for the Firmware updates directory */
 
+        resources("Before new uavcan::dynamic_node_id_server::CentralizedServer");
 	_server_instance = new uavcan::dynamic_node_id_server::CentralizedServer(_node, storage_backend, tracer);
+	resources("After new uavcan::dynamic_node_id_server::CentralizedServer");
 
 	if (_server_instance == 0) {
 		return -ENOMEM;
@@ -372,10 +400,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	if (ret < 0) {
 		return ret;
 	}
-
+#endif
 	/*  Start the Node   */
-
-	return _node.start();
+	resources("Before _node.start();");
+        int rv =  _node.start();
+        resources("After _node.start();");
+        return rv;
 }
 
 void UavcanNode::node_spin_once()
@@ -695,7 +725,9 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 			unsigned buflen = strnlen(buf, 1024);
 
 			if (_mixers == nullptr) {
+			        resources("Before MixerGroup");
 				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
+                                resources("After MixerGroup");
 			}
 
 			if (_mixers == nullptr) {

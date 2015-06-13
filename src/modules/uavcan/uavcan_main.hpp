@@ -147,19 +147,20 @@ private:
 	unsigned		_output_count = 0;		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
+#if defined(USE_FW_NODE_SERVER)
 	static uavcan::dynamic_node_id_server::CentralizedServer *_server_instance;              ///< server singleton pointer
-
+#endif
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
 
 	UavcanEscController	_esc_controller;
 
-
+#if defined(USE_FW_NODE_SERVER)
 	uavcan_posix::BasicFileSeverBackend _fileserver_backend;
 	uavcan::NodeInfoRetriever  _node_info_retriever;
 	uavcan::FirmwareUpdateTrigger  _fw_upgrade_trigger;
 	uavcan::BasicFileServer        _fw_server;
-
+#endif
 	List<IUavcanSensorBridge *> _sensor_bridges;		///< List of active sensor bridges
 
 	MixerGroup		*_mixers = nullptr;
