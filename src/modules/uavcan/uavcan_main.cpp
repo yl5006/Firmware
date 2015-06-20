@@ -71,7 +71,6 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  *         David Sidrane <david_s5@nscdg.com>
  */
-#define RESOURCE_DEBUG
 #if defined(RESOURCE_DEBUG)
 #define resources(s) ::printf(" %s\n",(s)); \
                     if (UavcanNode::instance()) printf("UAVCAN  getNumFreeBlocks in bytes %d\n", \

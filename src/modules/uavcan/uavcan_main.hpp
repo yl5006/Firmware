@@ -83,7 +83,7 @@ class UavcanNode : public device::CDev
 
 	static constexpr unsigned PollTimeoutMs      = 10;
 
-	static constexpr unsigned MemPoolSize        = 10752; ///< Refer to the libuavcan manual to learn why
+	static constexpr unsigned MemPoolSize        = 64 * uavcan::MemPoolBlockSize;
 
 	/*
 	 * This memory is reserved for uavcan to use for queuing CAN frames.
