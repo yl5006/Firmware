@@ -468,3 +468,25 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
+
+/**
+ * Safe distance
+ *
+ * @min 1
+ * @max 30
+ * @increment 0.1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_SAFE_DIS, 3.0f);
+
+/**
+ * Safe distance
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Disable
+ * @value 1 enable
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_SAFE_EN, 1);

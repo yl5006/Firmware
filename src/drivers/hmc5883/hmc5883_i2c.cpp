@@ -128,8 +128,11 @@ HMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 #endif
 
 	case DEVIOCGDEVICEID:
+#ifdef __PX4_NUTTX                          //add by yaoling
 		return CDev::ioctl(nullptr, operation, arg);
-
+#else
+		return VDev::ioctl(nullptr, operation, arg);
+#endif
 	default:
 		ret = -EINVAL;
 	}

@@ -30,14 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if(${OS} STREQUAL "nuttx")
+        list(APPEND srcs
+                l3gd20.cpp
+                )
+else()
+        list(APPEND srcs
+                l3gd20_posix.cpp
+                )
+endif()
+
 px4_add_module(
 	MODULE drivers__l3gd20
 	MAIN l3gd20
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Weffc++
-	SRCS
-		l3gd20.cpp
+ 	SRCS ${srcs}
 	DEPENDS
 		platforms__common
 	)

@@ -166,6 +166,8 @@ __END_DECLS
 #define PX4_ROOTFSDIR
 #elif defined(__PX4_POSIX_EAGLE)
 #define PX4_ROOTFSDIR "/home/linaro"
+#elif defined(__PX4_LINUX)
+#define  PX4_ROOTFSDIR ""
 #elif defined(__PX4_POSIX_BEBOP)
 #define PX4_ROOTFSDIR "/home/root"
 #else

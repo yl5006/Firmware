@@ -298,6 +298,9 @@ private:
 	control::BlockParamInt _param_datalinkloss_act;	/**< select data link loss action */
 	control::BlockParamInt _param_rcloss_act;	/**< select data link loss action */
 	
+	// add by yaoling
+	control::BlockParamInt _param_mission_rtljump;	/**< jump to nearest misstion RTL */
+	
 	control::BlockParamFloat _param_cruising_speed_hover;
 	control::BlockParamFloat _param_cruising_speed_plane;
 	control::BlockParamFloat _param_cruising_throttle_plane;

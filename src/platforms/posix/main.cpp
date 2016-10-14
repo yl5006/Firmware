@@ -182,12 +182,51 @@ static string pwd()
 	return (getcwd(temp, path_max_len) ? string(temp) : string(""));
 }
 
+#ifndef PARAM_ONLY
 static void print_prompt()
 {
 	cout.flush();
-	cout << "pxh> ";
+	cout << "ewt> ";
 	cout.flush();
 }
+#endif
+
+#ifdef PARAM_ONLY
+static int run_cmd(const vector<string> &appargs, bool exit_on_fail)
+{
+	// command is appargs[0]
+	string command = appargs[0];
+
+
+	if (apps.find(command) != apps.end()) {
+		const char *arg[appargs.size() + 2];
+
+		unsigned int i = 0;
+
+		while (i < appargs.size() && appargs[i] != "") {
+			arg[i] = (char *)appargs[i].c_str();
+			++i;
+		}
+
+		arg[i] = (char *)0;
+
+		int retval = apps[command](i, (char **)arg);
+		return retval;
+		if (retval) {
+			cout << "Command '" << command << "' failed, returned " << retval << endl;
+
+			if (exit_on_fail && retval) {
+				exit(retval);
+			}
+
+		}
+	} 
+	else {
+		cout << endl << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+		return -1;
+	}
+}
+#else
 
 static void run_cmd(const vector<string> &appargs, bool exit_on_fail, bool silently_fail = false)
 {
@@ -249,9 +288,12 @@ static void process_line(string &line, bool exit_on_fail)
 	run_cmd(appargs, exit_on_fail);
 }
 
+#endif
 static void restore_term(void)
 {
+#ifndef PARAM_ONLY
 	cout << "Restoring terminal\n";
+#endif
 	tcsetattr(0, TCSANOW, &orig_term);
 }
 
@@ -274,6 +316,32 @@ static void set_cpu_scaling()
 	//system("echo 1190400 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq");
 #endif
 }
+
+
+#ifdef PARAM_ONLY
+int main(int argc, char **argv)
+{
+
+
+	tcgetattr(0, &orig_term);
+	atexit(restore_term);
+
+	vector<string> cmd;
+	for(int i = 0 ; i < argc ; i++)
+	{
+		cmd.push_back(argv[i]);
+//		printf("argv[i]: %s\r\n",argv[i]);
+	}
+	int ret = run_cmd(cmd, true);
+
+	if(0)
+	{
+		list_builtins();
+		set_cpu_scaling();
+	}
+	return ret;
+}
+#else
 
 int main(int argc, char **argv)
 {
@@ -504,6 +572,7 @@ int main(int argc, char **argv)
 			char c = getchar();
 
 			switch (c) {
+			case 8:
 			case 127:	// backslash
 				if (mystr.length() > 0) {
 					mystr.pop_back();
@@ -604,3 +673,4 @@ int main(int argc, char **argv)
 }
 
 /* vim: set noet fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
+#endif

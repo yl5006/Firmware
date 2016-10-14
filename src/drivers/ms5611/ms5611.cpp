@@ -75,14 +75,6 @@ enum MS56XX_DEVICE_TYPES {
 	MS5607_DEVICE	= 1
 };
 
-enum MS5611_BUS {
-	MS5611_BUS_ALL = 0,
-	MS5611_BUS_I2C_INTERNAL,
-	MS5611_BUS_I2C_EXTERNAL,
-	MS5611_BUS_SPI_INTERNAL,
-	MS5611_BUS_SPI_EXTERNAL
-};
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
@@ -944,7 +936,7 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 	}
 
 	prom_u prom_buf;
-	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum);
+	device::Device *interface = bus.interface_constructor(prom_buf, bus.busnum,0);
 
 	if (interface->init() != OK) {
 		delete interface;

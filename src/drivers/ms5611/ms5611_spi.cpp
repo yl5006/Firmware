@@ -114,7 +114,7 @@ private:
 };
 
 device::Device *
-MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
+MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum, uint8_t chipselect ) 
 {
 #ifdef PX4_SPI_BUS_EXT
 
@@ -127,7 +127,12 @@ MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 	}
 
 #endif
-	return new MS5611_SPI(busnum, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
+	if(busnum == MS5611_BUS_SPI_COSTOM) {
+		return new MS5611_SPI(busnum, (spi_dev_e)chipselect, prom_buf);
+	} else {
+		return new MS5611_SPI(busnum, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
+
+	}
 }
 
 MS5611_SPI::MS5611_SPI(uint8_t bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
@@ -182,6 +187,21 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 	uint8_t buf[4] = { 0 | DIR_WRITE, 0, 0, 0 };
 
 	/* read the most recent measurement */
+#ifdef __PX4_POSIX_TI
+	//int ret = _transfer(&buf[0], &buf[0], sizeof(buf));
+	if (ERROR == easy_transfer_sel((uint8_t *)&buf[0],((uint8_t *)&buf)+1,(3)/* ((uint8_t *)&mpu_report), sizeof(mpu_report)*/)) {
+		printf("here is no info in ms5611\r\n");
+		return 1;
+	} else {
+		/* fetch the raw value */
+		cvt->b[0] = buf[3];
+		cvt->b[1] = buf[2];
+		cvt->b[2] = buf[1];
+		cvt->b[3] = 0;
+	}
+
+	return count;
+#else
 	int ret = _transfer(&buf[0], &buf[0], sizeof(buf));
 
 	if (ret == OK) {
@@ -195,6 +215,7 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 	}
 
 	return ret;
+#endif
 }
 
 int
@@ -222,6 +243,22 @@ MS5611_SPI::ioctl(unsigned operation, unsigned &arg)
 
 	return 0;
 }
+#ifdef __PX4_POSIX_TI
+int
+MS5611_SPI::_reset() {
+	uint8_t cmd[2] = { ADDR_RESET_CMD | DIR_WRITE,0};
+	//return  _transfer(cmd, nullptr, sizeof(cmd));
+
+	if (ERROR == easy_transfer_sel((uint8_t *)cmd,((uint8_t *)cmd)+1,(2)/* ((uint8_t *)&mpu_report), sizeof(mpu_report)*/)) {
+		printf("here is no info in ms5611\r\n");
+		return ERROR;
+	} else {
+		return OK;
+	}
+//	uint8_t cmd = ADDR_RESET_CMD | DIR_WRITE;
+//	return  _transfer(&cmd, nullptr, 1);
+}
+#else
 
 int
 MS5611_SPI::_reset()
@@ -231,6 +268,22 @@ MS5611_SPI::_reset()
 	return  _transfer(&cmd, nullptr, 1);
 }
 
+#endif
+
+
+#ifdef __PX4_POSIX_TI
+int
+MS5611_SPI::_measure(unsigned addr) {
+	uint8_t cmd[2] = {(uint8_t) (addr | DIR_WRITE),0};
+	if (ERROR == easy_transfer_sel((uint8_t *)cmd,((uint8_t *)cmd)+1,(2)/* ((uint8_t *)&mpu_report), sizeof(mpu_report)*/)) {
+		printf("here is no info in ms5611\r\n");
+		return ERROR;
+	} else {
+		return OK;
+	}
+	//return  _transfer(cmd, nullptr, sizeof(cmd));
+}
+#else
 int
 MS5611_SPI::_measure(unsigned addr)
 {
@@ -238,7 +291,7 @@ MS5611_SPI::_measure(unsigned addr)
 
 	return _transfer(&cmd, nullptr, 1);
 }
-
+#endif
 
 int
 MS5611_SPI::_read_prom()
@@ -282,9 +335,12 @@ uint16_t
 MS5611_SPI::_reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
-
+#ifdef __PX4_POSIX_TI
+	// general register transfer at low clock speed
+	easy_transfer_sel((uint8_t *)cmd, (uint8_t *)&cmd[1],2);
+#else
 	_transfer(cmd, cmd, sizeof(cmd));
-
+#endif
 	return (uint16_t)(cmd[1] << 8) | cmd[2];
 }
 

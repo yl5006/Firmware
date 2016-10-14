@@ -105,7 +105,7 @@ private:
 };
 
 device::Device *
-MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
+MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum, uint8_t chipselect )
 {
 	return new MS5611_I2C(busnum, prom_buf);
 }
@@ -139,6 +139,10 @@ MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 	/* read the most recent measurement */
 	uint8_t cmd = 0;
 	int ret = transfer(&cmd, 1, &buf[0], 3);
+	if(ret < 0)
+	{
+		warnx("[%s : %d][%s] transfer\r\n",__FILE__,__LINE__,__FUNCTION__);
+	}
 
 	if (ret == PX4_OK) {
 		/* fetch the raw value */
@@ -219,6 +223,10 @@ MS5611_I2C::_reset()
 	/* bump the retry count */
 	_retries = 10;
 	result = transfer(&cmd, 1, nullptr, 0);
+	if(result < 0)
+	{
+		warnx("[%s : %d][%s] transfer\r\n",__FILE__,__LINE__,__FUNCTION__);
+	}
 	_retries = old_retrycount;
 
 	return result;
@@ -234,7 +242,12 @@ MS5611_I2C::_measure(unsigned addr)
 	_retries = 0;
 
 	uint8_t cmd = addr;
-	return transfer(&cmd, 1, nullptr, 0);
+	int result = transfer(&cmd, 1, nullptr, 0);
+	if(result < 0)
+	{
+		warnx("[%s : %d][%s] transfer\r\n",__FILE__,__LINE__,__FUNCTION__);
+	}
+	return result;
 }
 
 int
@@ -260,6 +273,7 @@ MS5611_I2C::_read_prom()
 		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
 
 		if (PX4_OK != transfer(&cmd, 1, &prom_buf[0], 2)) {
+			warnx("[%s : %d][%s] transfer\r\n",__FILE__,__LINE__,__FUNCTION__);
 			break;
 		}
 

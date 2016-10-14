@@ -30,13 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if(${OS} STREQUAL "nuttx")
+	list(APPEND srcs
+		pwm.c
+		)
+else()
+	list(APPEND srcs
+		pwm_system_posix.cpp
+		)
+endif()
+
+
 px4_add_module(
 	MODULE systemcmds__pwm
 	MAIN pwm
 	STACK_MAIN 2400
 	COMPILE_FLAGS
-	SRCS
-		pwm.c
+	SRCS ${srcs}
 	DEPENDS
 		platforms__common
 	)

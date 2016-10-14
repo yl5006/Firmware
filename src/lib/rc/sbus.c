@@ -42,6 +42,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
+#ifdef __PX4_POSIX
+#include <linux/serial.h>
+#include <sys/ioctl.h>
+#endif
 #include <string.h>
 
 #ifdef TIOCSSINGLEWIRE
@@ -50,6 +54,8 @@
 
 #include "sbus.h"
 #include <drivers/drv_hrt.h>
+
+extern void printf(const char *format,...);
 
 #define SBUS_START_SYMBOL	0x0f
 
@@ -89,7 +95,7 @@
 #define SBUS_TARGET_MAX 2000.0f
 
 #ifdef SBUS_DEBUG
-#include <stdio.h>
+//#include <stdio.h>
 #endif
 
 /* pre-calculate the floating point stuff as far as possible at compile time */
@@ -152,13 +158,47 @@ sbus_config(int sbus_fd, bool singlewire)
 	int ret = -1;
 
 	if (sbus_fd >= 0) {
+#ifdef __PX4_POSIX
 		struct termios t;
 
 		/* 100000bps, even parity, two stop bits */
 		tcgetattr(sbus_fd, &t);
-		cfsetspeed(&t, 100000);
-		t.c_cflag |= (CSTOPB | PARENB);
+		ret=cfsetspeed(&t, B38400);
+		t.c_iflag |= (INPCK );
+		t.c_cflag &= ~PARODD;
+		t.c_cflag &= ~CSIZE;
+		t.c_cflag |=  CLOCAL | CREAD;
+		t.c_cflag |= (CSTOPB | PARENB | CS8);
+		t.c_cc[VTIME]  = 0; //VTIME:非cannoical模式读时的延时，以十分之一秒位单位
+		t.c_cc[VMIN] = 0; //VMIN:非canonical模式读到最小字符数
+		tcflush(sbus_fd,TCIFLUSH);
 		tcsetattr(sbus_fd, TCSANOW, &t);
+		struct serial_struct ss, ss_set;
+		if((ioctl(sbus_fd,TIOCGSERIAL,&ss))<0){
+			printf("BAUD: error to get the serial_struct info\n");
+		        return -1;
+		 }
+		 ss.flags = (ss.flags & ~ASYNC_SPD_MASK) | ASYNC_SPD_CUST;
+		 ss.custom_divisor =  (ss.baud_base + (100000 / 2)) / 100000;
+		  if((ioctl(sbus_fd,TIOCSSERIAL,&ss))<0){
+			  printf("BAUD: error to set serial_struct:\n");
+		        return -2;
+		 }
+		  if((ioctl(sbus_fd,TIOCSSERIAL,&ss))<0){
+					  printf("BAUD: error to set serial_struct:\n");
+				        return -2;
+				 }
+		  ioctl(sbus_fd,TIOCGSERIAL,&ss_set);
+		     printf("BAUD: success set baud to %d,custom_divisor=%d,baud_base=%d\n",100000,ss_set.custom_divisor,ss_set.baud_base);
+#else
+		 	struct termios t;
+
+		 	/* 100000bps, even parity, two stop bits */
+		 	tcgetattr(sbus_fd, &t);
+		 	cfsetspeed(&t, 100000);
+		 	t.c_cflag |= (CSTOPB | PARENB);
+		 	tcsetattr(sbus_fd, TCSANOW, &t);
+#endif
 
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL */

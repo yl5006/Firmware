@@ -545,7 +545,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
 				lidar.current_distance += params.lidar_calibration_offset;
 			}
-
+			if(lidar.type!=distance_sensor_s::MAV_DISTANCE_SENSOR_MILLIWAVE)
+			{
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
 
 				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance
@@ -590,6 +591,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				} else {
 					lidar_valid = false;
 				}
+			}
 			}
 
 			/* optical flow */

@@ -86,6 +86,9 @@ const char *reason_no_gps_cmd = "no gps cmd";
 const char *reason_no_home = "no home";
 const char *reason_no_datalink = "no datalink";
 
+extern int sys_language;
+//add critical message for chinese by yaoling
+
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
 // will be true for a valid transition or false for a invalid transition. In some cases even
@@ -215,8 +218,11 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 						// Fail transition if we need safety switch press
 
 					} else if (safety->safety_switch_available && !safety->safety_off) {
-
-						mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Press safety switch first!");
+						if (sys_language == 0) {
+							mavlink_log_critical(mavlink_log_pub,"未解锁，请先按安全开关");
+						} else {
+							mavlink_log_critical(mavlink_log_pub,"NOT ARMING: Press safety switch first!");
+						}
 						feedback_provided = true;
 						valid_transition = false;
 					}
@@ -226,8 +232,11 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					if (!status_flags->circuit_breaker_engaged_power_check) {
 						// Fail transition if power is not good
 						if (!status_flags->condition_power_input_valid) {
-
-							mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Connect power module.");
+							if (sys_language == 0) {
+								mavlink_log_critical(mavlink_log_pub, "未解锁，连接电源模块");
+							} else {
+								mavlink_log_critical(mavlink_log_pub,"NOT ARMING: Connect power module.");
+							}
 							feedback_provided = true;
 							valid_transition = false;
 						}
@@ -237,19 +246,34 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
 							if (avionics_power_rail_voltage < 4.5f) {
-								mavlink_log_critical(mavlink_log_pub, "NOT ARMING: Avionics power low: %6.2f Volt",
-												 (double)avionics_power_rail_voltage);
+								if (sys_language == 0) {
+									mavlink_log_critical(mavlink_log_pub,"未解锁: 系统电压低: %6.2f V",
+											(double )avionics_power_rail_voltage);
+								} else {
+									mavlink_log_critical(mavlink_log_pub,"NOT ARMING: Avionics power low: %6.2f Volt",
+											(double )avionics_power_rail_voltage);
+								}
 								feedback_provided = true;
 								valid_transition = false;
 
 							} else if (avionics_power_rail_voltage < 4.9f) {
-								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt",
-												 (double)avionics_power_rail_voltage);
+								if (sys_language == 0) {
+									mavlink_log_critical(mavlink_log_pub,"注意: 系统电压低: %6.2f V",
+											(double )avionics_power_rail_voltage);
+								} else {
+									mavlink_log_critical(mavlink_log_pub,"CAUTION: Avionics power low: %6.2f Volt",
+											(double )avionics_power_rail_voltage);
+								}
 								feedback_provided = true;
 
 							} else if (avionics_power_rail_voltage > 5.4f) {
-								mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt",
-												 (double)avionics_power_rail_voltage);
+								if (sys_language == 0) {
+									mavlink_log_critical(mavlink_log_pub,"注意: 系统电压高: %6.2f V",
+											(double )avionics_power_rail_voltage);
+								} else {
+									mavlink_log_critical(mavlink_log_pub,"CAUTION: Avionics power high: %6.2f Volt",
+											(double )avionics_power_rail_voltage);
+								}
 								feedback_provided = true;
 							}
 						}
@@ -274,17 +298,34 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
 				if (status_flags->condition_system_sensors_initialized) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot before arming");
-
+					if (sys_language == 0) {
+						mavlink_log_critical(mavlink_log_pub,
+								"预备飞行,解锁前重启");
+					} else {
+						mavlink_log_critical(mavlink_log_pub,
+								"Preflight check resolved, reboot before arming");
+					}
 				} else {
-					mavlink_log_critical(mavlink_log_pub, "Preflight check failed, refusing to arm");
+					if (sys_language == 0) {
+						mavlink_log_critical(mavlink_log_pub,
+								"预备飞行检查失败,拒绝解锁");
+					} else {
+						mavlink_log_critical(mavlink_log_pub,
+								"Preflight check failed, refusing to arm");
+					}
 				}
 
 				feedback_provided = true;
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 				   status_flags->condition_system_sensors_initialized) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight check resolved, reboot to complete");
+				if (sys_language == 0) {
+					mavlink_log_critical(mavlink_log_pub,
+							"预备飞行检查，重启完成");
+				} else {
+					mavlink_log_critical(mavlink_log_pub,
+							"Preflight check resolved, reboot to complete");
+				}
 				feedback_provided = true;
 
 			} else {
@@ -302,8 +343,13 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 				if (status_flags->condition_system_hotplug_timeout) {
 					if (!status_flags->condition_system_prearm_error_reported) {
-						mavlink_log_critical(mavlink_log_pub,
-										 "Not ready to fly: Sensors not set up correctly");
+						if (sys_language == 0) {
+							mavlink_log_critical(mavlink_log_pub,
+									"预备飞行失败:传感器设置未完成");
+						} else {
+							mavlink_log_critical(mavlink_log_pub,
+									"Not ready to fly: Sensors not set up correctly");
+						}
 						status_flags->condition_system_prearm_error_reported = true;
 					}
 				}
@@ -339,8 +385,13 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s - %s", state_names[status->arming_state],
-							 state_names[new_arming_state]);
+			if (sys_language == 0) {
+				mavlink_log_critical(mavlink_log_pub,"状态转换拒绝");
+			} else {
+				mavlink_log_critical(mavlink_log_pub,"TRANSITION_DENIED: %s - %s",
+						state_names[status->arming_state],
+						state_names[new_arming_state]);
+			}
 		}
 	}
 
@@ -1124,13 +1175,17 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 
 	bool preflight_ok = Commander::preflightCheck(mavlink_log_pub, true, true, true, true,
 			    checkAirspeed, (status->rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT),
-			    !can_arm_without_gps, true, status->is_vtol, reportFailures);
+			    !can_arm_without_gps, false, status->is_vtol, reportFailures);//change true to false pass 动态检查
 
 	if (!status_flags->circuit_breaker_engaged_usb_check && status_flags->usb_connected && prearm) {
 		preflight_ok = false;
 
 		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
+			if (sys_language == 0) {
+				mavlink_log_critical(mavlink_log_pub,"解锁被拒绝：与USB飞行不安全");
+			} else {
+				mavlink_log_critical(mavlink_log_pub,"ARMING DENIED: Flying with USB is not safe");
+			}
 		}
 	}
 
@@ -1138,7 +1193,11 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: VERY LOW BATTERY");
+			if (sys_language == 0) {
+				mavlink_log_critical(mavlink_log_pub,"解锁被拒绝：低电池电量");
+			} else {
+				mavlink_log_critical(mavlink_log_pub,"ARMING DENIED: VERY LOW BATTERY");
+			}
 		}
 	}
 

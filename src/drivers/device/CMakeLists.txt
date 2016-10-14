@@ -45,7 +45,7 @@ if(${OS} STREQUAL "nuttx")
 			cdev.cpp
 			i2c_nuttx.cpp
 			pio.cpp
-			spi.cpp
+			spi_nuttx.cpp
 		)
 	endif()
 else()
@@ -55,6 +55,9 @@ else()
 		vfile.cpp
 		vdev_posix.cpp
 		i2c_posix.cpp
+		spi_posix.cpp
+	        pwm_posix.cpp
+	        gpio_posix.cpp
 		sim.cpp
 	)
 endif()

@@ -64,6 +64,7 @@ set(msg_file_names
 	gps_inject_data.msg
 	hil_sensor.msg
 	home_position.msg
+	horizontal_distance.msg
 	input_rc.msg
 	log_message.msg
 	manual_control_setpoint.msg

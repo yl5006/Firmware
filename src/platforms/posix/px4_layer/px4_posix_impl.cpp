@@ -56,7 +56,7 @@ extern pthread_t _shell_task_id;
 
 __BEGIN_DECLS
 
-long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
+long PX4_TICKS_PER_SEC = 1000L;//sysconf(_SC_CLK_TCK);  //不改可能一样
 
 #ifdef CONFIG_SHMEM
 extern void init_params(void);
@@ -86,12 +86,12 @@ void init_once(void)
 void init(int argc, char *argv[], const char *app_name)
 {
 	printf("\n");
-	printf("______  __   __    ___ \n");
-	printf("| ___ \\ \\ \\ / /   /   |\n");
-	printf("| |_/ /  \\ V /   / /| |\n");
-	printf("|  __/   /   \\  / /_| |\n");
-	printf("| |     / /^\\ \\ \\___  |\n");
-	printf("\\_|     \\/   \\/     |_/\n");
+	printf(" _____    _             _   ___________        \n");
+	printf("| ____|  \\ \\    __    / /  |___   ____|       \n");
+	printf("| |___    \\ \\  /  \\  / /       |  |           \n");
+	printf("|  ___|    \\ \\/ /\\ \\/ /        |  |           \n");
+	printf("| |___      \\  /  \\  /         |  |           \n");
+	printf("|_____|      \\/    \\/          |__|           \n");
 	printf("\n");
 	printf("%s starting.\n", app_name);
 	printf("\n");

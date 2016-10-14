@@ -84,14 +84,20 @@ protected:
 	 * @param devname	Device node name
 	 * @param bus		I2C bus on which the device lives
 	 * @param address	I2C bus address, or zero if set_address will be used
+ 	 * @param frequency	I2C bus frequency for the device (currently not used)
+	 * @param irq		Interrupt assigned to the device (or zero if none)
 	 */
 	I2C(const char *name,
 	    const char *devname,
 	    int bus,
-	    uint16_t address);
+	    uint16_t address,
+            uint32_t frequency,
+	    int irq = 0);                //add by yaoling                             
 	virtual ~I2C();
 
 	virtual int	init();
+
+	virtual int	probe();
 
 	virtual ssize_t	read(file_t *handlep, char *buffer, size_t buflen);
 	virtual ssize_t	write(file_t *handlep, const char *buffer, size_t buflen);
@@ -122,11 +128,24 @@ protected:
 	 */
 	int		transfer(struct i2c_msg *msgv, unsigned msgs);
 
+	/**
+	 * Change the bus address.
+	 *
+	 * Most often useful during probe() when the driver is testing
+	 * several possible bus addresses.  /////////add yaoling
+	 *
+	 * @param address	The new bus address to set.
+	 */
+	void		set_address(uint16_t address)
+	{
+		_address = address;
+		_device_id.devid_s.address = _address;
+	}
+
 private:
 	uint16_t		_address;
 	int 			_fd;
-	std::string		_dname;
-
+	char 			_devname[20];
 	I2C(const device::I2C &);
 	I2C operator=(const device::I2C &);
 };

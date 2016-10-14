@@ -68,6 +68,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/mc_virtual_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -78,6 +79,8 @@
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/horizontal_distance.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
@@ -88,12 +91,15 @@
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
 
+#include <math.h>
+
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
 #define MIN_DIST		0.01f
 #define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
 #define ONE_G	9.8066f
-
+#define ZERO_FLOAT 			1E-4
+static const double PI=3.141592f;
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -131,6 +137,7 @@ private:
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
+	int 		_vehicle_attitude_state_sub;
 	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
@@ -141,7 +148,9 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
-
+	int		_horizontal_distance_sub;   //add by yaoling
+	int		_vertical_distance_sub;  /**< use optical flow to get vertical distance */
+		
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
 	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
@@ -150,6 +159,7 @@ private:
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
+	struct vehicle_attitude_s			_vehicle_attitude_state;		/**< real vehicle attitude plus angle*/
 	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
@@ -159,7 +169,9 @@ private:
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
-
+	struct horizontal_distance_s 			_horizontal_dis;      //add by yaoling
+	struct distance_sensor_s			_vertical_dis;
+	
 	control::BlockParamFloat _manual_thr_min;
 	control::BlockParamFloat _manual_thr_max;
 
@@ -202,6 +214,8 @@ private:
 		param_t acc_hor_max;
 		param_t alt_mode;
 		param_t opt_recover;
+		param_t safe_dis;
+		param_t safe_en;
 
 	}		_params_handles;		/**< handles for interesting parameters */
 
@@ -227,6 +241,8 @@ private:
 		float vel_max_up;
 		float vel_max_down;
 		uint32_t alt_mode;
+		float safe_dis;
+		int   safe_en;
 
 		int opt_recover;
 
@@ -341,6 +357,9 @@ private:
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
+	
+	void adjust_manual(float vx,bool positive,float &manual) ;	
+	void obstacle_avoidance(struct manual_control_setpoint_s &manual);
 
 	/**
 	 * Main sensor collection task.
@@ -361,6 +380,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
+	_vehicle_attitude_state_sub(-1),
 	_ctrl_state_sub(-1),
 	_att_sp_sub(-1),
 	_control_mode_sub(-1),
@@ -370,7 +390,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
-
+	_horizontal_distance_sub(-1),
+	_vertical_distance_sub(-1),
 	/* publications */
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
@@ -378,6 +399,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_attitude_setpoint_id(0),
 	_vehicle_status{},
 	_vehicle_land_detected{},
+	_vehicle_attitude_state{},
 	_ctrl_state{},
 	_att_sp{},
 	_manual{},
@@ -387,6 +409,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_pos_sp_triplet{},
 	_local_pos_sp{},
 	_global_vel_sp{},
+	_horizontal_dis{},
+	_vertical_dis{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
 	_vel_x_deriv(this, "VELD"),
@@ -479,6 +503,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
 	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
+	_params_handles.safe_dis		= param_find("MPC_SAFE_DIS");
+	_params_handles.safe_en			= param_find("MPC_SAFE_EN");
 	/* fetch initial parameter values */
 	parameters_update(true);
 }
@@ -600,6 +626,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.opt_recover, &i);
 		_params.opt_recover = i;
 
+		param_get(_params_handles.safe_dis, &v);
+		_params.safe_dis = v;
+		param_get(_params_handles.safe_en, &v_i);
+		_params.safe_en = v_i;
 		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
 
 		/* mc attitude control parameters*/
@@ -664,6 +694,17 @@ MulticopterPositionControl::poll_subscriptions()
 		_yaw = euler_angles(2);
 	}
 
+	orb_check(_vehicle_attitude_state_sub, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_state_sub, &_vehicle_attitude_state);
+		//test for pitch roll and yaw
+#if 0
+		printf("pitch %.2f roll %.2f yaw %.2f\r\n",
+		       (double)_vehicle_attitude_state.pitch,
+		       (double)_vehicle_attitude_state.roll,
+		       (double)_vehicle_attitude_state.yaw);
+#endif
+	}
 	orb_check(_att_sp_sub, &updated);
 
 	if (updated) {
@@ -693,6 +734,19 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
+
+	orb_check(_horizontal_distance_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(horizontal_distance), _horizontal_distance_sub, &_horizontal_dis);
+	}
+
+	orb_check(_vertical_distance_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(distance_sensor), _vertical_distance_sub, &_vertical_dis);
+	}
+
 }
 
 float
@@ -1200,6 +1254,207 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 }
 
+void MulticopterPositionControl::adjust_manual(float vx,bool positive,float &manual) {
+	float fabvx = fabsf(vx);
+	float fabmanual = 0.0f;
+	if(fabvx < 5) {
+		// fabmanual = 0.2f * fabvx;
+		// fabmanual = sqrtf(0.2f * fabvx);
+		// fabmanual = fabvx * fabvx * 0.04f;
+
+		fabmanual= sqrtf(0.2f * fabvx);
+	} else {
+		fabmanual = 1.0f;
+	}
+
+	if(positive == false) {
+		manual = - fabmanual;
+	}
+	else{
+		manual = fabmanual;
+	}
+
+}
+
+void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoint_s &manual) {
+	bool updated = false;
+	orb_check(_local_pos_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	}
+
+	orb_check(_horizontal_distance_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(horizontal_distance), _horizontal_distance_sub, &_horizontal_dis);
+	}
+
+	orb_check(_vertical_distance_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(distance_sensor), _vertical_distance_sub, &_vertical_dis);
+	}
+
+	orb_check(_vehicle_attitude_state_sub, &updated);
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_state_sub, &_vehicle_attitude_state);
+	}
+	//we get altitude from distance sensors
+	// min 30cm max 500cm but shows 0
+	// if altitude larger than calcucated safe altitude, then we do it
+	// but we should realized that when altitude equals 0, then we thought that is save enough
+	float altitude = (_vertical_dis.current_distance < (float)ZERO_FLOAT)
+	                 ? _vertical_dis.current_distance
+	                 : (_vertical_dis.current_distance + (float)0.1) *
+	                 cosf(fabs(_vehicle_attitude_state.roll)) *
+	                 cosf(fabs(_vehicle_attitude_state.pitch)) ;
+
+	//pitch distance
+	float mp_altitude = 0;
+	//roll distance
+	float mr_altitude = 0;
+	float horizontal_dis[4] = {0};
+	float vx = _local_pos.vx * cosf(_local_pos.yaw) +_local_pos.vy * sinf(_local_pos.yaw);
+	float vy = -_local_pos.vx * sinf(_local_pos.yaw) +_local_pos.vy * cosf(_local_pos.yaw);
+	//vx forward is positive , backwward is negtive
+	//vy left is negtive ,right is positive
+
+	float prepare_safe_distance_x = fabsf(vx)*1.0f;
+	float prepare_safe_distance_y = fabsf(vy)*1.5f;
+	const float stop_distance = 1.0f + _params.safe_dis;
+
+	if(fabs(_vehicle_attitude_state.pitch) < (PI / 4)) {
+		horizontal_dis[0] = (fabs(_horizontal_dis.current_distance[0] - _horizontal_dis.max_distance) < ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[0] : _horizontal_dis.current_distance[0] * (cosf(fabs(_vehicle_attitude_state.pitch)));
+		horizontal_dis[2] = (fabs(_horizontal_dis.current_distance[2] - _horizontal_dis.max_distance) < ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[2] : _horizontal_dis.current_distance[2] * (cosf(fabs(_vehicle_attitude_state.pitch)));
+		mp_altitude = (tanf(fabs(_vehicle_attitude_state.pitch))) * _params.safe_dis;
+	} else {
+		horizontal_dis[0] = _horizontal_dis.current_distance[0];
+		horizontal_dis[2] = _horizontal_dis.current_distance[2];
+		mp_altitude = _params.safe_dis;
+	}
+
+	if(fabs(_vehicle_attitude_state.roll) < (PI / 4)) {
+		horizontal_dis[1] = (fabs(_horizontal_dis.current_distance[1] - _horizontal_dis.max_distance) < ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[1] : _horizontal_dis.current_distance[1] * (cosf(fabs(_vehicle_attitude_state.roll)));
+		horizontal_dis[3] = (fabs(_horizontal_dis.current_distance[3] - _horizontal_dis.max_distance) < ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[3] : _horizontal_dis.current_distance[3] * (cosf(fabs(_vehicle_attitude_state.roll)));
+		mr_altitude = (tanf(fabs(_vehicle_attitude_state.roll))) * _params.safe_dis;
+
+	} else {
+		horizontal_dis[1] = _horizontal_dis.current_distance[1];
+		horizontal_dis[3] = _horizontal_dis.current_distance[3];
+		mr_altitude =  _params.safe_dis;
+	}
+
+	if (_horizontal_dis.type== horizontal_distance_s::MAV_DISTANCE_SENSOR_INFRARED) {
+		bool pitchtoroll = false;
+		bool rolltopitch = false;
+		float mindis=100;
+		if (horizontal_dis[0] < _params.safe_dis
+		        && horizontal_dis[2] < _params.safe_dis) {
+			pitchtoroll = true;
+		}
+		if (horizontal_dis[1] < _params.safe_dis
+		        && horizontal_dis[3] < _params.safe_dis) {
+			rolltopitch = true;
+		}
+		for(int i=0; i<4; i++) {
+			if(mindis < horizontal_dis[i])
+				mindis = horizontal_dis[i];
+		}
+		if(pitchtoroll&&rolltopitch) {
+			manual.z=-(mindis-_params.safe_dis)/2/_params.safe_dis + manual.z;
+		}
+		// pitch to do
+		if ((horizontal_dis[0] < _params.safe_dis
+		        && horizontal_dis[2] < _params.safe_dis)
+		        || (horizontal_dis[0] > stop_distance + prepare_safe_distance_x
+		            && horizontal_dis[2]
+		            > stop_distance + prepare_safe_distance_x)) {
+			//	_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max
+		} else if(altitude > mp_altitude || fabs(altitude) < ZERO_FLOAT) {
+			//20%distance before the safe distance and velocity direction is positive,decline the speed
+
+			if (horizontal_dis[0] < _params.safe_dis) {
+
+				if(horizontal_dis[0] < _params.safe_dis / 2) {
+					manual.x = -1.0;
+				} else {
+					manual.x = (horizontal_dis[0] - _params.safe_dis) / _params.safe_dis * 2;
+				}
+			} else if( horizontal_dis[0] < stop_distance + prepare_safe_distance_x ) {
+				if(manual.x > 0) { //not allowed to go forward
+					manual.x = 0;
+				}
+				if(vx > 0.1f ) {
+					adjust_manual(vx,false,manual.x);
+				}
+			}
+
+			if (horizontal_dis[2] < _params.safe_dis) {
+				if(horizontal_dis[2] < _params.safe_dis/2) {
+					manual.x=1.0;
+				} else {
+					manual.x = -(horizontal_dis[2]- _params.safe_dis) / _params.safe_dis * 2;
+				}
+			} else if( horizontal_dis[2] < stop_distance + prepare_safe_distance_x ) {
+				if(manual.x < 0) {
+					manual.x = 0;
+				}
+				if(vx < -0.1f ) {
+					adjust_manual(vx,true,manual.x);
+				}
+			}
+		}
+
+
+		// roll to do
+		if ((horizontal_dis[1] < _params.safe_dis
+		        && horizontal_dis[3] < _params.safe_dis)
+		        || (horizontal_dis[1] > stop_distance + prepare_safe_distance_y
+		            && horizontal_dis[3]
+		            > stop_distance + prepare_safe_distance_y)) {
+			//	_att_sp.roll_body = _manual.y * _params.man_roll_max;
+		} else if(altitude > mr_altitude || fabs(altitude) < ZERO_FLOAT) {
+			if (horizontal_dis[1] < _params.safe_dis) {
+				if(horizontal_dis[1] < _params.safe_dis/2) {
+					manual.y = -1.0;
+				} else {
+					manual.y = (horizontal_dis[1]- _params.safe_dis) / _params.safe_dis * 2;
+				}
+			} else if( horizontal_dis[1] < stop_distance + prepare_safe_distance_y ) {
+				if(manual.y > 0) {
+					manual.y = 0;
+				}
+				if(vy > 0.1f ) {
+					adjust_manual(vy,false,manual.y);
+				}
+			}
+
+			if (horizontal_dis[3] < _params.safe_dis) {
+				if(horizontal_dis[3] < _params.safe_dis/2) {
+					manual.y = 1.0;
+				} else {
+					manual.y = -(horizontal_dis[3]- _params.safe_dis) / _params.safe_dis * 2;
+				}
+			}  else if( horizontal_dis[3] < stop_distance + prepare_safe_distance_y ) {
+				if(manual.y < 0) {
+					manual.y = 0;
+				}
+				if(vy < -0.1f ) {
+					adjust_manual(vy,true,manual.y);
+				}
+			}
+		}
+
+	}
+
+}
+
+
 void
 MulticopterPositionControl::task_main()
 {
@@ -1209,6 +1464,7 @@ MulticopterPositionControl::task_main()
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_vehicle_attitude_state_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -1219,7 +1475,8 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
-
+	_horizontal_distance_sub = orb_subscribe(ORB_ID(horizontal_distance));
+	_vertical_distance_sub = orb_subscribe(ORB_ID(distance_sensor));
 
 	parameters_update(true);
 
@@ -1339,6 +1596,11 @@ MulticopterPositionControl::task_main()
 			_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 		}
 
+
+		if(_params.safe_en == 1) {
+			obstacle_avoidance(_manual);
+		}
+			
 		// reset the horizontal and vertical position hold flags for non-manual modes
 		// or if position / altitude is not controlled
 		if (!_control_mode.flag_control_position_enabled || !_control_mode.flag_control_manual_enabled) {

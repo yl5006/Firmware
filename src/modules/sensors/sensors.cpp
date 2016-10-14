@@ -199,6 +199,7 @@ private:
 
 	/* XXX should not be here - should be own driver */
 	DevHandle 	_h_adc;				/**< ADC driver handle */
+	int		_adc;				/**< ADC driver fd */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
 	bool 		_task_should_exit;		/**< if true, sensor task should exit */
@@ -348,6 +349,10 @@ private:
 		float battery_a_per_v;
 		int32_t battery_source;
 
+		int battery_n_cells;				//add by yaoling
+		float battery_v_charged;
+		float battery_v_empty;
+
 		float baro_qnh;
 
 		float vibration_warning_threshold;
@@ -414,6 +419,10 @@ private:
 		param_t battery_v_div;
 		param_t battery_a_per_v;
 		param_t battery_source;
+
+		param_t battery_n_cells;				//add by yaoling
+		param_t battery_v_charged;
+		param_t battery_v_empty;
 
 		param_t board_rotation;
 
@@ -562,6 +571,7 @@ Sensors	*g_sensors = nullptr;
 
 Sensors::Sensors() :
 	_h_adc(),
+	_adc(-1),
 	_last_adc(0),
 
 	_task_should_exit(true),
@@ -697,6 +707,10 @@ Sensors::Sensors() :
 	_parameter_handles.battery_v_div = param_find("BAT_V_DIV");
 	_parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
 	_parameter_handles.battery_source = param_find("BAT_SOURCE");
+
+	_parameter_handles.battery_n_cells = param_find("BAT_N_CELLS");		//add by yaoling
+	_parameter_handles.battery_v_charged = param_find("BAT_V_CHARGED");
+	_parameter_handles.battery_v_empty = param_find("BAT_V_EMPTY");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -1014,6 +1028,16 @@ Sensors::parameters_update()
 	}
 
 	param_get(_parameter_handles.battery_source, &(_parameters.battery_source));
+
+	if (param_get(_parameter_handles.battery_n_cells, &(_parameters.battery_n_cells)) != OK) {
+			warnx("%s", paramerr);
+		}
+	if (param_get(_parameter_handles.battery_v_charged, &(_parameters.battery_v_charged)) != OK) {
+			warnx("%s", paramerr);
+		}
+	if (param_get(_parameter_handles.battery_v_empty, &(_parameters.battery_v_empty)) != OK) {
+			warnx("%s", paramerr);
+		}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
 	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
@@ -1688,7 +1712,7 @@ Sensors::parameter_update_poll(bool forced)
 bool
 Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)&&!defined(__PX4_POSIX_TI) && !defined(__PX4_POSIX_BEBOP)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
@@ -1702,7 +1726,7 @@ Sensors::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *g
 bool
 Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)&&!defined(__PX4_POSIX_TI) && !defined(__PX4_POSIX_BEBOP)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
@@ -1716,7 +1740,7 @@ Sensors::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s 
 bool
 Sensors::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI)&&!defined(__PX4_POSIX_TI) && !defined(__PX4_POSIX_BEBOP)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
@@ -1780,8 +1804,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 	hrt_abstime t = hrt_absolute_time();
 
-	/* rate limit to 100 Hz */
-	if (t - _last_adc >= 10000) {
+	/* rate limit to 100 Hz */  //change to 10Hz by yaoling
+	if (t - _last_adc >= 100000) {
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 		struct adc_msg_s buf_adc[12];
 		/* read all channels available */
@@ -1791,6 +1815,46 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		float bat_current_a = 0.0f;
 		bool updated_battery = false;
 
+#if defined(ADC_BATTERY_VOLTAGE_CHANNEL) && defined(__PX4_POSIX_TI)
+	char adcname[128] = {0};
+	char value_str[10] = {0};
+	sprintf(adcname,"/sys/bus/iio/devices/iio:device0/in_voltage%d_raw",ADC_BATTERY_VOLTAGE_CHANNEL);
+	_adc = ::open(adcname, O_RDWR);
+		if (_adc < 0) {
+				warnx("Failed to open   %s for writing!\n",adcname);
+				return ;
+		}
+	ret =read(_adc,value_str,10);
+	if(ret<0)
+	{
+		warnx("fail to read adc");
+		return ;
+	}
+	float adc_voltage = (float)atof(value_str)/(4096.0f / 1.8f);  //we use 1.8 Vref
+//	warnx("read adc %.3f v,%.6f,%.6f",(double)adc_voltage,(double)_parameters.battery_n_cells,(double)_parameters.battery_v_charged);
+	bat_voltage_v = adc_voltage * _parameters.battery_n_cells*(float)6.666;//*_parameters.battery_v_charged;
+	::close(_adc);
+	if (bat_voltage_v > 0.5f)
+	{
+		updated_battery = true;
+	}
+	if (updated_battery) {
+				actuator_controls_s ctrl;
+				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+							     _armed, &_battery_status);
+
+				/* announce the battery status if needed, just publish else */
+				if (_battery_pub != nullptr) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
+		}
+
+	_last_adc = t;
+
+#else
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
 			/* Read add channels we got */
@@ -1862,6 +1926,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			_last_adc = t;
 
 		}
+#endif
 	}
 }
 
@@ -2269,7 +2334,7 @@ Sensors::task_main()
 	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
 	ret = sensors_init();
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) &&!defined(__PX4_POSIX_TI)&& !defined(__PX4_POSIX_BEBOP)
 	// TODO: move adc_init into the sensors_init call.
 	ret = ret || adc_init();
 #endif

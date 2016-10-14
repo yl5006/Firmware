@@ -83,6 +83,12 @@ int
 param_main(int argc, char *argv[])
 {
 	if (argc >= 2) {
+		#ifdef PARAM_ONLY
+		#define PARAM_CONFIG_PATH  "/fs/microsd/params"
+		param_set_default_file(PARAM_CONFIG_PATH);
+		do_import(param_get_default_file());
+		#endif
+		
 		if (!strcmp(argv[1], "save")) {
 			if (argc >= 3) {
 				return do_save(argv[2]);
@@ -136,7 +142,24 @@ param_main(int argc, char *argv[])
 				return do_show(NULL);
 			}
 		}
+		#ifdef PARAM_ONLY
+		if (!strcmp(argv[1], "set")) {
+			if (argc >= 5) {
 
+				/* if the fail switch is provided, fails the command if not found */
+				bool fail = !strcmp(argv[4], "fail");
+
+				do_set(argv[2], argv[3], fail);
+				return do_save(PARAM_CONFIG_PATH);
+			} else if (argc >= 4) {
+				do_set(argv[2], argv[3], false);
+				return do_save(PARAM_CONFIG_PATH);
+			} else {
+				warnx("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
+				return 1;
+			}
+		}
+		#else
 		if (!strcmp(argv[1], "set")) {
 			if (argc >= 5) {
 
@@ -153,7 +176,7 @@ param_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-
+		#endif
 		if (!strcmp(argv[1], "compare")) {
 			if (argc >= 4) {
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL);

@@ -63,6 +63,11 @@ then
 	if hmc5883 -C -T -I -R 4 start
 	then
 	fi
+	
+	# Add distance check
+	if hdistance start 
+	then
+	fi
 
 	# Internal SPI bus ICM-20608-G
 	if mpu6000 -T 20608 start
@@ -105,6 +110,7 @@ then
 	else
 		# FMUv2
 		if mpu6000 start
+#		if max1168 -X start
 		then
 		fi
 

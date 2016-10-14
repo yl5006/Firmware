@@ -49,6 +49,7 @@ px4_add_module(
 		airspeed_calibration.cpp
 		esc_calibration.cpp
 		PreflightCheck.cpp
+		commander_motor_test.cpp
 	DEPENDS
 		platforms__common
 	)

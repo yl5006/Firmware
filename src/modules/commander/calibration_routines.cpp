@@ -543,7 +543,7 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 		    (int)cmd.param5 == 0 &&
 		    (int)cmd.param6 == 0) {
 			calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-			mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
+			mavlink_log_info(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);//use loginf instead
 			return true;
 		} else {
 			calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);

@@ -84,19 +84,19 @@ Device::init()
 }
 
 int
-Device::dev_read(unsigned offset, void *data, unsigned count)
+Device::read(unsigned offset, void *data, unsigned count)
 {
 	return -ENODEV;
 }
 
 int
-Device::dev_write(unsigned offset, void *data, unsigned count)
+Device::write(unsigned offset, void *data, unsigned count)
 {
 	return -ENODEV;
 }
 
 int
-Device::dev_ioctl(unsigned operation, unsigned arg)
+Device::ioctl(unsigned operation, unsigned &arg)
 {
 	switch (operation) {
 	case DEVIOCGDEVICEID:

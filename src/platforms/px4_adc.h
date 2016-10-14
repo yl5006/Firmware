@@ -58,7 +58,7 @@ struct adc_msg_s {
 } __attribute__((packed));
 
 // Example settings
-#define ADC_BATTERY_VOLTAGE_CHANNEL     10
+#define ADC_BATTERY_VOLTAGE_CHANNEL     0   // change 10 to 0 for TI build
 #define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
 #define ADCSIM0_DEVICE_PATH	"/dev/adc0"

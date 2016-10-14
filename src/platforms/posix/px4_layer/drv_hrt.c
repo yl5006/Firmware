@@ -533,7 +533,7 @@ static void
 hrt_call_invoke(void)
 {
 	struct hrt_call	*call;
-	hrt_abstime deadline;
+//	hrt_abstime deadline;
 
 	hrt_lock();
 
@@ -555,7 +555,7 @@ hrt_call_invoke(void)
 		//PX4_INFO("call pop");
 
 		/* save the intended deadline for periodic calls */
-		deadline = call->deadline;
+//		deadline = call->deadline;
 
 		/* zero the deadline, as the call has occurred */
 		call->deadline = 0;
@@ -577,7 +577,8 @@ hrt_call_invoke(void)
 			// callouts to re-schedule themselves
 			// using hrt_call_delay()
 			if (call->deadline <= now) {
-				call->deadline = deadline + call->period;
+				//call->deadline = deadline + call->period;
+				call->deadline = hrt_absolute_time() + call->period;
 				//PX4_INFO("call deadline set to %lu now=%lu", call->deadline,  now);
 			}
 

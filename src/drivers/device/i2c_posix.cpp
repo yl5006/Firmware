@@ -58,7 +58,9 @@ namespace device
 I2C::I2C(const char *name,
 	 const char *devname,
 	 int bus,
-	 uint16_t address) :
+	 uint16_t address,
+	 uint32_t frequency,
+	 int irq) :              // add by yaoling
 	// base class
 	VDev(name, devname),
 	// public
@@ -104,12 +106,12 @@ I2C::init()
 		return ret;
 	}
 
-	_fd = px4_open(get_devname(), PX4_F_RDONLY | PX4_F_WRONLY);
-
-	if (_fd < 0) {
-		DEVICE_DEBUG("px4_open failed of device %s", get_devname());
-		return PX4_ERROR;
-	}
+//	_fd = px4_open(get_devname(), PX4_F_RDONLY | PX4_F_WRONLY);
+//
+//	if (_fd < 0) {
+//		DEVICE_DEBUG("px4_open failed of device %s", get_devname());
+//		return PX4_ERROR;
+//	}
 
 #ifdef __PX4_QURT
 	simulate = true;
@@ -121,20 +123,30 @@ I2C::init()
 	} else {
 #ifndef __PX4_QURT
 		// Open the actual I2C device and map to the virtual dev name
-		_fd = ::open(get_devname(), O_RDWR);
-
+		snprintf(_devname,sizeof(_devname),"/dev/i2c-%d",_bus);
+		warnx("ready to open %s", _devname);
+		_fd = ::open(_devname, O_RDWR);
 		if (_fd < 0) {
-			warnx("could not open %s", get_devname());
+			warnx("could not open %s", _devname);
 			px4_errno = errno;
 			return PX4_ERROR;
 		}
 
 #endif
 	}
-
+	ret = probe();
+		if (ret != OK) {
+			DEVICE_DEBUG("probe failed");
+			return ret;
+		}
 	return ret;
 }
-
+int
+I2C::probe()
+{
+	// Assume the device is too stupid to be discoverable.
+	return OK;
+}
 int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {

@@ -33,8 +33,18 @@
 set(srcs
 	ms5611_spi.cpp
 	ms5611_i2c.cpp
-	ms5611.cpp
-)
+	)
+
+if(${OS} STREQUAL "nuttx")
+	list(APPEND srcs
+		ms5611.cpp
+		)
+else()
+	list(APPEND srcs
+		ms5611_posix.cpp
+		)
+
+endif()
 
 px4_add_module(
 	MODULE drivers__ms5611

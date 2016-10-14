@@ -41,6 +41,18 @@
  */
 
 /**
+ * RTL go to nearest rtlpoint and go home
+ *
+ * go to nearest rtlpoint and go home
+ *
+ * @unit
+ * @min 0
+ * @max 1
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_ENABLE_JUMP, 0);
+
+/**
  * Loiter radius (FW only)
  *
  * Default value of loiter radius for missions, loiter, RTL, etc. (fixedwing only).

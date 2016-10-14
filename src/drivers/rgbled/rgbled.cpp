@@ -134,9 +134,9 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
-#ifdef __PX4_NUTTX
+//#ifdef __PX4_NUTTX
 	    , 100000 /* maximum speed supported */
-#endif
+//#endif
 	   ),
 	_mode(RGBLED_MODE_OFF),
 	_r(0),
@@ -147,8 +147,10 @@ RGBLED::RGBLED(int bus, int rgbled) :
 	_running(false),
 	_led_interval(0),
 	_should_run(false),
-	_counter(0),
-	_param_sub(-1)
+	_counter(0)
+#ifdef __PX4_NUTTX
+	,_param_sub(-1)
+#endif
 {
 	memset(&_work, 0, sizeof(_work));
 	memset(&_pattern, 0, sizeof(_pattern));

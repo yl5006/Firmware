@@ -30,16 +30,28 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(srcs
+	hmc5883_spi.cpp
+	hmc5883_i2c.cpp
+	)
+
+if(${OS} STREQUAL "nuttx")
+	list(APPEND srcs
+		hmc5883.cpp
+		)
+else()
+	list(APPEND srcs
+		hmc5883_posix.cpp
+		)
+endif()
+
 px4_add_module(
 	MODULE drivers__hmc5883
 	MAIN hmc5883
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Weffc++
-	SRCS
-		hmc5883_i2c.cpp
-		hmc5883_spi.cpp
-		hmc5883.cpp
+	SRCS ${srcs}
 	DEPENDS
 		platforms__common
 	)

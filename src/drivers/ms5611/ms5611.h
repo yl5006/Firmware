@@ -66,6 +66,15 @@
 #define IOCTL_RESET			2
 #define IOCTL_MEASURE			3
 
+enum MS5611_BUS {
+	MS5611_BUS_ALL = 0,
+	MS5611_BUS_I2C_INTERNAL,
+	MS5611_BUS_I2C_EXTERNAL,
+	MS5611_BUS_SPI_INTERNAL,
+	MS5611_BUS_SPI_EXTERNAL,
+	MS5611_BUS_SPI_COSTOM
+};
+
 namespace ms5611
 {
 
@@ -98,7 +107,7 @@ extern bool crc4(uint16_t *n_prom);
 } /* namespace */
 
 /* interface factories */
-extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum);
-extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum);
-extern device::Device *MS5611_sim_interface(ms5611::prom_u &prom_buf, uint8_t busnum);
-typedef device::Device *(*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum);
+extern device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum , uint8_t chipselect);
+extern device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint8_t busnum, uint8_t chipselect);
+extern device::Device *MS5611_sim_interface(ms5611::prom_u &prom_buf, uint8_t busnum, uint8_t chipselect);
+typedef device::Device *(*MS5611_constructor)(ms5611::prom_u &prom_buf, uint8_t busnum, uint8_t chipselect);

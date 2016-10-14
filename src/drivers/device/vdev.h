@@ -67,8 +67,8 @@ struct file_t {
 	void *priv;
 	void *vdev;
 
-	file_t() : fd(-1), flags(0), priv(NULL), vdev(NULL) {}
-	file_t(int f, void *c, int d) : fd(d), flags(f), priv(NULL), vdev(c) {}
+	file_t() : fd(-1), flags(0), mode(0),priv(NULL), vdev(NULL) {}
+	file_t(int f, void *c, int d) : fd(d), flags(f), mode(0),priv(NULL), vdev(c) {}
 };
 
 /**
@@ -107,7 +107,7 @@ public:
 	 * @param count		The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	virtual int	dev_read(unsigned address, void *data, unsigned count);
+	virtual int	read(unsigned address, void *data, unsigned count);
 
 	/**
 	 * Write directly to the device.
@@ -119,7 +119,7 @@ public:
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-	virtual int	dev_write(unsigned address, void *data, unsigned count);
+	virtual int	write(unsigned address, void *data, unsigned count);
 
 	/**
 	 * Perform a device-specific operation.
@@ -128,7 +128,7 @@ public:
 	 * @param arg           An argument to the operation.
 	 * @return              Negative errno on error, OK or positive value on success.
 	 */
-	virtual int     dev_ioctl(unsigned operation, unsigned arg);
+	virtual int ioctl(unsigned operation, unsigned &arg);
 
 	/*
 	  device bus types for DEVID
@@ -139,6 +139,8 @@ public:
 		DeviceBusType_SPI     = 2,
 		DeviceBusType_UAVCAN  = 3,
 		DeviceBusType_SIM     = 4,
+		DeviceBusType_GPIO    =	5,
+		DeviceBusType_PWM    =	6,
 	};
 
 	/*

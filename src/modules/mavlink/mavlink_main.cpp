@@ -877,6 +877,9 @@ Mavlink::get_free_tx_buf()
 		return  1500;
 
 	} else {
+#ifdef __PX4_POSIX
+		buf_free = 1024;
+#endif
 		// No FIONWRITE on Linux
 #if !defined(__PX4_LINUX) && !defined(__PX4_DARWIN)
 		(void) ioctl(_uart_fd, FIONWRITE, (unsigned long)&buf_free);
@@ -1943,26 +1946,27 @@ Mavlink::task_main(int argc, char *argv[])
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
-		configure_stream("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream("HIGHRES_IMU", 1.5f);
-		configure_stream("ATTITUDE", 20.0f);
-		configure_stream("RC_CHANNELS", 5.0f);
+		configure_stream("EXTENDED_SYS_STATE", 0.5f); //1 Hz defaut to 0.5Hz
+//		configure_stream("HIGHRES_IMU", 1.5f);
+		configure_stream("ATTITUDE", 10.0f);   //20 Hz defaut to 10Hz
+		configure_stream("RC_CHANNELS", 2.0f); //5 Hz defaut to 2Hz
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("ADSB_VEHICLE", 2.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
+		configure_stream("HORIZONTAL_DISTANCE", 1.0f);//10 Hz defaut to 1Hz
 		configure_stream("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream("VISION_POSITION_NED", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream("GLOBAL_POSITION_INT", 5.0f);
+		configure_stream("GLOBAL_POSITION_INT", 2.0f); //5 Hz defaut to 2Hz
 		configure_stream("LOCAL_POSITION_NED", 1.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 1.5f);
-		configure_stream("ATTITUDE_TARGET", 2.0f);
+//		configure_stream("ATTITUDE_TARGET", 2.0f);
 		configure_stream("HOME_POSITION", 0.5f);
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream("VFR_HUD", 4.0f);
+		configure_stream("VFR_HUD", 2.0f);		//4 Hz defaut to 2Hz
 		configure_stream("WIND_COV", 1.0f);
 		break;
 
@@ -1977,6 +1981,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 5.0f);
 		configure_stream("ADSB_VEHICLE", 10.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("HORIZONTAL_DISTANCE", 50.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
@@ -2007,6 +2012,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("GPS_RAW_INT", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
+		configure_stream("HORIZONTAL_DISTANCE", 1.0f);
 		configure_stream("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream("ATTITUDE_TARGET", 10.0f);
 		configure_stream("HOME_POSITION", 0.5f);
@@ -2032,6 +2038,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("GPS_RAW_INT", 10.0f);
 		configure_stream("ADSB_VEHICLE", 20.0f);
 		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("HORIZONTAL_DISTANCE", 20.0f);
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("VISION_POSITION_NED", 10.0f);
 		configure_stream("ESTIMATOR_STATUS", 5.0f);

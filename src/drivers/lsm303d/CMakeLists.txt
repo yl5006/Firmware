@@ -30,14 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if(${OS} STREQUAL "nuttx")
+        list(APPEND srcs
+                lsm303d.cpp
+                )
+else()
+        list(APPEND srcs
+                lsm303d_posix.cpp
+                )
+endif()
+
 px4_add_module(
 	MODULE drivers__lsm303d
 	MAIN lsm303d
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Weffc++
-	SRCS
-		lsm303d.cpp
+	SRCS ${srcs}
 	DEPENDS
 		platforms__common
 	)
