@@ -593,7 +593,7 @@ bool
 LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &date, uint32_t &size)
 {
 	if (file && file[0]) {
-		if (strstr(file, ".px4log") || strstr(file, ".ulg")) {
+		if (strstr(file, ".log") || strstr(file, ".ulg")) {//".px4log"
 			// Convert "log000" to 00:00 (minute per flight in session)
 			if (strncmp(file, "log", 3) == 0) {
 				unsigned u;

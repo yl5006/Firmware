@@ -520,7 +520,7 @@ int open_log_file()
 
 	/* start logging if we have a valid time and the time is not in the past */
 	if (log_name_timestamp && time_ok) {
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.px4log", &tt);
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.log", &tt);   //%H_%M_%S.px4log
 		snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 
 	} else {
@@ -529,7 +529,7 @@ int open_log_file()
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.px4log */
-			snprintf(log_file_name, sizeof(log_file_name), "log%03u.px4log", file_number);
+			snprintf(log_file_name, sizeof(log_file_name), "log%03u.log", file_number);//log%03u.px4log
 			snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
 
 			if (!file_exist(log_file_path)) {
