@@ -11,6 +11,8 @@ set(CMAKE_PROGRAM_PATH
 # or if it is for the TI.
 add_definitions(
 	-D__PX4_POSIX_TI
+	-D__PX4_POSIX_RPI
+	-D__LINUX
 	)
 
 set(config_module_list
@@ -18,22 +20,10 @@ set(config_module_list
 	# Board support modules
 	#
 	drivers/device
-	drivers/tone_alarm
-	drivers/ms5611
-	drivers/hmc5883
-	drivers/rgbled
-	drivers/mpu6050
-	drivers/mpu6000
-	drivers/max1168
-	drivers/gps
-	drivers/px4fmu
-	drivers/psk_cm12jl
-	drivers/l3gd20
-	drivers/lsm303d
-
 	modules/sensors
 	platforms/posix/drivers/df_mpu9250_wrapper
-	platforms/posix/drivers/df_bmp280_wrapper
+	platforms/posix/drivers/df_lsm9ds1_wrapper
+	platforms/posix/drivers/df_ms5611_wrapper
 	platforms/posix/drivers/df_hmc5883_wrapper
 	platforms/posix/drivers/df_trone_wrapper
 	platforms/posix/drivers/df_isl29501_wrapper
@@ -46,14 +36,13 @@ set(config_module_list
 	systemcmds/pwm
 	systemcmds/ver
 	systemcmds/esc_calib
+	systemcmds/reboot
 	systemcmds/topic_listener
 	systemcmds/perf
 
 	#
-	# Estimation modules (EKF/ SO3 / other filters)
+	# Estimation modules
 	#
-	#modules/attitude_estimator_ekf
-	modules/ekf_att_pos_estimator
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
@@ -65,7 +54,7 @@ set(config_module_list
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/fw_att_control
-	modules/fw_pos_control_l1	
+	modules/fw_pos_control_l1
 	modules/vtol_att_control
 
 	#
@@ -74,7 +63,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/load_mon
 	modules/param
 	modules/systemlib
 	modules/systemlib/mixer
@@ -87,6 +75,18 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
+	drivers/tone_alarm
+	drivers/ms5611
+	drivers/hmc5883
+	drivers/rgbled
+	drivers/mpu6050
+	drivers/mpu6000
+	drivers/max1168
+	drivers/gps
+	drivers/px4fmu
+	drivers/psk_cm12jl
+	drivers/l3gd20
+	drivers/lsm303d
 
 	#
 	# Libraries
@@ -112,13 +112,16 @@ set(config_module_list
 	platforms/common
 	platforms/posix/px4_layer
 	platforms/posix/work_queue
+)
 
-	)
-
+#
+# DriverFramework driver
+#
 set(config_df_driver_list
 	mpu9250
-	bmp280
+	lsm9ds1
+	ms5611
 	hmc5883
 	trone
 	isl29501
-	)
+)

@@ -291,9 +291,8 @@ int blink_msg_state()
 int led_init()
 {
 	blink_msg_end = 0;
-
-#ifndef CONFIG_ARCH_BOARD_RPI
 #if defined(__PX4_NUTTX)
+#ifndef CONFIG_ARCH_BOARD_RPI
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -316,6 +315,7 @@ int led_init()
 
 	/* switch amber off */
 	led_off(LED_AMBER);
+
 #endif
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
@@ -325,6 +325,7 @@ int led_init()
 	if (!h_rgbleds.isValid()) {
 		PX4_WARN("No RGB LED found at " RGBLED0_DEVICE_PATH);
 	}
+
 #else
 /*here we only use rgbled*/
 	h_rgbleds = px4_open(RGBLED0_DEVICE_PATH, 0);
@@ -338,13 +339,13 @@ int led_init()
 
 void led_deinit()
 {
+#if defined(__PX4_NUTTX)
 #ifndef CONFIG_ARCH_BOARD_RPI
 	DevMgr::releaseHandle(h_leds);
 #endif
-#if defined(__PX4_NUTTX)
+
 	DevMgr::releaseHandle(h_rgbleds);
 #else
-//	DevMgr::releaseHandle(h_rgbleds);
 	if (h_rgbleds >= 0) {
 		px4_close(h_rgbleds);
 	}

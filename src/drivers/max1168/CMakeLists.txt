@@ -45,7 +45,6 @@ px4_add_module(
 	MAIN max1168
 	STACK 1200
 	COMPILE_FLAGS
-		-Os
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common

@@ -827,10 +827,6 @@ struct ms5611_bus_option {
 #ifdef PX4_I2C_BUS_EXPANSION
 	{ MS5611_BUS_I2C_EXTERNAL, "/dev/i2c-2", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION,0, NULL },
 #endif
-//#endif
-#ifdef PX4_SIM_BUS_TEST
-	{ MS5611_BUS_SIM_EXTERNAL, "/dev/ms5611_sim", &MS5611_sim_interface, PX4_SIM_BUS_TEST,0, NULL },
-#endif
 	{MS5611_BUS_SPI_COSTOM,"/dev/ms5611_spi_int1",&MS5611_spi_interface,0,0,NULL}
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -1267,13 +1263,8 @@ ms5611_main(int argc, char *argv[])
 		case 'X':
 			busid = MS5611_BUS_I2C_EXTERNAL;
 			break;
-
 		case 'I':
 			busid = MS5611_BUS_I2C_INTERNAL;
-			break;
-
-		case 'S':
-			busid = MS5611_BUS_SIM_EXTERNAL;
 			break;
 		case 's':
 			busid = MS5611_BUS_SPI_INTERNAL;
