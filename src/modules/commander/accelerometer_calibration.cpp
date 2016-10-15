@@ -148,6 +148,8 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>
 
+extern int sys_language;
+
 static const char *sensor_name = "accel";
 
 static int32_t device_id[max_accel_sens];
