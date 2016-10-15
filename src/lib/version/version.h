@@ -61,6 +61,10 @@ __END_DECLS
 #  define HW_ARCH "EXCELSIOR"
 #elif defined(CONFIG_ARCH_BOARD_RPI)
 #  define	HW_ARCH "RPI"
+#elif defined(CONFIG_ARCH_BOARD_TI)
+#  define	HW_ARCH "TI"
+#elif defined(CONFIG_ARCH_BOARD_PARAMS)
+#  define	HW_ARCH "LINUXPARAMS"
 #elif defined(CONFIG_ARCH_BOARD_BEBOP)
 #  define	HW_ARCH "BEBOP"
 #elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
