@@ -49,8 +49,8 @@ set(config_module_list
 	drivers/bst
 	drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
-	drivers/milliwave
-	drivers/psk_cm12jl
+	#drivers/milliwave
+	#drivers/psk_cm12jl
 	#
 	# System commands
 	#
@@ -137,7 +137,7 @@ set(config_module_list
 	lib/ecl
 	lib/external_lgpl
 	lib/geo
-	lib/rc
+	#lib/rc
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection

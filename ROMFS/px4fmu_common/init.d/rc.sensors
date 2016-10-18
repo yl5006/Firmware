@@ -65,9 +65,9 @@ then
 	fi
 	
 	# Add distance check
-	if hdistance start 
-	then
-	fi
+#	if hdistance start 
+#	then
+#	fi
 
 	# Internal SPI bus ICM-20608-G
 	if mpu6000 -T 20608 start
