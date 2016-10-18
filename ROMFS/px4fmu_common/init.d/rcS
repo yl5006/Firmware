@@ -902,10 +902,10 @@ then
 	#
 	navigator start
 
-	if param greater THROW_ENABLE 0
-		then
-			throwtofly start
-		fi
+#	if param greater THROW_ENABLE 0
+#		then
+#			throwtofly start
+#		fi
 	#
 	# Generic setup (autostart ID not found)
 	#
