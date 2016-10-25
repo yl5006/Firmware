@@ -1314,6 +1314,9 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_state_sub, &_vehicle_attitude_state);
 	}
+	// get euler  angle   roll pitch yaw
+	matrix::Euler<float> euler = matrix::Quatf(_vehicle_attitude_state.q);
+
 	//we get altitude from distance sensors
 	// min 30cm max 500cm but shows 0
 	// if altitude larger than calcucated safe altitude, then we do it
@@ -1321,8 +1324,8 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 	float altitude = (_vertical_dis.current_distance < (float)ZERO_FLOAT)
 	                 ? _vertical_dis.current_distance
 	                 : (_vertical_dis.current_distance + (float)0.1) *
-	                 cosf(fabs(_vehicle_attitude_state.roll)) *
-	                 cosf(fabs(_vehicle_attitude_state.pitch)) ;
+	                 cosf(fabs(euler(0))) *
+	                 cosf(fabs(euler(1))) ;
 
 	//pitch distance
 	float mp_altitude = 0;
@@ -1338,24 +1341,24 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 	float prepare_safe_distance_y = fabsf(vy)*1.5f;
 	const float stop_distance = 1.0f + _params.safe_dis;
 
-	if(fabs(_vehicle_attitude_state.pitch) < (PI / 4)) {
+	if(fabs(euler(1)) < (PI / 4)) {
 		horizontal_dis[0] = (fabs(_horizontal_dis.current_distance[0] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[0] : _horizontal_dis.current_distance[0] * (cosf(fabs(_vehicle_attitude_state.pitch)));
+		                    ? _horizontal_dis.current_distance[0] : _horizontal_dis.current_distance[0] * (cosf(fabs(euler(1))));
 		horizontal_dis[2] = (fabs(_horizontal_dis.current_distance[2] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[2] : _horizontal_dis.current_distance[2] * (cosf(fabs(_vehicle_attitude_state.pitch)));
-		mp_altitude = (tanf(fabs(_vehicle_attitude_state.pitch))) * _params.safe_dis;
+		                    ? _horizontal_dis.current_distance[2] : _horizontal_dis.current_distance[2] * (cosf(fabs(euler(1))));
+		mp_altitude = (tanf(fabs(euler(1)))) * _params.safe_dis;
 	} else {
 		horizontal_dis[0] = _horizontal_dis.current_distance[0];
 		horizontal_dis[2] = _horizontal_dis.current_distance[2];
 		mp_altitude = _params.safe_dis;
 	}
 
-	if(fabs(_vehicle_attitude_state.roll) < (PI / 4)) {
+	if(fabs(euler(0)) < (PI / 4)) {
 		horizontal_dis[1] = (fabs(_horizontal_dis.current_distance[1] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[1] : _horizontal_dis.current_distance[1] * (cosf(fabs(_vehicle_attitude_state.roll)));
+		                    ? _horizontal_dis.current_distance[1] : _horizontal_dis.current_distance[1] * (cosf(fabs(euler(0))));
 		horizontal_dis[3] = (fabs(_horizontal_dis.current_distance[3] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[3] : _horizontal_dis.current_distance[3] * (cosf(fabs(_vehicle_attitude_state.roll)));
-		mr_altitude = (tanf(fabs(_vehicle_attitude_state.roll))) * _params.safe_dis;
+		                    ? _horizontal_dis.current_distance[3] : _horizontal_dis.current_distance[3] * (cosf(fabs(euler(0))));
+		mr_altitude = (tanf(fabs(euler(0)))) * _params.safe_dis;
 
 	} else {
 		horizontal_dis[1] = _horizontal_dis.current_distance[1];
