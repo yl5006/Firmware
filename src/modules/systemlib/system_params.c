@@ -153,3 +153,14 @@ PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_LOGGER, 0);
+
+/**
+ * SYS_LANGUAGE
+ *
+ * @value 0 Chinese (default)
+ * @value 1 English 
+ * @min 0
+ * @max 1
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_LANGUAGE, 0);
