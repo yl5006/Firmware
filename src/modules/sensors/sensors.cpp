@@ -307,6 +307,7 @@ private:
 		int rc_map_offboard_sw;
 		int rc_map_kill_sw;
 		int rc_map_trans_sw;
+		int rc_map_gear_sw;
 
 		int rc_map_flaps;
 
@@ -331,6 +332,7 @@ private:
 		float rc_offboard_th;
 		float rc_killswitch_th;
 		float rc_trans_th;
+		float rc_gear_th;
 		bool rc_assist_inv;
 		bool rc_auto_inv;
 		bool rc_rattitude_inv;
@@ -341,6 +343,7 @@ private:
 		bool rc_offboard_inv;
 		bool rc_killswitch_inv;
 		bool rc_trans_inv;
+		bool rc_gear_inv;
 
 		float battery_voltage_scaling;
 		float battery_current_scaling;
@@ -384,6 +387,7 @@ private:
 		param_t rc_map_offboard_sw;
 		param_t rc_map_kill_sw;
 		param_t rc_map_trans_sw;
+		param_t rc_map_gear_sw;
 
 		param_t rc_map_flaps;
 
@@ -412,6 +416,7 @@ private:
 		param_t rc_offboard_th;
 		param_t rc_killswitch_th;
 		param_t rc_trans_th;
+		param_t rc_gear_th;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -666,6 +671,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
 	_parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
 	_parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
+	_parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -695,6 +701,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
 	_parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
 	_parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
+	_parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
 
 
 	/* Differential pressure offset */
@@ -876,6 +883,10 @@ Sensors::parameters_update()
 		warnx("%s", paramerr);
 	}
 
+	if (param_get(_parameter_handles.rc_map_gear_sw, &(_parameters.rc_map_gear_sw)) != OK) {
+		warnx("%s", paramerr);
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
@@ -923,6 +934,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_trans_th, &(_parameters.rc_trans_th));
 	_parameters.rc_trans_inv = (_parameters.rc_trans_th < 0);
 	_parameters.rc_trans_th = fabs(_parameters.rc_trans_th);
+	param_get(_parameter_handles.rc_gear_th, &(_parameters.rc_gear_th));
+	_parameters.rc_gear_inv = (_parameters.rc_gear_th < 0);
+	_parameters.rc_gear_th = fabs(_parameters.rc_gear_th);
 
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -939,6 +953,7 @@ Sensors::parameters_update()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_OFFBOARD] = _parameters.rc_map_offboard_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_KILLSWITCH] = _parameters.rc_map_kill_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION] = _parameters.rc_map_trans_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_GEAR] = _parameters.rc_map_gear_sw - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -2196,6 +2211,8 @@ Sensors::rc_poll()
 					     _parameters.rc_killswitch_th, _parameters.rc_killswitch_inv);
 			manual.transition_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_TRANSITION,
 						   _parameters.rc_trans_th, _parameters.rc_trans_inv);
+			manual.gear_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_GEAR,
+					     _parameters.rc_gear_th, _parameters.rc_gear_inv);
 
 			/* publish manual_control_setpoint topic */
 			if (_manual_control_pub != nullptr) {
