@@ -216,6 +216,11 @@ Mission::on_active()
 			set_mission_item_reached();
 		}
 
+		if(item_contains_command(&_mission_item))
+		{
+			issue_command(&_mission_item);
+		}
+
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
 			advance_mission();

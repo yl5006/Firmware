@@ -489,4 +489,4 @@ PARAM_DEFINE_FLOAT(MPC_SAFE_DIS, 3.0f);
  * @value 1 enable
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_SAFE_EN, 1);
+PARAM_DEFINE_INT32(MPC_SAFE_EN, 0);

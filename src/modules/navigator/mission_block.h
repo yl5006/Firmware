@@ -75,6 +75,9 @@ public:
 	/* TODO: move this to a helper class in navigator */
 	static bool item_contains_position(const struct mission_item_s *item);
 
+	/* TODO: move this to a helper class in navigator */
+	static bool item_contains_command(const struct mission_item_s *item);
+
 protected:
 	/**
 	 * Check if mission item has been reached
