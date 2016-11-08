@@ -1237,7 +1237,7 @@ Mavlink::send_statustext_info(const char *string)
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	mavlink_log_critical(&_mavlink_log_pub, string);
+	mavlink_log_info(&_mavlink_log_pub, string);//critical
 }
 
 void

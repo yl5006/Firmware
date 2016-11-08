@@ -216,7 +216,7 @@ Mission::on_active()
 			set_mission_item_reached();
 		}
 
-		if(item_contains_command(&_mission_item))
+		if(item_contains_command(&_mission_item))   //add by yaoling
 		{
 			issue_command(&_mission_item);
 		}
@@ -470,11 +470,17 @@ Mission::set_mission_items()
 
 			if (_navigator->get_land_detected()->landed) {
 				/* landed, refusing to take off without a mission */
-
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, refusing takeoff");
-
+				if (sys_language == 0) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "没有有效的任务可用，拒绝起飞");
+				} else {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, refusing takeoff");
+				}
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, loitering");
+				if (sys_language == 0) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "没有有效的任务可用，悬停");
+				} else {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, loitering");
+				}
 			}
 
 			user_feedback_done = true;
@@ -1175,54 +1181,59 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 
 		} else {
 			/* if it's not a DO_JUMP, then we were successful */
-			if((_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL||
-			   _navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER||
-			   _navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS )&&
-			   _param_mission_rtljump.get() == 1 &&
-			   offset==0)
-				{
-					int 	next=-1;
-					float d_current=99999999,d_tmp=0;
-					int nearestmission=0;
-					while((index_to_read+next)<(int)mission->count){
-							if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
-								/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
-								return false;
-							}
-							if(mission_item_tmp.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)
-							{
-								break;
-							}
-							next++;
-					}
-				    while((index_to_read+next)<(int)mission->count){
-				    	  if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
-				    		/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-				    		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
-				    		return false;
-				    		}
-							d_tmp=get_distance_to_next_waypoint(mission_item_tmp.lat, mission_item_tmp.lon,_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-							if(d_current<d_tmp)
-								{
-								d_current=d_tmp;
-								nearestmission=index_to_read+next;
-								}
-							next++;
-							}
-						report_do_jump_mission_changed(nearestmission,mission_item_tmp.do_jump_repeat_count);
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL JUMP waypoint %d",nearestmission);
-				}
-				else
-				{
+//  		do it and test later
+//			if((_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL||
+//			   _navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER||
+//			   _navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS )&&
+//			   _param_mission_rtljump.get() == 1 &&
+//			   offset==0)
+//				{
+//					int 	next=-1;
+//					float d_current=99999999,d_tmp=0;
+//					int nearestmission=0;
+//					while((index_to_read+next)<(int)mission->count){
+//							if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
+//								/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+//								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
+//								return false;
+//							}
+//							if(mission_item_tmp.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)
+//							{
+//								break;
+//							}
+//							next++;
+//					}
+//				    while((index_to_read+next)<(int)mission->count){
+//				    	  if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
+//				    		/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+//				    		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
+//				    		return false;
+//				    		}
+//							d_tmp=get_distance_to_next_waypoint(mission_item_tmp.lat, mission_item_tmp.lon,_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+//							if(d_current<d_tmp)
+//								{
+//								d_current=d_tmp;
+//								nearestmission=index_to_read+next;
+//								}
+//							next++;
+//							}
+//						report_do_jump_mission_changed(nearestmission,mission_item_tmp.do_jump_repeat_count);
+//						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL JUMP waypoint %d",nearestmission);
+//				}
+//				else
+//				{
 					memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
 					return true;
-				}
+//				}
 		}
 	}
 
 	/* we have given up, we don't want to cycle forever */
-	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP is cycling, giving up");
+	if (sys_language == 0) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "错误:跳转任务是个循环，放弃");
+	} else {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP is cycling, giving up");
+	}
 	return false;
 }
 

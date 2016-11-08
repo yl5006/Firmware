@@ -153,11 +153,19 @@ RCLoss::advance_rcl()
 	case RCL_STATE_NONE:
 		if (_param_loitertime.get() > 0.0f) {
 			warnx("RC loss, OBC mode, loiter");
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, loitering");
+			if (sys_language == 0) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "遥控丢失,悬停");
+				} else {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, loitering");
+				}
 			_rcl_state = RCL_STATE_LOITER;
 		} else {
 			warnx("RC loss, OBC mode, slip loiter, terminate");
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, terminating");
+			if (sys_language == 0) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "遥控丢失，终止");
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, terminating");
+			}
 			_rcl_state = RCL_STATE_TERMINATE;
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();

@@ -183,7 +183,11 @@ DataLinkLoss::advance_dll()
 		if (_navigator->get_vstatus()->data_link_lost_counter > _param_numberdatalinklosses.get()) {
 			warnx("%d data link losses, limit is %d, fly to airfield home",
 					_navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "too many DL losses, fly to airfield home");
+			if (sys_language == 0) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "数据链多次丢失，返回Home");
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "too many DL losses, fly to airfield home");
+			}
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();
 			reset_mission_item_reached();
@@ -203,7 +207,11 @@ DataLinkLoss::advance_dll()
 		break;
 	case DLL_STATE_FLYTOCOMMSHOLDWP:
 		warnx("fly to airfield home");
+		if (sys_language == 0) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "返航");
+		} else {
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fly to airfield home");
+		}
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
@@ -212,7 +220,11 @@ DataLinkLoss::advance_dll()
 	case DLL_STATE_FLYTOAIRFIELDHOMEWP:
 		_dll_state = DLL_STATE_TERMINATE;
 		warnx("time is up, state should have been changed manually by now");
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no manual control, terminating");
+		if (sys_language == 0) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "无手动控制，终止");
+		} else {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no manual control, terminating");
+		}
 		_navigator->get_mission_result()->stay_in_failsafe = true;
 		_navigator->set_mission_result_updated();
 		reset_mission_item_reached();

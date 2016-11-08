@@ -1783,7 +1783,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					static hrt_abstime last_sent = 0;
 
 					if (hrt_absolute_time() - last_sent > 4e6) {
-						mavlink_log_critical(&_mavlink_log_pub, "#Launch detection running");
+						mavlink_log_info(&_mavlink_log_pub, "#Launch detection running");//critical
 						last_sent = hrt_absolute_time();
 					}
 
