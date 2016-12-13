@@ -162,13 +162,21 @@ GpsFailure::advance_gpsf()
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;
 		warnx("gpsf loiter");
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "GPS failed: open loop loiter");
+		if (sys_language == 0) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "GPS失败：悬停");
+		} else {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "GPS failed: open loop loiter");
+		}
 		break;
 	case GPSF_STATE_LOITER:
 		_gpsf_state = GPSF_STATE_TERMINATE;
-		warnx("gpsf terminate");
-		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "no gps recovery, termination");
-		warnx("mavlink sent");
+	//	warnx("gpsf terminate");
+		if (sys_language == 0) {
+			mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "无gps恢复，终止...");
+		} else {
+			mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "no gps recovery, termination");
+		}
+	//	warnx("mavlink sent");
 		break;
 	case GPSF_STATE_TERMINATE:
 		warnx("gpsf end");

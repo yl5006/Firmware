@@ -53,6 +53,8 @@
 
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
 
+extern int sys_language;
+
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,

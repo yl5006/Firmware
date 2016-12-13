@@ -242,7 +242,7 @@ then
 
 		if px4io checkcrc ${IO_FILE}
 		then
-			echo "[init] PX4IO CRC OK" >> $LOG_FILE
+			echo "[init] IOBoard CRC OK" >> $LOG_FILE
 
 			set IO_PRESENT yes
 		else
@@ -265,16 +265,16 @@ then
 				usleep 500000
 				if px4io checkcrc $IO_FILE
 				then
-					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					echo "IOBoard CRC OK after updating" >> $LOG_FILE
 					tone_alarm MLL8CDE
 
 					set IO_PRESENT yes
 				else
-					echo "PX4IO update failed" >> $LOG_FILE
+					echo "IOBoard update failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			else
-				echo "PX4IO update failed" >> $LOG_FILE
+				echo "IOBoard update failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -282,7 +282,7 @@ then
 
 		if [ $IO_PRESENT == no ]
 		then
-			echo "PX4IO not found" >> $LOG_FILE
+			echo "IOBoard not found" >> $LOG_FILE
 			tone_alarm $TUNE_ERR
 		fi
 	fi
@@ -385,7 +385,7 @@ then
 			then
 				sh /etc/init.d/rc.io
 			else
-				echo "PX4IO start failed" >> $LOG_FILE
+				echo "IOBoard start failed" >> $LOG_FILE
 				tone_alarm $TUNE_ERR
 			fi
 		fi
@@ -454,7 +454,7 @@ then
 				then
 					sh /etc/init.d/rc.io
 				else
-					echo "PX4IO start failed" >> $LOG_FILE
+					echo "IOBoard start failed" >> $LOG_FILE
 					tone_alarm $TUNE_ERR
 				fi
 			fi

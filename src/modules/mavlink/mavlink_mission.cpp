@@ -85,7 +85,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 	_offboard_mission_sub(-1),
 	_mission_result_sub(-1),
 	_offboard_mission_pub(nullptr),
-	_slow_rate_limiter(_interval / 10.0f),   //10 Hz to 0.5 Hz
+	_slow_rate_limiter(_interval / 1.0f),   //10 Hz to 0.5 Hz
 	_verbose(false)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
@@ -952,7 +952,15 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 			break;
-
+		case MAV_CMD_DO_SET_SERVO:
+		case MAV_CMD_DO_DIGICAM_CONTROL:
+		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+			mission_item->params[0] = mavlink_mission_item->param1;
+			mission_item->params[1] = mavlink_mission_item->param2;
+			mission_item->params[2] = mavlink_mission_item->param3;
+			mission_item->params[3] = mavlink_mission_item->param4;
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
 			return MAV_MISSION_UNSUPPORTED;
@@ -981,8 +989,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			break;
 
 		case MAV_CMD_DO_CHANGE_SPEED:
-		case MAV_CMD_DO_SET_SERVO:
-		case MAV_CMD_DO_DIGICAM_CONTROL:
+//		case MAV_CMD_DO_SET_SERVO:
+//		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
 		case MAV_CMD_DO_MOUNT_CONTROL:
 		case MAV_CMD_IMAGE_START_CAPTURE:
@@ -991,7 +999,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_VIDEO_STOP_CAPTURE:
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_ROI:
-		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+//		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case MAV_CMD_DO_VTOL_TRANSITION:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
@@ -1044,8 +1052,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case NAV_CMD_DO_CHANGE_SPEED:
-		case NAV_CMD_DO_SET_SERVO:
-		case NAV_CMD_DO_DIGICAM_CONTROL:
+//		case NAV_CMD_DO_SET_SERVO:
+//		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
 		case NAV_CMD_IMAGE_STOP_CAPTURE:
 		case NAV_CMD_VIDEO_START_CAPTURE:
@@ -1054,7 +1062,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_ROI:
-		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+//		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		case NAV_CMD_DO_VTOL_TRANSITION:
 			break;
 
@@ -1129,7 +1137,14 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case MAV_CMD_NAV_VTOL_LAND:
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 			break;
-
+		case NAV_CMD_DO_SET_SERVO:
+		case NAV_CMD_DO_DIGICAM_CONTROL:
+		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+			mavlink_mission_item->param1 = mission_item->params[0];
+			mavlink_mission_item->param2 = mission_item->params[1];
+			mavlink_mission_item->param3 = mission_item->params[2];
+			mavlink_mission_item->param4 = mission_item->params[3];
+			break;
 		default:
 			return PX4_ERROR;
 		}

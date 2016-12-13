@@ -2797,9 +2797,9 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
 				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub,"手动操作丢失 (t=%llums)",hrt_absolute_time() / 1000);
+					mavlink_log_critical(&mavlink_log_pub,"手动操作丢失");//,hrt_absolute_time() / 1000);
 				} else {
-					mavlink_log_critical(&mavlink_log_pub,"MANUAL CONTROL LOST (at t=%llums)",hrt_absolute_time() / 1000);
+					mavlink_log_critical(&mavlink_log_pub,"MANUAL CONTROL LOST ");//(at t=%llums)",hrt_absolute_time() / 1000);
 				}
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;

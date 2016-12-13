@@ -92,8 +92,8 @@ MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
 	switch (_mission_item.nav_cmd) {
-		case NAV_CMD_DO_SET_SERVO:
-			return true;
+//		case NAV_CMD_DO_SET_SERVO:
+//			return true;
 
 		case NAV_CMD_LAND: /* fall through */
 		case NAV_CMD_VTOL_LAND:
@@ -103,7 +103,7 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_LOITER_UNLIMITED:
 			return false;
 
-		case NAV_CMD_DO_DIGICAM_CONTROL:
+//		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
 		case NAV_CMD_IMAGE_STOP_CAPTURE:
 		case NAV_CMD_VIDEO_START_CAPTURE:
@@ -112,7 +112,7 @@ MissionBlock::is_mission_item_reached()
 		case NAV_CMD_DO_MOUNT_CONTROL:
 		case NAV_CMD_DO_SET_ROI:
 		case NAV_CMD_ROI:
-		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+//		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 			return true;
 
 		case NAV_CMD_DO_VTOL_TRANSITION:
@@ -437,8 +437,9 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	// XXX: maybe extend that check onto item properties
 	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
-		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+//		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+//		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+//		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
 		item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
 		item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
 		item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
@@ -447,7 +448,7 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
 		item->nav_cmd == NAV_CMD_DO_SET_ROI ||
 		item->nav_cmd == NAV_CMD_ROI ||
-		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+//		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 
 		return false;
@@ -455,6 +456,33 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 
 	return true;
 }
+
+bool
+MissionBlock::item_contains_command(const struct mission_item_s *item)
+{
+	// XXX: first to test this three cmd
+	if (//item->nav_cmd == NAV_CMD_DO_JUMP ||
+		//item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
+		//item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+		//item->nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+		//item->nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+		//item->nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
+		//item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
+		//item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+		//item->nav_cmd == NAV_CMD_DO_SET_ROI ||
+		//item->nav_cmd == NAV_CMD_ROI ||
+		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ){
+		//item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+
+		return true;
+	}
+
+	return false;
+}
+
 
 void
 MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *item, struct position_setpoint_s *sp)

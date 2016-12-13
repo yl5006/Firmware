@@ -515,7 +515,11 @@ Navigator::task_main()
 
 				/* Issue a warning about the geofence violation once */
 				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
+					if (sys_language == 0) {
+						mavlink_log_critical(&_mavlink_log_pub, "地理围栏违规");
+					} else {
+						mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
+					}
 					_geofence_violation_warning_sent = true;
 				}
 			} else {
@@ -551,14 +555,13 @@ Navigator::task_main()
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 				_pos_sp_triplet_published_invalid_once = false;
-				if(_param_mission_rtljump.get() != 1)
-					{
+//				if(_param_mission_rtljump.get() != 1)
+//					{
 					_navigation_mode = &_rtl;
-					}
-					else
-					{
-					_navigation_mode = &_mission;
-					}
+//					}else
+//					{
+//					_navigation_mode = &_mission;
+//					}
 				break;
 			case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 				_pos_sp_triplet_published_invalid_once = false;

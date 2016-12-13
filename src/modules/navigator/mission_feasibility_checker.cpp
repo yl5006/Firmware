@@ -127,7 +127,11 @@ bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_curr
 			}
 
 			if (takeoff_alt - 1.0f < acceptance_radius) {
-				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff altitude too low!");
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "任务被拒绝：起飞高度太低！");
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff altitude too low!");
+				}
 				return false;
 			}
 		}
@@ -164,8 +168,11 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 
 			if (MissionBlock::item_contains_position(&missionitem) &&
 				!geofence.inside_polygon(missionitem.lat, missionitem.lon, missionitem.altitude)) {
-
-				mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i);
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "航点%d 地理围栏违规", i);
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i);
+				}
 				return false;
 			}
 		}
@@ -194,10 +201,18 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			warning_issued = true;
 
 			if (throw_error) {
-				mavlink_log_critical(_mavlink_log_pub, "Rejecting mission: No home pos, WP %d uses rel alt", i+1);
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "任务拒绝:没有home点， 航点%d 用参考高度", i+1);
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Rejecting mission: No home pos, WP %d uses rel alt", i+1);
+				}
 				return false;
 			} else	{
-				mavlink_log_critical(_mavlink_log_pub, "Warning: No home pos, WP %d uses rel alt", i+1);
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "警告:没有home点， 航点%d 用参考高度", i+1);
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Warning: No home pos, WP %d uses rel alt", i+1);
+				}
 				return true;
 			}
 		}
@@ -210,10 +225,18 @@ bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, 
 			warning_issued = true;
 
 			if (throw_error) {
-				mavlink_log_critical(_mavlink_log_pub, "Rejecting mission: Waypoint %d below home", i+1);
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "拒绝任务：航点％d在家以下", i+1);
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Rejecting mission: Waypoint %d below home", i+1);
+				}
 				return false;
 			} else	{
-				mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home", i+1);
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "警告：航点％d在家以下", i+1);
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home", i+1);
+				}
 				return true;
 			}
 		}
@@ -259,7 +282,11 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
 			missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
 
-			mavlink_log_critical(_mavlink_log_pub, "Rejecting mission item %i: unsupported cmd: %d", (int)(i+1), (int)missionitem.nav_cmd);
+			if (sys_language == 0) {
+				mavlink_log_critical(_mavlink_log_pub, "拒绝任务%i: 不支持航点命令%d", (int)(i+1), (int)missionitem.nav_cmd);
+			} else {
+				mavlink_log_critical(_mavlink_log_pub, "Rejecting mission item %i: unsupported cmd: %d", (int)(i+1), (int)missionitem.nav_cmd);
+			}
 			return false;
 		}
 
@@ -267,8 +294,11 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 		if (missionitem.nav_cmd == NAV_CMD_LAND &&
 			i == 0 &&
 			condition_landed) {
-
-			mavlink_log_critical(_mavlink_log_pub, "Rejecting mission that starts with LAND command while vehicle is landed.");
+			if (sys_language == 0) {
+				mavlink_log_critical(_mavlink_log_pub, "在机体在地面时拒绝以LAND命令开始的任务。");
+			} else {
+				mavlink_log_critical(_mavlink_log_pub, "Rejecting mission that starts with LAND command while vehicle is landed.");
+			}
 			return false;
 		}
 
@@ -316,25 +346,44 @@ bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size
 							return true;
 						} else {
 							/* Landing waypoint is above altitude of slope at the given waypoint distance */
-							mavlink_log_critical(_mavlink_log_pub, "Landing: last waypoint too high/too close");
-							mavlink_log_critical(_mavlink_log_pub, "Move down to %.1fm or move further away by %.1fm",
-									(double)(slope_alt_req),
-									(double)(wp_distance_req - wp_distance));
+							if (sys_language == 0) {
+								mavlink_log_critical(_mavlink_log_pub, "降落：最后航点太高/太近");
+								mavlink_log_critical(_mavlink_log_pub, "向下移动到％.1fm或远离％.1fm",
+										(double)(slope_alt_req),
+										(double)(wp_distance_req - wp_distance));
+							} else {
+								mavlink_log_critical(_mavlink_log_pub, "Landing: last waypoint too high/too close");
+								mavlink_log_critical(_mavlink_log_pub, "Move down to %.1fm or move further away by %.1fm",
+										(double)(slope_alt_req),
+										(double)(wp_distance_req - wp_distance));
+							}
 							return false;
 						}
 					} else {
 						/* Landing waypoint is above last waypoint */
-						mavlink_log_critical(_mavlink_log_pub, "Landing waypoint above last nav waypoint");
+						if (sys_language == 0) {
+							mavlink_log_critical(_mavlink_log_pub, "降落航点在最后航线航点上");
+						} else {
+							mavlink_log_critical(_mavlink_log_pub, "Landing waypoint above last nav waypoint");
+						}
 						return false;
 					}
 				} else {
 					/* Last wp is in flare region */
 					//xxx give recommendations
-					mavlink_log_critical(_mavlink_log_pub, "Last waypoint too close to landing waypoint");
+					if (sys_language == 0) {
+						mavlink_log_critical(_mavlink_log_pub, "最后航点太靠近降落航点");
+					} else {
+						mavlink_log_critical(_mavlink_log_pub, "Last waypoint too close to landing waypoint");
+					}
 					return false;
 				}
 			} else {
-				mavlink_log_critical(_mavlink_log_pub, "Invalid mission: starts with land waypoint");
+				if (sys_language == 0) {
+					mavlink_log_critical(_mavlink_log_pub, "无效的任务：以降落航点开始。");
+				} else {
+					mavlink_log_critical(_mavlink_log_pub, "Invalid mission: starts with land waypoint");
+				}
 				return false;
 			}
 		}
@@ -383,14 +432,22 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 						_dist_1wp_ok = true;
 						if (dist_to_1wp > ((dist_first_wp * 3) / 2)) {
 							/* allow at 2/3 distance, but warn */
-							mavlink_log_critical(_mavlink_log_pub, "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
+							if (sys_language == 0) {
+								mavlink_log_critical(_mavlink_log_pub, "警告：第一个航点非常远：％d m。");
+							} else {
+								mavlink_log_critical(_mavlink_log_pub, "Warning: First waypoint very far: %d m", (int)dist_to_1wp);
+							}
 							warning_issued = true;
 						}
 						return true;
 
 					} else {
 						/* item is too far from home */
-						mavlink_log_critical(_mavlink_log_pub, "First waypoint too far: %d m,refusing mission", (int)dist_to_1wp, (int)dist_first_wp);
+						if (sys_language == 0) {
+							mavlink_log_critical(_mavlink_log_pub, "第一个航点太远：％d m，拒绝任务。");
+						} else {
+							mavlink_log_critical(_mavlink_log_pub, "First waypoint too far: %d m,refusing mission", (int)dist_to_1wp, (int)dist_first_wp);
+						}
 						warning_issued = true;
 						return false;
 					}

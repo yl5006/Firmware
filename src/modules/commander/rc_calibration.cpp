@@ -51,6 +51,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
+extern int sys_language;
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -60,7 +61,11 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	orb_check(sub_man, &changed);
 
 	if (!changed) {
-		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
+		if (sys_language == 0) {
+			mavlink_log_critical(mavlink_log_pub, "无信号输入");
+		} else {
+			mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
+		}
 		return PX4_ERROR;
 	}
 
@@ -84,13 +89,13 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user
-	*/
+	 */
 	float p = sp.y * roll_scale + roll_trim_active;
 	int p1r = param_set(param_find("TRIM_ROLL"), &p);
 	/*
 	 we explicitly swap sign here because the trim is added to the actuator controls
 	 which are moving in an inverse sense to manual pitch inputs
-	*/
+	 */
 	p = -sp.x * pitch_scale + pitch_trim_active;
 	int p2r = param_set(param_find("TRIM_PITCH"), &p);
 	p = sp.r * yaw_scale + yaw_trim_active;
@@ -101,7 +106,11 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	int save_ret = param_save_default();
 
 	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
-		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
+		if (sys_language == 0) {
+			mavlink_log_critical(mavlink_log_pub, "中立值设置失败");
+		} else {
+			mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
+		}
 		px4_close(sub_man);
 		return PX4_ERROR;
 	}

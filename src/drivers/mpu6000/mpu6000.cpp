@@ -2555,7 +2555,7 @@ mpu6000_main(int argc, char *argv[])
 	int ch;
 	bool external = false;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = 8;
+	int accel_range = 4;//8
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = getopt(argc, argv, "T:XISsR:a:")) != EOF) {
