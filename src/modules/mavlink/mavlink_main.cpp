@@ -1965,7 +1965,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VISION_POSITION_NED", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
 		configure_stream("NAV_CONTROLLER_OUTPUT", 1.0f);//1.5 Hz defaut to 1Hz
-		configure_stream("GLOBAL_POSITION_INT", 2.0f); //5 Hz defaut to 2Hz
+		configure_stream("GLOBAL_POSITION_INT", 5.0f); //5 Hz defaut to 2Hz
 		configure_stream("LOCAL_POSITION_NED", 1.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 1.0f);//1.5 Hz defaut to 1Hz
 //		configure_stream("ATTITUDE_TARGET", 2.0f);
