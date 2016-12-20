@@ -247,7 +247,6 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 	if (dm_read(dm_item, seq, &mission_item, sizeof(struct mission_item_s)) == sizeof(struct mission_item_s)) {
 		_time_last_sent = hrt_absolute_time();
-
 		if (_int_mode) {
 			mavlink_mission_item_int_t wp;
 			format_mavlink_mission_item(&mission_item, reinterpret_cast<mavlink_mission_item_t *>(&wp));
@@ -906,7 +905,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		 * corresponding item
 		 */
 		mission_item->time_inside = 0.0f;
-
+		mission_item->param8 = 0.0f;
+		mission_item->param9 = 0.0f;
+		mission_item->param10 = 0.0f;
 		switch (mavlink_mission_item->command) {
 		case MAV_CMD_NAV_WAYPOINT:
 			mission_item->nav_cmd = NAV_CMD_WAYPOINT;
@@ -955,11 +956,26 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_SET_SERVO:
 		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-			mission_item->params[0] = mavlink_mission_item->param1;
-			mission_item->params[1] = mavlink_mission_item->param2;
-			mission_item->params[2] = mavlink_mission_item->param3;
-			mission_item->params[3] = mavlink_mission_item->param4;
+		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+		case MAV_CMD_DO_CHANGE_SPEED:
+			mission_item->time_inside = mavlink_mission_item->param1;
+			mission_item->acceptance_radius = mavlink_mission_item->param2;
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+
+			mission_item->param8 = mavlink_mission_item->param8;
+			mission_item->param9 = mavlink_mission_item->param9;
+			mission_item->param10 = mavlink_mission_item->param10;
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+
+		case MAV_CMD_DO_JUMP:
+			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
+			mission_item->time_inside = mavlink_mission_item->param1;
+			mission_item->acceptance_radius = mavlink_mission_item->param2;
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			mission_item->do_jump_mission_index = mavlink_mission_item->param8;
+			mission_item->do_jump_current_count = 0;
+			mission_item->do_jump_repeat_count = mavlink_mission_item->param9;
 			break;
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
@@ -979,16 +995,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->params[4] = mavlink_mission_item->x;
 		mission_item->params[5] = mavlink_mission_item->y;
 		mission_item->params[6] = mavlink_mission_item->z;
+		mission_item->params[7] = mavlink_mission_item->param8;
+		mission_item->params[8] = mavlink_mission_item->param9;
+		mission_item->params[9] = mavlink_mission_item->param10;
 
 		switch (mavlink_mission_item->command) {
-		case MAV_CMD_DO_JUMP:
-			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
-			mission_item->do_jump_mission_index = mavlink_mission_item->param1;
-			mission_item->do_jump_current_count = 0;
-			mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
-			break;
+//		case MAV_CMD_DO_JUMP:
+//			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
+//			mission_item->do_jump_mission_index = mavlink_mission_item->param1;
+//			mission_item->do_jump_current_count = 0;
+//			mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
+//			break;
 
-		case MAV_CMD_DO_CHANGE_SPEED:
+//		case MAV_CMD_DO_CHANGE_SPEED:
 //		case MAV_CMD_DO_SET_SERVO:
 //		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
@@ -1044,14 +1063,17 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->x = mission_item->params[4];
 		mavlink_mission_item->y = mission_item->params[5];
 		mavlink_mission_item->z = mission_item->params[6];
+		mavlink_mission_item->param8 = mission_item->params[7];
+		mavlink_mission_item->param9 = mission_item->params[8];
+		mavlink_mission_item->param10 = mission_item->params[9];
 
 		switch (mavlink_mission_item->command) {
-		case NAV_CMD_DO_JUMP:
-			mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
-			mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
-			break;
+//		case NAV_CMD_DO_JUMP:
+//			mavlink_mission_item->param1 = mission_item->do_jump_mission_index;
+//			mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
+//			break;
 
-		case NAV_CMD_DO_CHANGE_SPEED:
+//		case NAV_CMD_DO_CHANGE_SPEED:
 //		case NAV_CMD_DO_SET_SERVO:
 //		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
@@ -1075,6 +1097,9 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->param2 = 0.0f;
 		mavlink_mission_item->param3 = 0.0f;
 		mavlink_mission_item->param4 = 0.0f;
+		mavlink_mission_item->param8 = 0.0f;
+		mavlink_mission_item->param9 = 0.0f;
+		mavlink_mission_item->param10 = 0.0f;
 
 		if (_int_mode) {
 			// This function actually receives a mavlink_mission_item_int_t in _int_mode
@@ -1140,11 +1165,25 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_SET_SERVO:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
-			mavlink_mission_item->param1 = mission_item->params[0];
-			mavlink_mission_item->param2 = mission_item->params[1];
-			mavlink_mission_item->param3 = mission_item->params[2];
-			mavlink_mission_item->param4 = mission_item->params[3];
+		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+		case NAV_CMD_DO_CHANGE_SPEED:
+			mavlink_mission_item->param1 = mission_item->time_inside;
+			mavlink_mission_item->param2 = mission_item->acceptance_radius;
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+
+			mavlink_mission_item->param8 = mission_item->param8;
+			mavlink_mission_item->param9 = mission_item->param9;
+			mavlink_mission_item->param10 = mission_item->param10;
 			break;
+		case NAV_CMD_DO_JUMP:
+			mavlink_mission_item->param1 = mission_item->time_inside;
+			mavlink_mission_item->param2 = mission_item->acceptance_radius;
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+
+			mavlink_mission_item->param8 = mission_item->do_jump_mission_index;
+			mavlink_mission_item->param9 = mission_item->do_jump_repeat_count;
+			break;
+
 		default:
 			return PX4_ERROR;
 		}

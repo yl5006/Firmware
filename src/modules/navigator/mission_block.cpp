@@ -115,35 +115,35 @@ MissionBlock::is_mission_item_reached()
 //		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 			return true;
 
-		case NAV_CMD_DO_VTOL_TRANSITION:
-			/*
-			 * We wait half a second to give the transition command time to propagate.
-			 * Then monitor the transition status for completion.
-			 */
-			if (hrt_absolute_time() - _action_start > 500000 &&
-					!_navigator->get_vstatus()->in_transition_mode) {
+//		case NAV_CMD_DO_VTOL_TRANSITION:
+//			/*
+//			 * We wait half a second to give the transition command time to propagate.
+//			 * Then monitor the transition status for completion.
+//			 */
+//			if (hrt_absolute_time() - _action_start > 500000 &&
+//					!_navigator->get_vstatus()->in_transition_mode) {
+//
+//				_action_start = 0;
+//				return true;
+//			} else {
+//				return false;
+//			}
 
-				_action_start = 0;
-				return true;
-			} else {
-				return false;
-			}
-
-		case NAV_CMD_DO_CHANGE_SPEED:
-			// XXX not differentiating ground and airspeed yet
-			if (_mission_item.params[1] > 0.0f) {
-				_navigator->set_cruising_speed(_mission_item.params[1]);
-			} else {
-				_navigator->set_cruising_speed();
-				/* if no speed target was given try to set throttle */
-				if (_mission_item.params[2] > 0.0f) {
-					_navigator->set_cruising_throttle(_mission_item.params[2] / 100);
-				} else {
-					_navigator->set_cruising_throttle();
-				}
-			}
-
-			return true;
+//		case NAV_CMD_DO_CHANGE_SPEED:
+//			// XXX not differentiating ground and airspeed yet
+//			if (_mission_item.params[1] > 0.0f) {
+//				_navigator->set_cruising_speed(_mission_item.params[1]);
+//			} else {
+//				_navigator->set_cruising_speed();
+//				/* if no speed target was given try to set throttle */
+//				if (_mission_item.params[2] > 0.0f) {
+//					_navigator->set_cruising_throttle(_mission_item.params[2] / 100);
+//				} else {
+//					_navigator->set_cruising_throttle();
+//				}
+//			}
+//
+//			return true;
 
 		default:
 			/* do nothing, this is a 3D waypoint */
@@ -339,6 +339,39 @@ MissionBlock::is_mission_item_reached()
 				curr_sp->lon = _navigator->get_global_position()->lon;
 			}
 
+			switch (_mission_item.nav_cmd) {
+				case NAV_CMD_DO_VTOL_TRANSITION:
+					/*
+					 * We wait half a second to give the transition command time to propagate.
+					 * Then monitor the transition status for completion.
+					 */
+					if (hrt_absolute_time() - _action_start > 500000 &&
+							!_navigator->get_vstatus()->in_transition_mode) {
+
+						_action_start = 0;
+						return true;
+					} else {
+						return false;
+					}
+
+				case NAV_CMD_DO_CHANGE_SPEED:
+					// XXX not differentiating ground and airspeed yet
+					if (_mission_item.param9 > 0.0f) {
+						_navigator->set_cruising_speed(_mission_item.param9);
+					} else {
+						_navigator->set_cruising_speed();
+						/* if no speed target was given try to set throttle */
+						if (_mission_item.param10 > 0.0f) {
+							_navigator->set_cruising_throttle(_mission_item.param10 / 100);
+						} else {
+							_navigator->set_cruising_throttle();
+						}
+					}
+					return true;
+				default:
+					/* do nothing, this is a 3D waypoint */
+					break;
+			}
 			return true;
 		}
 	}
@@ -396,9 +429,9 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 void
 MissionBlock::issue_command(const struct mission_item_s *item)
 {
-	if (item_contains_position(item)) {
-		return;
-	}
+//	if (item_contains_position(item)) {
+//		return;
+//	}
 
 	if (item->nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("do_set_servo command");
@@ -406,7 +439,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 		memset(&actuators, 0, sizeof(actuators));
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item->params[0]] = 1.0f / 2000 * -item->params[1];
+		actuators.control[(int)item->param8] = 1.0f / 2000 * -item->param9;
 		actuators.timestamp = hrt_absolute_time();
 
 		if (_actuator_pub != nullptr) {
@@ -435,8 +468,8 @@ bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	// XXX: maybe extend that check onto item properties
-	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
-		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+	if (//item->nav_cmd == NAV_CMD_DO_JUMP ||
+		//item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 //		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 //		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 //		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
@@ -447,9 +480,10 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
 		item->nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
 		item->nav_cmd == NAV_CMD_DO_SET_ROI ||
-		item->nav_cmd == NAV_CMD_ROI ||
+		item->nav_cmd == NAV_CMD_ROI){
 //		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+//		item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION){
+
 
 		return false;
 	}
