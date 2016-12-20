@@ -223,8 +223,53 @@ Mission::on_active()
 
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
-			advance_mission();
-			set_mission_items();
+			/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
+			if (_mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
+				/* select onboard/offboard mission */
+					int *mission_index_ptr;
+					dm_item_t dm_item;
+					const ssize_t len = sizeof(struct mission_item_s);
+					if (_mission_type==MISSION_TYPE_ONBOARD) {
+						mission_index_ptr = &_current_onboard_mission_index ;
+						dm_item = DM_KEY_WAYPOINTS_ONBOARD;
+					} else {
+						/* offboard mission */
+						mission_index_ptr =  &_current_offboard_mission_index;
+						dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+					}
+				/* do DO_JUMP as many times as requested */
+				if (_mission_item.do_jump_current_count < _mission_item.do_jump_repeat_count) {
+
+					/* only raise the repeat count if this is for the current mission item*/
+					(_mission_item.do_jump_current_count)++;
+
+					/* save repeat count */
+					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET,
+							&_mission_item, len) != len) {
+						/* not supposed to happen unless the datamanager can't access the
+						 * dataman */
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP waypoint could not be written");
+						//		return false;
+					}
+					report_do_jump_mission_changed(*mission_index_ptr, _mission_item.do_jump_repeat_count);
+
+
+					/* set new mission item index and repeat
+					 * we don't have to validate here, if it's invalid, we should realize this later .*/
+					*mission_index_ptr = _mission_item.do_jump_mission_index;
+
+				} else {
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "DO JUMP repetitions completed");
+					/* no more DO_JUMPS, therefore just try to continue with next mission item */
+					(*mission_index_ptr)++;
+				}
+				set_mission_items();
+			}
+			else
+			{
+				advance_mission();
+				set_mission_items();
+			}
 		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE && _param_altmode.get() == MISSION_ALTMODE_FOH) {
@@ -681,7 +726,7 @@ Mission::set_mission_items()
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	/* issue command if ready (will do nothing for position mission items) */
-	issue_command(&_mission_item);
+//	issue_command(&_mission_item);
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
@@ -1119,7 +1164,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 
 	/* Repeat this several times in case there are several DO JUMPS that we need to follow along, however, after
 	 * 10 iterations we have to assume that the DO JUMPS are probably cycling and give up. */
-	for (int i = 0; i < 10; i++) {
+//	for (int i = 0; i < 10; i++) {
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
@@ -1142,6 +1187,9 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
 			return false;
 		}
+		memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
+		return true;
+
 
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (mission_item_tmp.nav_cmd == NAV_CMD_DO_JUMP) {
@@ -1226,7 +1274,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 					return true;
 //				}
 		}
-	}
+//	}
 
 	/* we have given up, we don't want to cycle forever */
 	if (sys_language == 0) {
