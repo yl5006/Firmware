@@ -149,9 +149,9 @@ UavcanNode::~UavcanNode()
 		} while (_task != -1);
 	}
 
-	(void)::close(_armed_sub);
-	(void)::close(_test_motor_sub);
-	(void)::close(_actuator_direct_sub);
+	(void)orb_unsubscribe(_armed_sub);
+	(void)orb_unsubscribe(_test_motor_sub);
+	(void)orb_unsubscribe(_actuator_direct_sub);
 
 	// Removing the sensor bridges
 	auto br = _sensor_bridges.getHead();
@@ -558,7 +558,6 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	static CanInitHelper* can = nullptr;
 
 	if (can == nullptr) {
-		warnx("CAN driver init...");
 
 		can = new CanInitHelper();
 
@@ -627,7 +626,8 @@ void UavcanNode::fill_node_info()
 	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 
-	warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
+	// Too verbose for normal operation
+	//warnx("SW version vcs_commit: 0x%08x", unsigned(swver.vcs_commit));
 
 	_node.setSoftwareVersion(swver);
 
@@ -1022,12 +1022,12 @@ UavcanNode::teardown()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (_control_subs[i] > 0) {
-			::close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 	}
 
-	return (_armed_sub >= 0) ? ::close(_armed_sub) : 0;
+	return (_armed_sub >= 0) ? orb_unsubscribe(_armed_sub) : 0;
 }
 
 int
@@ -1054,7 +1054,7 @@ UavcanNode::subscribe()
 
 		if (unsub_groups & (1 << i)) {
 			warnx("unsubscribe from actuator_controls_%d", i);
-			::close(_control_subs[i]);
+			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
 
@@ -1258,10 +1258,10 @@ UavcanNode::print_info()
 	// Printing all nodes that are online
 	std::printf("Online nodes (Node ID, Health, Mode):\n");
 	_node_status_monitor.forEachNode([](uavcan::NodeID nid, uavcan::NodeStatusMonitor::NodeStatus ns) {
-		static constexpr std::array<const char*, 4> HEALTH {
+		static constexpr std::array<const char*, 4> HEALTH = {
 			"OK", "WARN", "ERR", "CRIT"
 		};
-		static constexpr std::array<const char*, 8> MODES {
+		static constexpr std::array<const char*, 8> MODES = {
 			"OPERAT", "INIT", "MAINT", "SW_UPD", "?", "?", "?", "OFFLN"
 		};
 		std::printf("\t% 3d %-10s %-10s\n", int(nid.get()), HEALTH.at(ns.health), MODES.at(ns.mode));

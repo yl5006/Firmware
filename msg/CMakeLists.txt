@@ -92,6 +92,7 @@ set(msg_file_names
 	sensor_combined.msg
 	sensor_gyro.msg
 	sensor_mag.msg
+	sensor_preflight.msg
 	servorail_status.msg
 	subsystem_info.msg
 	system_power.msg
@@ -122,6 +123,9 @@ set(msg_file_names
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	vehicle_roi.msg
+	mount_orientation.msg
+	collision_report.msg
+	low_stack.msg
 	)
 
 # Get absolute paths

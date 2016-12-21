@@ -67,8 +67,6 @@ __END_DECLS
 #  define	HW_ARCH "LINUXPARAMS"
 #elif defined(CONFIG_ARCH_BOARD_BEBOP)
 #  define	HW_ARCH "BEBOP"
-#elif defined(CONFIG_ARCH_BOARD_CRAZYFLIE)
-#  define HW_ARCH "CRAZYFLIE"
 #else
 #define HW_ARCH (board_name())
 #endif

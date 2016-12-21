@@ -87,7 +87,7 @@ bool MissionFeasibilityChecker::checkMissionFeasible(orb_advert_t *mavlink_log_p
 
 	// check if all mission item commands are supported
 	failed = failed || !checkMissionItemValidity(dm_current, nMissionItems, condition_landed);
-	failed = failed || !checkGeofence(dm_current, nMissionItems, geofence);
+	failed = failed || !checkGeofence(dm_current, nMissionItems, geofence, home_alt);
 	failed = failed || !checkHomePositionAltitude(dm_current, nMissionItems, home_alt, home_valid, warned);
 
 	if (isRotarywing) {
@@ -153,7 +153,7 @@ bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_curre
 	return resLanding;
 }
 
-bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
+bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence, float home_alt)
 {
 	/* Check if all mission items are inside the geofence (if we have a valid geofence) */
 	if (geofence.valid()) {
@@ -166,12 +166,17 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 				return false;
 			}
 
+			// Geofence function checks against home altitude amsl
+			missionitem.altitude = missionitem.altitude_is_relative
+				      ? missionitem.altitude + home_alt
+			              : missionitem.altitude;
+
 			if (MissionBlock::item_contains_position(&missionitem) &&
-				!geofence.inside_polygon(missionitem.lat, missionitem.lon, missionitem.altitude)) {
+				!geofence.inside(missionitem)) {
 				if (sys_language == 0) {
-					mavlink_log_critical(_mavlink_log_pub, "航点%d 地理围栏违规", i);
+					mavlink_log_critical(_mavlink_log_pub, "航点%d 地理围栏违规", i+1);
 				} else {
-					mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i);
+					mavlink_log_critical(_mavlink_log_pub, "Geofence violation for waypoint %d", i+1);
 				}
 				return false;
 			}
@@ -184,7 +189,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 bool MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_t nMissionItems,
 	float home_alt, bool home_valid, bool &warning_issued, bool throw_error)
 {
-	/* Check if all all waypoints are above the home altitude, only return false if bool throw_error = true */
+	/* Check if all waypoints are above the home altitude, only return false if bool throw_error = true */
 	for (size_t i = 0; i < nMissionItems; i++) {
 		struct mission_item_s missionitem;
 		const ssize_t len = sizeof(struct mission_item_s);
@@ -268,8 +273,9 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_VTOL_TAKEOFF &&
 			missionitem.nav_cmd != NAV_CMD_VTOL_LAND &&
 			missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
-			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 			missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
+			missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+			missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
 			missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
 			missionitem.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
 			missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
@@ -444,9 +450,10 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 					} else {
 						/* item is too far from home */
 						if (sys_language == 0) {
-							mavlink_log_critical(_mavlink_log_pub, "第一个航点太远：％d m，拒绝任务。");
+							mavlink_log_critical(_mavlink_log_pub, "第一个航点太远：%d m> %d,，拒绝任务。",(int)dist_to_1wp, (int)dist_first_wp);
 						} else {
-							mavlink_log_critical(_mavlink_log_pub, "First waypoint too far: %d m,refusing mission", (int)dist_to_1wp, (int)dist_first_wp);
+							mavlink_log_critical(_mavlink_log_pub, "First waypoint too far: %d m > %d, refusing mission",
+								     (int)dist_to_1wp, (int)dist_first_wp);
 						}
 						warning_issued = true;
 						return false;

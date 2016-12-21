@@ -96,7 +96,8 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) : MavlinkStream(m
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	close(_mission_result_sub);
+	orb_unsubscribe(_mission_result_sub);
+	orb_unadvertise(_offboard_mission_pub);
 }
 
 unsigned
@@ -247,6 +248,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 	if (dm_read(dm_item, seq, &mission_item, sizeof(struct mission_item_s)) == sizeof(struct mission_item_s)) {
 		_time_last_sent = hrt_absolute_time();
+
 		if (_int_mode) {
 			mavlink_mission_item_int_t wp;
 			format_mavlink_mission_item(&mission_item, reinterpret_cast<mavlink_mission_item_t *>(&wp));
@@ -1009,6 +1011,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 //		case MAV_CMD_DO_CHANGE_SPEED:
 //		case MAV_CMD_DO_SET_SERVO:
+		case MAV_CMD_DO_LAND_START:
 //		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_MOUNT_CONFIGURE:
 		case MAV_CMD_DO_MOUNT_CONTROL:
@@ -1075,6 +1078,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 //		case NAV_CMD_DO_CHANGE_SPEED:
 //		case NAV_CMD_DO_SET_SERVO:
+		case NAV_CMD_DO_LAND_START:
 //		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
 		case NAV_CMD_IMAGE_STOP_CAPTURE:

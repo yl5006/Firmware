@@ -48,9 +48,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
-/* these headers are not C++ safe */
 #include <stm32.h>
 #include <arch/board/board.h>
 
@@ -110,7 +107,7 @@ __BEGIN_DECLS
 
 #define PX4_I2C_BUS_ONBOARD_HZ      400000
 #define PX4_I2C_BUS_SONAR_HZ        400000
-#define PX4_I2C_BUS_EXPANSION_HZ    100000
+#define PX4_I2C_BUS_EXPANSION_HZ    400000
 /*
  * Devices on the onboard bus.
  *
@@ -262,6 +259,9 @@ __BEGIN_DECLS
 #define TEMP_CONTROL(_on_true)	px4_arch_gpiowrite(GPIO_TEMP_CONT, (_on_true))
 
 #define  FLASH_BASED_PARAMS
+
+__BEGIN_DECLS
+
 /****************************************************************************************************
  * Public Types
  ****************************************************************************************************/
@@ -320,7 +320,6 @@ extern int board_sdio_initialize(void);
 int nsh_archinitialize(void);
 #endif
 
-
 /************************************************************************************
  * Name: board_pwr_init()
  *
@@ -364,4 +363,5 @@ void board_pwr(bool on_not_off);
 int board_i2c_initialize(void);
 
 #endif /* __ASSEMBLY__ */
+
 __END_DECLS
