@@ -30,10 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(srcs
-	px4fmu_params.c
-	)
-
 if(${OS} STREQUAL "nuttx")
 	list(APPEND srcs
 		fmu.cpp

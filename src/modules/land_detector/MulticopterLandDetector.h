@@ -113,7 +113,9 @@ private:
 	struct control_state_s			_ctrl_state;
 	struct vehicle_control_mode_s		_ctrl_mode;
 
-	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
+	bool 	 _inair;
+	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied firstuint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
+	uint64_t _min_manual_start;		///< timestamp when minimum manual.z was applied first_start;		///< timestamp when minimum trust was applied first
 	uint64_t _arming_time;
 };
 

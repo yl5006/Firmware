@@ -3232,12 +3232,12 @@ public:
 		return "HORIZONTAL_DISTANCE";
 	}
 
-	static uint8_t get_id_static()
+	static uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_HORIZONTAL_DISTANCE;
 	}
 
-    uint8_t get_id()
+	uint16_t get_id()
     {
         return get_id_static();
     }

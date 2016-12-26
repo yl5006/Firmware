@@ -1109,7 +1109,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
-				mavlink_and_info(&mavlink_log_pub, "Returning to launch");
+				mavlink_log_info(&mavlink_log_pub, "Returning to launch");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1847,7 +1847,7 @@ int commander_thread_main(int argc, char *argv[])
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false,
+				auto_disarm_hysteresis.set_hysteresis_time_from(true,
 									(hrt_abstime)disarm_when_landed * 1000000);
 			}
 

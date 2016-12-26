@@ -429,9 +429,16 @@ MissionBlock::mission_item_to_vehicle_command(const struct mission_item_s *item,
 {
 	// we're expecting a mission command item here so assign the "raw" inputs to the command
 	// (MAV_FRAME_MISSION mission item)
-	cmd->param1 = item->params[0];
-	cmd->param2 = item->params[1];
-	cmd->param3 = item->params[2];
+//	cmd->param1 = item->params[0];
+//	cmd->param2 = item->params[1];
+//	cmd->param3 = item->params[2];
+//	cmd->param4 = item->params[3];
+//	cmd->param5 = item->params[4];
+//	cmd->param6 = item->params[5];
+//	cmd->param7 = item->params[6];
+	cmd->param1 = item->param8;
+	cmd->param2 = item->param9;
+	cmd->param3 = item->param10;
 	cmd->param4 = item->params[3];
 	cmd->param5 = item->params[4];
 	cmd->param6 = item->params[5];

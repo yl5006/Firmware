@@ -267,6 +267,7 @@ bool MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, s
 			missionitem.nav_cmd != NAV_CMD_WAYPOINT &&
 			missionitem.nav_cmd != NAV_CMD_LOITER_UNLIMITED &&
 			missionitem.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
+			missionitem.nav_cmd != NAV_CMD_RETURN_TO_LAUNCH &&
 			missionitem.nav_cmd != NAV_CMD_LAND &&
 			missionitem.nav_cmd != NAV_CMD_TAKEOFF &&
 			missionitem.nav_cmd != NAV_CMD_LOITER_TO_ALT &&

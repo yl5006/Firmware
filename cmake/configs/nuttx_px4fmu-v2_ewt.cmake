@@ -34,7 +34,7 @@ set(config_module_list
 	#drivers/hott
 	#drivers/hott/hott_telemetry
 	#drivers/hott/hott_sensors
-	drivers/blinkm
+	#drivers/blinkm
 	drivers/airspeed
 	drivers/ets_airspeed
 	drivers/meas_airspeed
@@ -47,8 +47,9 @@ set(config_module_list
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
-	drivers/snapdragon_rc_pwm
+	#drivers/snapdragon_rc_pwm
 	drivers/lis3mdl
+	drivers/iridiumsbd
 	#drivers/milliwave
 	#drivers/psk_cm12jl
 	#
@@ -56,7 +57,7 @@ set(config_module_list
 	#
 	systemcmds/bl_update
 	systemcmds/config
-	systemcmds/dumpfile
+	#systemcmds/dumpfile
 	#systemcmds/esc_calib
 	systemcmds/mixer
 	#systemcmds/motor_ramp
@@ -99,9 +100,9 @@ set(config_module_list
 	# Estimation modules
 	#
 	modules/attitude_estimator_q
-	modules/position_estimator_inav
+	#modules/position_estimator_inav
 	modules/local_position_estimator
-	modules/ekf2
+	#modules/ekf2
 	#modules/throwtofly
 
 	#

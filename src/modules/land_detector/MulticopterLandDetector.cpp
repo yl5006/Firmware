@@ -66,7 +66,9 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_manual{},
 	_ctrl_state{},
 	_ctrl_mode{},
+	_inair(false),
 	_min_trust_start(0),
+	_min_manual_start(0),
 	_arming_time(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
@@ -151,6 +153,8 @@ bool MulticopterLandDetector::_get_landed_state()
 	// Check if thrust output is less than the minimum auto throttle param.
 	bool minimalThrust = (_actuators.control[3] <= sys_min_throttle);
 
+	bool minimanualz=_ctrl_mode.flag_control_manual_enabled ? (_manual.timestamp > 0 &&_manual.z < 0.2f):false;
+
 	if (minimalThrust && _min_trust_start == 0) {
 		_min_trust_start = now;
 
@@ -158,10 +162,17 @@ bool MulticopterLandDetector::_get_landed_state()
 		_min_trust_start = 0;
 	}
 
+	if (minimanualz && _min_manual_start == 0) {
+		_min_manual_start = now;
+
+	} else if (!minimanualz) {
+		_min_manual_start = 0;
+	}
+
 	// only trigger flight conditions if we are armed
 	if (!_arming.armed) {
 		_arming_time = 0;
-
+		_inair=false;
 		return true;
 
 	} else if (_arming_time == 0) {
@@ -172,8 +183,22 @@ bool MulticopterLandDetector::_get_landed_state()
 	// Check if user commands throttle and if so, report not landed based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	if (_manual.timestamp > 0 && _manual.z > 0.15f && _ctrl_mode.flag_control_manual_enabled) {
+	if (_manual.timestamp > 0 && _manual.z > 0.15f && _ctrl_mode.flag_control_manual_enabled&& !_ctrl_mode.flag_control_climb_rate_enabled) {
+		_inair=true;
 		return false;
+	}
+
+	if (_manual.timestamp > 0 && _manual.z > 0.5f && _ctrl_mode.flag_control_manual_enabled&& _ctrl_mode.flag_control_climb_rate_enabled) {
+		_inair=true;
+		return false;
+	}
+
+	if(_ctrl_mode.flag_control_climb_rate_enabled&&_ctrl_mode.flag_control_manual_enabled)
+	{
+		if (((_min_manual_start > 0) &&(hrt_elapsed_time(&_min_manual_start) > 0.1 * 1000 * 1000))&& fabsf(_vehicleLocalPosition.vz) < _params.maxClimbRate * 0.5f) {
+			_inair=false;
+			return true;
+		}
 	}
 
 	// Return status based on armed state and throttle if no position lock is available.
@@ -187,12 +212,12 @@ bool MulticopterLandDetector::_get_landed_state()
 		// falling consider it to be landed. This should even sustain
 		// quite acrobatic flight.
 		if ((_min_trust_start > 0) &&
-		    (hrt_elapsed_time(&_min_trust_start) > 8 * 1000 * 1000)) {
-
+		    (hrt_elapsed_time(&_min_trust_start) > 5 * 1000 * 1000)) {
+			_inair=false;
 			return true;
 
 		} else {
-			return false;
+	//		return false;
 		}
 	}
 
@@ -223,10 +248,12 @@ bool MulticopterLandDetector::_get_landed_state()
 
 	if (verticalMovement || rotating || !minimalThrust || horizontalMovement) {
 		// Sensed movement or thottle high, so reset the land detector.
+		_inair=true;
 		return false;
 	}
+	return !_inair;
 
-	return true;
+	//return true;
 }
 
 

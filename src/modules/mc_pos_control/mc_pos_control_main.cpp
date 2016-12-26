@@ -1081,7 +1081,7 @@ MulticopterPositionControl::control_manual(float dt)
 		_reset_pos_sp = true;
 		_reset_alt_sp = true;
 		_mode_auto = false;
-		_reset_int_z = true;
+		_reset_int_z = true;   //  by yaoling   true;
 		_reset_int_xy = true;
 
 		_R_setpoint.identity();
@@ -1089,9 +1089,19 @@ MulticopterPositionControl::control_manual(float dt)
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust = 0.0f;
+		_att_sp.thrust = _params.thr_min;  //  by yaoling    0.0
 
 		_att_sp.timestamp = hrt_absolute_time();
+
+		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
+
+					/* copy quaternion setpoint to attitude setpoint topic */
+	    matrix::Quatf q_sp = _R_setpoint;
+		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+		_att_sp.q_d_valid = true;
+
+		_thrust_int(2)=-0.5f;
+		_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
 
 		/* publish attitude setpoint */
 		if (_att_sp_pub != nullptr) {
@@ -2562,6 +2572,7 @@ MulticopterPositionControl::task_main()
 			} else {
 				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 			}
+
 
 		} else {
 			/* position controller disabled, reset setpoints */
