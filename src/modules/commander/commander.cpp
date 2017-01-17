@@ -78,7 +78,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/rc_check.h>
 #include <systemlib/state_table.h>
-#include <systemlib/systemlib.h>
+#include <float.h>
 #include <systemlib/hysteresis/hysteresis.h>
 
 #include <sys/stat.h>
@@ -224,6 +224,7 @@ static struct cpuload_s cpuload = {};
 
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
+static bool last_overload = false;
 
 static struct status_flags_s status_flags = {};
 
@@ -1739,8 +1740,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	transition_result_t arming_ret;
 
-	int32_t datalink_loss_enabled = 0;
-	int32_t rc_loss_enabled = 0;
+	int32_t datalink_loss_act = 0;
+	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
 	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
@@ -1827,8 +1828,8 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			/* Safety parameters */
-			param_get(_param_enable_datalink_loss, &datalink_loss_enabled);
-			param_get(_param_enable_rc_loss, &rc_loss_enabled);
+			param_get(_param_enable_datalink_loss, &datalink_loss_act);
+			param_get(_param_enable_rc_loss, &rc_loss_act);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
 			param_get(_param_rc_in_off, &rc_in_off);
@@ -2866,16 +2867,16 @@ int commander_thread_main(int argc, char *argv[])
 			/* check throttle kill switch */
 			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
-				if (!armed.lockdown) {
+				if (!armed.manual_lockdown) {
 					if (sys_language == 0) {
 						mavlink_log_emergency(&mavlink_log_pub, "手动结束开关");
 					} else {
 						mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH ENGAGED");
 					}
 				}
-				armed.lockdown = true;
+				armed.manual_lockdown = true;
 			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-				if (armed.lockdown) {
+				if (armed.manual_lockdown) {
 					if (sys_language == 0) {
 						mavlink_log_emergency(&mavlink_log_pub, "手动结束开关关闭");
 					} else {
@@ -2883,7 +2884,7 @@ int commander_thread_main(int argc, char *argv[])
 								"MANUAL KILL SWITCH OFF");
 					}
 				}
-				armed.lockdown = false;
+				armed.manual_lockdown = false;
 			}
 			/* no else case: do not change lockdown flag in unconfigured case */
 		} else {
@@ -3122,18 +3123,20 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
-						       &internal_state,
-						       &mavlink_log_pub,
-						       (datalink_loss_enabled > 0),
-						       _mission_result.finished,
-						       _mission_result.stay_in_failsafe,
-						       &status_flags,
-						       land_detector.landed,
-						       (rc_loss_enabled > 0),
-						       offboard_loss_act,
-						       offboard_loss_rc_act);
+											   &armed,
+											   &internal_state,
+											   &mavlink_log_pub,
+											   (link_loss_actions_t)datalink_loss_act,
+											   _mission_result.finished,
+											   _mission_result.stay_in_failsafe,
+											   &status_flags,
+											   land_detector.landed,
+											   (link_loss_actions_t)rc_loss_act,
+											   offboard_loss_act,
+											   offboard_loss_rc_act);
 
-		if (status.failsafe != failsafe_old) {
+		if (status.failsafe != failsafe_old)
+		{
 			status_changed = true;
 
 			if (status.failsafe) {
@@ -3201,9 +3204,11 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
 			   (battery.warning == battery_status_s::BATTERY_WARNING_LOW)) {
-			/* play tune on battery warning or failsafe */
+			/* play tune on battery warning */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
+		} else if (status.failsafe) {
+			tune_failsafe(true);
 		} else {
 			set_tune(TONE_STOP_TUNE);
 		}
@@ -3324,17 +3329,28 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery_local, const cpuload_s *cpuload_local)
+control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed,
+	bool changed, battery_status_s *battery_local, const cpuload_s *cpuload_local)
 {
-	bool overload = (cpuload_local->load > 0.75f) || (cpuload_local->ram_usage > 0.98f);
+	static hrt_abstime overload_start = 0;
+
+	bool overload = (cpuload_local->load > 0.80f) || (cpuload_local->ram_usage > 0.98f);
+
+	if (overload_start == 0 && overload) {
+		overload_start = hrt_absolute_time();
+	} else if (!overload) {
+		overload_start = 0;
+	}
 
 	/* driving rgbled */
-	if (changed) {
+	if (changed || last_overload != overload) {
 		bool set_normal_color = false;
 		bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
+		int overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1000 : 250000;
+
 		/* set mode */
-		if (overload) {
+		if (overload && ((hrt_absolute_time() - overload_start) > overload_warn_delay)) {
 			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 			rgbled_set_color(RGBLED_COLOR_PURPLE);
 			set_normal_color = false;
@@ -3379,23 +3395,36 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		}
 	}
 
+	last_overload = overload;
+
 #if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
-		/* armed, solid */
-		led_on(LED_BLUE);
+		if (status.failsafe) {
+			led_off(LED_BLUE);
+			if (leds_counter % 5 == 0) {
+				led_toggle(LED_GREEN);
+			}
+		} else {
+			led_off(LED_GREEN);
+			
+			/* armed, solid */
+			led_on(LED_BLUE);
+		}
 
 	} else if (actuator_armed->ready_to_arm) {
+		led_off(LED_BLUE);
 		/* ready to arm, blink at 1Hz */
 		if (leds_counter % 20 == 0) {
-			led_toggle(LED_BLUE);
+			led_toggle(LED_GREEN);
 		}
 
 	} else {
+		led_off(LED_BLUE);
 		/* not ready to arm, blink at 10Hz */
 		if (leds_counter % 2 == 0) {
-			led_toggle(LED_BLUE);
+			led_toggle(LED_GREEN);
 		}
 	}
 
@@ -4215,14 +4244,15 @@ void *commander_low_prio_loop(void *arg)
 					} else if ((int)(cmd.param4) == 0) {
 						/* RC calibration ended - have we been in one worth confirming? */
 						if (status_flags.rc_input_blocked) {
-							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 							/* enable RC control input */
 							status_flags.rc_input_blocked = false;
 							mavlink_log_info(&mavlink_log_pub, "CAL: Re-enabling RC IN");
-							calib_ret = OK;
 						}
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						/* this always succeeds */
 						calib_ret = OK;
+					} else {
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub, command_ack);
 					}
 
 					status_flags.condition_calibration_enabled = false;
@@ -4369,7 +4399,8 @@ void *commander_low_prio_loop(void *arg)
 				}
 
 			case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
-				/* handled in the IO driver */
+				/* just ack, implementation handled in the IO driver */
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 				break;
 
 			default:

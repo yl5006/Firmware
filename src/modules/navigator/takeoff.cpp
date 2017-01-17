@@ -80,6 +80,7 @@ void
 Takeoff::on_active()
 {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+
 	if (rep->current.valid) {
 		// reset the position
 		set_takeoff_position();
@@ -120,6 +121,7 @@ Takeoff::set_takeoff_position()
 						"Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
 			}
 		}
+
 	} else {
 		// Use home + minimum clearance but only notify.
 		abs_altitude = min_abs_altitude;
