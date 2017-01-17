@@ -188,6 +188,7 @@ private:
 	unsigned	_current_update_rate;
 	struct work_s	_work;
 	int		_vehicle_cmd_sub;
+	orb_advert_t _cammer_rc_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -317,6 +318,7 @@ PX4FMU::PX4FMU() :
 	_current_update_rate(0),
 	_work{},
 	_vehicle_cmd_sub(-1),
+	_cammer_rc_sub(nullptr),
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
@@ -978,6 +980,7 @@ PX4FMU::cycle()
 		RF_RADIO_POWER_CONTROL(true);
 #endif
 		_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+
 		// dsm_init sets some file static variables and returns a file descriptor
 		_rcs_fd = dsm_init(RC_SERIAL_PORT);
 		// assume SBUS input
@@ -988,6 +991,10 @@ PX4FMU::cycle()
 #endif
 #endif
 
+#ifdef	GROUNDSTATION_RC_SBUS
+		_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
+		_rcs_fd	=sbus_init(GROUNDSTATION_RC_SBUS,false);
+#endif
 		param_find("MOT_SLEW_MAX");
 		param_find("THR_MDL_FAC");
 

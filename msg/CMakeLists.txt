@@ -39,8 +39,9 @@ set(msg_file_names
 	adc_report.msg
 	airspeed.msg
 	att_pos_mocap.msg
-	battery_status.msg
+	battery_status.msg	
 	camera_trigger.msg
+	cammer_rc.msg
 	commander_state.msg
 	control_state.msg
 	cpuload.msg

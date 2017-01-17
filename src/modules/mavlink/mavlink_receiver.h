@@ -79,7 +79,7 @@
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/control_state.h>
 #include <uORB/topics/collision_report.h>
-
+#include <uORB/topics/cammer_rc.h>
 
 #include "mavlink_ftp.h"
 
@@ -133,6 +133,7 @@ private:
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
+	void handle_message_cammer_rc(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_request_data_stream(mavlink_message_t *msg);
@@ -220,6 +221,7 @@ private:
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _rc_pub;
+	orb_advert_t _cammer_rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _time_offset_pub;

@@ -56,7 +56,7 @@
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
-
+#define GROUNDSTATION_RC_SBUS	"/dev/ttyS2"
 /* PX4IO connection configuration */
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"
 #define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
