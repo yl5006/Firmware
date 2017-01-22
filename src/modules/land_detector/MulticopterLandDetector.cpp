@@ -153,7 +153,7 @@ bool MulticopterLandDetector::_get_landed_state()
 	// Check if thrust output is less than the minimum auto throttle param.
 	bool minimalThrust = (_actuators.control[3] <= sys_min_throttle);
 
-	bool minimanualz=_ctrl_mode.flag_control_manual_enabled ? (_manual.timestamp > 0 &&_manual.z < 0.2f):false;
+	bool minimanualz=_control_mode.flag_control_manual_enabled ? (_manual.timestamp > 0 &&_manual.z < 0.2f):false;
 
 	if (minimalThrust && _min_trust_start == 0) {
 		_min_trust_start = now;
@@ -196,12 +196,12 @@ bool MulticopterLandDetector::_get_landed_state()
 		return false;
 	}
 
-	if (_manual.timestamp > 0 && _manual.z > 0.5f && _ctrl_mode.flag_control_manual_enabled&& _ctrl_mode.flag_control_climb_rate_enabled) {
+	if (_manual.timestamp > 0 && _manual.z > 0.5f && _control_mode.flag_control_manual_enabled&& _control_mode.flag_control_climb_rate_enabled) {
 		_inair=true;
 		return false;
 	}
 
-	if(_ctrl_mode.flag_control_climb_rate_enabled&&_ctrl_mode.flag_control_manual_enabled)
+	if(_control_mode.flag_control_climb_rate_enabled&&_control_mode.flag_control_manual_enabled)
 	{
 		if (((_min_manual_start > 0) &&(hrt_elapsed_time(&_min_manual_start) > 0.1 * 1000 * 1000))&& fabsf(_vehicleLocalPosition.vz) < _params.maxClimbRate * 0.5f) {
 			_inair=false;

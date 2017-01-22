@@ -316,7 +316,7 @@ private:
 	control::BlockParamFloat _param_cruising_throttle_plane;
 
 	// add by yaoling
-	control::BlockParamInt _param_mission_rtljump;	/**< jump to nearest misstion RTL */
+//	control::BlockParamInt _param_mission_rtljump;	/**< jump to nearest misstion RTL */
 
 	float _mission_cruising_speed_mc;
 	float _mission_cruising_speed_fw;

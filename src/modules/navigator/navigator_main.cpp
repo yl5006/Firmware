@@ -159,7 +159,7 @@ Navigator::Navigator() :
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
 	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
-	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
+//	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
 	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
 	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
 	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false),

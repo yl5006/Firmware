@@ -89,6 +89,7 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/multirotor_motor_limits.h>
+#include <uORB/topics/cammer_rc.h>
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
@@ -189,7 +190,7 @@ private:
 	unsigned	_current_update_rate;
 	struct work_s	_work;
 	int		_vehicle_cmd_sub;
-	orb_advert_t _cammer_rc_sub;
+	int 	_cammer_rc_sub;
 	int		_armed_sub;
 	int		_param_sub;
 	int		_adc_sub;
@@ -319,7 +320,7 @@ PX4FMU::PX4FMU() :
 	_current_update_rate(0),
 	_work{},
 	_vehicle_cmd_sub(-1),
-	_cammer_rc_sub(nullptr),
+	_cammer_rc_sub(-1),
 	_armed_sub(-1),
 	_param_sub(-1),
 	_adc_sub(-1),
