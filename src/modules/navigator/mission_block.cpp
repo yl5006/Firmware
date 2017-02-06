@@ -398,21 +398,6 @@ MissionBlock::is_mission_item_reached()
 					} else {
 						return false;
 					}
-
-				case NAV_CMD_DO_CHANGE_SPEED:
-					// XXX not differentiating ground and airspeed yet
-					if (_mission_item.param9 > 0.0f) {
-						_navigator->set_cruising_speed(_mission_item.param9);
-					} else {
-						_navigator->set_cruising_speed();
-						/* if no speed target was given try to set throttle */
-						if (_mission_item.param10 > 0.0f) {
-							_navigator->set_cruising_throttle(_mission_item.param10 / 100);
-						} else {
-							_navigator->set_cruising_throttle();
-						}
-					}
-					return true;
 				default:
 					/* do nothing, this is a 3D waypoint */
 					break;
@@ -555,7 +540,7 @@ MissionBlock::item_contains_command(const struct mission_item_s *item)
 {
 	// XXX: first to test this three cmd
 	if (//item->nav_cmd == NAV_CMD_DO_JUMP ||
-		//item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
