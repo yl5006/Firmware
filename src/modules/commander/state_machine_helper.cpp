@@ -1221,14 +1221,14 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		}
 	}
 
-	if (battery->warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+	if (battery->warning == battery_status_s::BATTERY_WARNING_LOW) {
 		preflight_ok = false;
 
 		if (reportFailures) {
 			if (sys_language == 0) {
 				mavlink_log_critical(mavlink_log_pub,"解锁被拒绝：低电池电量");
 			} else {
-				mavlink_log_critical(mavlink_log_pub,"ARMING DENIED: VERY LOW BATTERY");
+				mavlink_log_critical(mavlink_log_pub,"ARMING DENIED: LOW BATTERY");
 			}
 		}
 	}

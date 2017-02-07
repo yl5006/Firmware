@@ -44,8 +44,13 @@
 #include "gyro.h"
 
 TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_rise, int gyro_subs[], int num_gyros)
-	: TemperatureCalibrationBase(min_temperature_rise), _num_sensor_instances(num_gyros), _sensor_subs(gyro_subs)
+	: TemperatureCalibrationCommon(min_temperature_rise)
 {
+	for (int i = 0; i < num_gyros; ++i) {
+		_sensor_subs[i] = gyro_subs[i];
+	}
+
+	_num_sensor_instances = num_gyros;
 
 }
 
@@ -67,20 +72,22 @@ void TemperatureCalibrationGyro::reset_calibration()
 
 int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
-	if (data.hot_soaked) {
-		// already done
-		return 0;
-	}
+	bool finished = data.hot_soaked;
 
 	bool updated;
 	orb_check(sensor_sub, &updated);
 
 	if (!updated) {
-		return 1;
+		return finished ? 0 : 1;
 	}
 
 	sensor_gyro_s gyro_data;
 	orb_copy(ORB_ID(sensor_gyro), sensor_sub, &gyro_data);
+
+	if (finished) {
+		// if we're done, return, but we need to return after orb_copy because of poll()
+		return 0;
+	}
 
 	data.device_id = gyro_data.device_id;
 
@@ -125,33 +132,6 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 	return 1;
 }
 
-int TemperatureCalibrationGyro::update()
-{
-
-	int num_not_complete = 0;
-
-	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-		num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
-	}
-
-	if (num_not_complete > 0) {
-		// calculate progress
-		float min_diff = _min_temperature_rise;
-
-		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-			float cur_diff = _data[uorb_index].high_temp - _data[uorb_index].low_temp;
-
-			if (cur_diff < min_diff) {
-				min_diff = cur_diff;
-			}
-		}
-
-		return math::min(100, (int)(min_diff / _min_temperature_rise * 100.f));
-	}
-
-	return 110;
-}
-
 int TemperatureCalibrationGyro::finish()
 {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
@@ -174,7 +154,7 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 		return 0;
 	}
 
-	double res[3][4] = {0.0f};
+	double res[3][4] = {};
 	data.P[0].fit(res[0]);
 	PX4_INFO("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
 		 (double)res[0][2],

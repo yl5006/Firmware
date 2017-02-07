@@ -45,7 +45,7 @@
 #include <mathlib/mathlib.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise)
-	: TemperatureCalibrationBase(min_temperature_rise)
+	: TemperatureCalibrationCommon(min_temperature_rise)
 {
 
 	//init subscriptions
@@ -57,6 +57,13 @@ TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_r
 
 	for (unsigned i = 0; i < _num_sensor_instances; i++) {
 		_sensor_subs[i] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
+	}
+}
+
+TemperatureCalibrationAccel::~TemperatureCalibrationAccel()
+{
+	for (unsigned i = 0; i < _num_sensor_instances; i++) {
+		orb_unsubscribe(_sensor_subs[i]);
 	}
 }
 
@@ -78,20 +85,22 @@ void TemperatureCalibrationAccel::reset_calibration()
 
 int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
-	if (data.hot_soaked) {
-		// already done
-		return 0;
-	}
+	bool finished = data.hot_soaked;
 
 	bool updated;
 	orb_check(sensor_sub, &updated);
 
 	if (!updated) {
-		return 1;
+		return finished ? 0 : 1;
 	}
 
 	sensor_accel_s accel_data;
 	orb_copy(ORB_ID(sensor_accel), sensor_sub, &accel_data);
+
+	if (finished) {
+		// if we're done, return, but we need to return after orb_copy because of poll()
+		return 0;
+	}
 
 	data.device_id = accel_data.device_id;
 
@@ -136,33 +145,6 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	return 1;
 }
 
-int TemperatureCalibrationAccel::update()
-{
-
-	int num_not_complete = 0;
-
-	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-		num_not_complete += update_sensor_instance(_data[uorb_index], _sensor_subs[uorb_index]);
-	}
-
-	if (num_not_complete > 0) {
-		// calculate progress
-		float min_diff = _min_temperature_rise;
-
-		for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
-			float cur_diff = _data[uorb_index].high_temp - _data[uorb_index].low_temp;
-
-			if (cur_diff < min_diff) {
-				min_diff = cur_diff;
-			}
-		}
-
-		return math::min(100, (int)(min_diff / _min_temperature_rise * 100.f));
-	}
-
-	return 110;
-}
-
 int TemperatureCalibrationAccel::finish()
 {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
@@ -185,7 +167,7 @@ int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int
 		return 0;
 	}
 
-	double res[3][4] = {0.0f};
+	double res[3][4] = {};
 	data.P[0].fit(res[0]);
 	res[0][3] = 0.0; // normalise the correction to be zero at the reference temperature
 	PX4_INFO("Result Accel %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],

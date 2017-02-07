@@ -43,6 +43,7 @@ set(msg_file_names
 	camera_trigger.msg
 	cammer_rc.msg
 	commander_state.msg
+	collision_report.msg
 	control_state.msg
 	cpuload.msg
 	debug_key_value.msg
@@ -75,6 +76,7 @@ set(msg_file_names
 	mc_virtual_rates_setpoint.msg
 	mission.msg
 	mission_result.msg
+	mount_orientation.msg
 	multirotor_motor_limits.msg
 	offboard_control_mode.msg
 	optical_flow.msg
@@ -98,6 +100,7 @@ set(msg_file_names
 	servorail_status.msg
 	subsystem_info.msg
 	system_power.msg
+	task_stack_info.msg
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
@@ -120,14 +123,12 @@ set(msg_file_names
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
 	vehicle_rates_setpoint.msg
+	vehicle_roi.msg
 	vehicle_status.msg
+	vehicle_status_flags.msg
 	vision_position_estimate.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
-	vehicle_roi.msg
-	mount_orientation.msg
-	collision_report.msg
-	low_stack.msg
 	)
 
 # Get absolute paths

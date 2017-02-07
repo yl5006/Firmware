@@ -46,6 +46,8 @@
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
 
+#include <unistd.h>
+
 #include "common.h"
 #include "temperature_calibration.h"
 #include "accel.h"
@@ -127,6 +129,7 @@ void TemperatureCalibration::task_main()
 
 	//init calibrators
 	TemperatureCalibrationBase *calibrators[3];
+	bool error_reported[3] = {};
 	int num_calibrators = 0;
 
 	if (_accel) {
@@ -167,6 +170,11 @@ void TemperatureCalibration::task_main()
 		calibrators[i]->reset_calibration();
 	}
 
+	// make sure the system updates the changed parameters
+	param_notify_changes();
+
+	usleep(300000); // wait a bit for the system to apply the parameters
+
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
 	while (!_force_task_exit) {
@@ -200,7 +208,10 @@ void TemperatureCalibration::task_main()
 			ret = calibrators[i]->update();
 
 			if (ret < 0) {
-				PX4_ERR("Calibration update step failed (%i)", ret);
+				if (!error_reported[i]) {
+					PX4_ERR("Calibration update step failed (%i)", ret);
+					error_reported[i] = true;
+				}
 
 			} else if (ret < min_progress) {
 				min_progress = ret;
@@ -220,6 +231,8 @@ void TemperatureCalibration::task_main()
 		}
 	}
 
+	PX4_INFO("Sensor Measurments completed");
+
 	// do final calculations & parameter storage
 	for (int i = 0; i < num_calibrators; ++i) {
 		int ret = calibrators[i]->finish();
@@ -227,6 +240,13 @@ void TemperatureCalibration::task_main()
 		if (ret < 0) {
 			PX4_ERR("Failed to finish calibration process (%i)", ret);
 		}
+	}
+
+	param_notify_changes();
+	int ret = param_save_default();
+
+	if (ret != 0) {
+		PX4_ERR("Failed to save params (%i)", ret);
 	}
 
 
