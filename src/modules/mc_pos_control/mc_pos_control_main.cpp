@@ -1110,27 +1110,27 @@ MulticopterPositionControl::control_manual(float dt)
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust = _params.thr_min;  //  by yaoling    0.0
+		_att_sp.thrust = 0.0f;//  _params.thr_min; by yaoling    0.0
 
 		_att_sp.timestamp = hrt_absolute_time();
 
-		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
-
-					/* copy quaternion setpoint to attitude setpoint topic */
-	    matrix::Quatf q_sp = _R_setpoint;
-		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
-		_att_sp.q_d_valid = true;
-
-		_thrust_int(2)=-0.5f;
-		_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
+//		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
+//
+//					/* copy quaternion setpoint to attitude setpoint topic */
+//	    matrix::Quatf q_sp = _R_setpoint;
+//		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+//		_att_sp.q_d_valid = true;
+//
+//		_thrust_int(2)=-0.5f;
+//		_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
+//
+//		/* publish attitude setpoint */
+//		if (_att_sp_pub != nullptr) {
+//			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+//
+//		} else if (_attitude_setpoint_id) {
+//			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+//		}
 
 	} else {
 		control_position(dt);

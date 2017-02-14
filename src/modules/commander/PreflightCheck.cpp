@@ -196,7 +196,13 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	if (checkAcc) {
 		if (sensors.accel_inconsistency_m_s_s > test_limit) {
 			if (report_status) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELS INCONSISTENT - CHECK CAL");
+				if(sys_language==0)
+						{
+							mavlink_log_critical(mavlink_log_pub,"内部加速度计不一致，检测校准或返厂");
+						} else
+						{
+							mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCELS INCONSISTENT - CHECK CAL");
+						}
 			}
 			success = false;
 			goto out;
@@ -213,7 +219,13 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, bool checkAcc, bo
 	if (checkGyro) {
 		if (sensors.gyro_inconsistency_rad_s > test_limit) {
 			if (report_status) {
-				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYROS INCONSISTENT - CHECK CAL");
+				if(sys_language==0)
+				{
+					mavlink_log_critical(mavlink_log_pub,"内部角速度计不一致，检测校准或返厂");
+				} else
+				{
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYROS INCONSISTENT - CHECK CAL");
+				}
 			}
 			success = false;
 			goto out;

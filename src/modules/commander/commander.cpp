@@ -2643,7 +2643,7 @@ int commander_thread_main(int argc, char *argv[])
 				 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
 				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
-				main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
+//				main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
 			}
 		}
 
