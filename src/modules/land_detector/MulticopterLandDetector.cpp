@@ -66,14 +66,16 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_manual{},
 	_ctrl_state{},
 	_control_mode{},
-	_inair(false),
+	_was_in_air(false),
 	_min_trust_start(0),
 	_min_manual_start(0),
 	_arming_time(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
+
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
+	_paramHandle.maxDownRate = param_find("MPC_Z_VEL_MAX");
 	_paramHandle.throttleRange = param_find("LNDMC_THR_RANGE");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
@@ -109,6 +111,7 @@ void MulticopterLandDetector::_update_topics()
 void MulticopterLandDetector::_update_params()
 {
 	param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
+	param_get(_paramHandle.maxDownRate, &_params.maxDownRate);
 	param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
 	param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
@@ -160,7 +163,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Check if user commands throttle and if so, report no ground contact based on
 	// the user intent to take off (even if the system might physically still have
 	// ground contact at this point).
-	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < 0.05f);
+	const bool manual_control_idle = (_has_manual_control_present() && _manual.z < 0.10f);//0.05
 	const bool manual_control_idle_or_auto = manual_control_idle || !_control_mode.flag_control_manual_enabled;
 
 	// Widen acceptance thresholds for landed state right after arming
@@ -179,7 +182,20 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
 	if (manual_control_idle_or_auto && _has_minimal_thrust() &&
-	    (!verticalMovement || !_has_position_lock())) {
+			(!verticalMovement || !_has_position_lock())) {
+		return true;
+	}
+
+	// Check if we are moving vertically - this might see a spike after arming due to
+	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
+	// an accurate in-air indication.
+	if(_manual.z >= _params.hoverThrottle *0.9f )
+		return false;
+	verticalMovement = fabsf(_vehicleLocalPosition.vz) > (_params.hoverThrottle-_manual.z)*_params.maxDownRate * armThresholdFactor;
+
+	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
+	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
+	if (_has_manual_control_present()&&_control_mode.flag_control_position_enabled&&(!verticalMovement)) {
 		return true;
 	}
 
@@ -266,7 +282,7 @@ float MulticopterLandDetector::_get_takeoff_throttle()
 		/* Should be above 0.5 because below that we do not gain altitude and won't take off.
 		 * Also it should be quite high such that we don't accidentally take off when using
 		 * a spring loaded throttle and have a useful vertical speed to start with. */
-		return 0.75f;
+		return 0.6f;//0.75
 	}
 
 	/* Manual/attitude mode */

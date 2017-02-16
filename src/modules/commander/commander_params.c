@@ -185,12 +185,12 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  *
  * @group Commander
  * @unit m
- * @min 2
- * @max 15
+ * @min 1
+ * @max 10
  * @decimal 2
  * @increment 0.5
  */
-PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_H_T, 1.0f);
 
 /**
  * Home set vertical threshold
@@ -199,12 +199,12 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  *
  * @group Commander
  * @unit m
- * @min 5
- * @max 25
+ * @min 3
+ * @max 20
  * @decimal 2
  * @increment 0.5
  */
-PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_V_T, 3.0f);
 
 /**
  * Autosaving of params
@@ -264,7 +264,7 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @decimal 0
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
+PARAM_DEFINE_INT32(COM_DISARM_LAND, 2);
 
 /**
  * Allow arming without GPS

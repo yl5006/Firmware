@@ -81,6 +81,7 @@ private:
 	**/
 	struct {
 		param_t maxClimbRate;
+		param_t maxDownRate;
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t minThrottle;
@@ -93,6 +94,7 @@ private:
 
 	struct {
 		float maxClimbRate;
+		float maxDownRate;
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float minThrottle;
@@ -119,7 +121,7 @@ private:
 	struct control_state_s			_ctrl_state;
 	struct vehicle_control_mode_s		_control_mode;
 
-	bool 	 _inair;
+	bool 	 _was_in_air;
 	uint64_t _min_trust_start;		///< timestamp when minimum trust was applied firstuint64_t _min_trust_start;		///< timestamp when minimum trust was applied first
 	uint64_t _min_manual_start;		///< timestamp when minimum manual.z was applied first_start;		///< timestamp when minimum trust was applied first
 	uint64_t _arming_time;

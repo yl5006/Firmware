@@ -187,8 +187,8 @@ static uint64_t last_print_mode_reject_time = 0;
 
 static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
-static float eph_threshold = 5.0f;
-static float epv_threshold = 10.0f;
+static float eph_threshold = 1.0f;   //5.0
+static float epv_threshold = 3.0f;   //10.0
 
 /* pre-flight EKF checks */
 static float max_ekf_pos_ratio = 0.5f;
@@ -2739,7 +2739,11 @@ int commander_thread_main(int argc, char *argv[])
 						internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
 						!land_detector.landed) {
-					print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
+					if (sys_language == 0) {
+						print_reject_arm("未加锁:不在手动模式或地面上");
+					} else {
+						print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
+					}
 
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -4151,7 +4155,7 @@ void *commander_low_prio_loop(void *arg)
 			/* only handle low-priority commands here */
 			switch (cmd.command) {
 			case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:{
-				if (is_safe(&status, &safety, &armed)) {
+				if (is_safe(&safety, &armed)) {
 					do_commander_motor_test(cmd,&mavlink_log_pub);
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack,false);
 				} else {
