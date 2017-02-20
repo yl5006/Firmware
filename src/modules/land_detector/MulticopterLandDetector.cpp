@@ -72,7 +72,6 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_arming_time(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
-
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.maxDownRate = param_find("MPC_Z_VEL_MAX");
@@ -186,16 +185,14 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		return true;
 	}
 
-	// Check if we are moving vertically - this might see a spike after arming due to
-	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
-	// an accurate in-air indication.
-	if(_manual.z >= _params.hoverThrottle *0.9f )
+	// Check if we are moving vertically - here only check in Position control mode or Alt mode
+	if(_manual.z >= _params.hoverThrottle *0.7f )
 		return false;
+	//if _vehicleLocalPosition.vz  <   50% * ( Command velocity )  ,there are 50% margin to command velocity ,but need vertical velocity much accurately
 	verticalMovement = fabsf(_vehicleLocalPosition.vz) > (_params.hoverThrottle-_manual.z)*_params.maxDownRate * armThresholdFactor;
 
-	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
-	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	if (_has_manual_control_present()&&_control_mode.flag_control_position_enabled&&(!verticalMovement)) {
+	// only check  we are landing in mannul mode
+	if ((_state == LandDetectionState::FLYING||_state == LandDetectionState::GROUND_CONTACT)&&_has_manual_control_present()&&_control_mode.flag_control_climb_rate_enabled&&(!verticalMovement)) {
 		return true;
 	}
 
