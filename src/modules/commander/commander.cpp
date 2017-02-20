@@ -201,6 +201,7 @@ static float max_ekf_dang_bias = 3.5e-4f;
 /* pre-flight IMU consistency checks */
 static float max_imu_acc_diff = 0.7f;
 static float max_imu_gyr_diff = 0.09f;
+static float min_stick_change = 0.25f;
 
 static struct vehicle_status_s status = {};
 static struct vehicle_roi_s _roi = {};
@@ -236,6 +237,7 @@ static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was
 static float avionics_power_rail_voltage;		// voltage of the avionics power rail
 
 static bool can_arm_without_gps = false;
+static bool _last_condition_global_position_valid = false;
 
 
 /**
@@ -1135,7 +1137,9 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_TAKEOFF, main_state_prev, &status_flags, &internal_state)) {
-				mavlink_and_console_log_info(&mavlink_log_pub, "Taking off");
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1364,6 +1368,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_autosave_params = param_find("COM_AUTOS_PAR");
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
+	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
 	param_t _param_eph = param_find("COM_HOME_H_T");
 	param_t _param_epv = param_find("COM_HOME_V_T");
 	param_t _param_geofence_action = param_find("GF_ACTION");
@@ -1843,6 +1848,9 @@ int commander_thread_main(int argc, char *argv[])
 			param_get(_param_rc_in_off, &rc_in_off);
 			status.rc_input_mode = rc_in_off;
 			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
+			param_get(_param_min_stick_change, &min_stick_change);
+			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
+			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
@@ -2635,15 +2643,34 @@ int commander_thread_main(int argc, char *argv[])
 			main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB)) {
 
-			// transition to previous state if sticks are increased
-			const float min_stick_change = 0.2f;
+			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
 				((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
 				 (fabsf(sp_man.y) - fabsf(_last_sp_man.y) > min_stick_change) ||
 				 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
 				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
-//				main_state_transition(&status, main_state_before_rtl, main_state_prev, &status_flags, &internal_state);
+				// revert to position control in any case
+				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
+				mavlink_log_critical(&mavlink_log_pub, "Aborted RTL, returned control to pilot");
+			}
+		}
+
+		// abort landing or auto or loiter if sticks are moved significantly
+		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL) {
+			// transition to previous state if sticks are touched
+			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
+				((fabsf(sp_man.x) - fabsf(_last_sp_man.x) > min_stick_change) ||
+				 (fabsf(sp_man.y) - fabsf(_last_sp_man.y) > min_stick_change) ||
+				 (fabsf(sp_man.z) - fabsf(_last_sp_man.z) > min_stick_change) ||
+				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
+
+				// revert to position control in any case
+				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
+				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
 			}
 		}
 
@@ -2866,6 +2893,9 @@ int commander_thread_main(int argc, char *argv[])
 			bool first_rc_eval = (_last_sp_man.timestamp == 0) && (sp_man.timestamp > 0);
 			transition_result_t main_res = set_main_state_rc(&status);
 
+			/* store last position lock state */
+			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
+
 			/* play tune on mode change only if armed, blink LED always */
 			if (main_res == TRANSITION_CHANGED || first_rc_eval) {
 				tune_positive(armed.armed);
@@ -3035,6 +3065,19 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/* check if we are disarmed and there is a better mode to wait in */
+		if (!armed.armed) {
+
+			/* if there is no radio control but GPS lock the user might want to fly using
+			 * just a tablet. Since the RC will force its mode switch setting on connecting
+			 * we can as well just wait in a hold mode which enables tablet control.
+			 */
+			if (status.rc_signal_lost && (internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
+				&& status_flags.condition_home_position_valid) {
+				(void)main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+			}
+		}
+
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
 
@@ -3127,6 +3170,7 @@ int commander_thread_main(int argc, char *argv[])
 		else if (((!was_armed && armed.armed) || (was_landed && !land_detector.landed)) &&
 			(now > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL)) {
 			commander_set_home_position(home_pub, _home, local_position, global_position, attitude);
+
 		}
 
 		was_armed = armed.armed;
@@ -3415,7 +3459,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	last_overload = overload;
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE)
+#if defined (CONFIG_ARCH_BOARD_PX4FMU_V1) || defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE) || defined (CONFIG_ARCH_BOARD_AEROFC_V1)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
@@ -3472,7 +3516,9 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 	// feature, just in case offboard control goes crazy.
 
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
+	if (!(!_last_condition_global_position_valid &&
+		status_flags.condition_global_position_valid)
+		&& (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
 		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&
 		 (_last_sp_man.return_switch == sp_man.return_switch) &&
 		 (_last_sp_man.mode_switch == sp_man.mode_switch) &&
@@ -3480,7 +3526,9 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
 		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
 		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
-		 (_last_sp_man.mode_slot == sp_man.mode_slot))) {
+		 (_last_sp_man.mode_slot == sp_man.mode_slot) &&
+		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
+		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
 
 		// update these fields for the geofence system
 
@@ -3678,31 +3726,65 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		break;
 
 	case manual_control_setpoint_s::SWITCH_POS_OFF:		// MANUAL
-		if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-
-			/* manual mode is stabilized already for multirotors, so switch to acro
-			 * for any non-manual mode
+		if (sp_man.stab_switch == manual_control_setpoint_s::SWITCH_POS_NONE &&
+			sp_man.man_switch == manual_control_setpoint_s::SWITCH_POS_NONE) {
+			/*
+			 * Legacy mode:
+			 * Acro switch being used as stabilized switch in FW.
 			 */
-			// XXX: put ACRO and STAB on separate switches
-			if (status.is_rotary_wing && !status.is_vtol) {
-				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
-			} else if (!status.is_rotary_wing) {
-				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+			if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* manual mode is stabilized already for multirotors, so switch to acro
+				 * for any non-manual mode
+				 */
+				if (status.is_rotary_wing && !status.is_vtol) {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
+
+				} else if (!status.is_rotary_wing) {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+
+				} else {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+				}
+
+			} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				/* Similar to acro transitions for multirotors.  FW aircraft don't need a
+				 * rattitude mode.*/
+				if (status.is_rotary_wing) {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, main_state_prev, &status_flags, &internal_state);
+
+				} else {
+					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+				}
+
 			} else {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
 			}
 
-		}
-		else if(sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON){
-			/* Similar to acro transitions for multirotors.  FW aircraft don't need a
-			 * rattitude mode.*/
-			if (status.is_rotary_wing) {
+		} else {
+			/* New mode:
+			 * - Acro is Acro
+			 * - Manual is not default anymore when the manaul switch is assigned
+			 */
+			if (sp_man.man_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.acro_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.stab_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+
+			} else if (sp_man.man_switch == manual_control_setpoint_s::SWITCH_POS_NONE) {
+				// default to MANUAL when no manual switch is set
+				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
+
 			} else {
+				// default to STAB when the manual switch is assigned (but off)
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 			}
-		}else {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, main_state_prev, &status_flags, &internal_state);
 		}
 
 		// TRANSITION_DENIED is not possible here
@@ -3817,7 +3899,7 @@ set_control_mode()
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_rattitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
 		control_mode.flag_control_altitude_enabled = false;
 		control_mode.flag_control_climb_rate_enabled = false;
 		control_mode.flag_control_position_enabled = false;
@@ -4216,7 +4298,9 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 						calib_ret = do_gyro_calibration(&mavlink_log_pub);
 
-					} else if ((int)(cmd.param1) == 3 || (int)(cmd.param5) == 3 || (int)(cmd.param7) == 3) {
+					} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+							(int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
+							(int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 						/* temperature calibration: handled in events module */
 						break;
 
