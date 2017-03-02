@@ -1097,25 +1097,22 @@ MulticopterPositionControl::control_manual(float dt)
 		_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
 	}
 
-	if (_vehicle_land_detected.ground_contact) {//.landed) {
-		/* don't run controller when landed */
-		_reset_pos_sp = true;
-		_reset_alt_sp = true;
-		_mode_auto = false;
-		_reset_int_z = true;
-		_reset_int_xy = true;
+	if (_vehicle_land_detected.landed) {
+			/* don't run controller when landed */
+			_reset_pos_sp = true;
+			_reset_alt_sp = true;
+			_mode_auto = false;
+			_reset_int_z = true;
+			_reset_int_xy = true;
 
-		_R_setpoint.identity();
+			_R_setpoint.identity();
 
-		_att_sp.roll_body = 0.0f;
-		_att_sp.pitch_body = 0.0f;
-		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust =  _params.thr_min;//_params.thr_min; //by yaoling    0.0
-		if (_vehicle_land_detected.landed)
-		{
-			_att_sp.thrust = 0.0;
-		}
-		_att_sp.timestamp = hrt_absolute_time();
+			_att_sp.roll_body = 0.0f;
+			_att_sp.pitch_body = 0.0f;
+			_att_sp.yaw_body = _yaw;
+			_att_sp.thrust = 0.0f;
+
+			_att_sp.timestamp = hrt_absolute_time();
 
 //		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
 //

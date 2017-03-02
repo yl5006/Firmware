@@ -2651,8 +2651,8 @@ int commander_thread_main(int argc, char *argv[])
 				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
 				// revert to position control in any case
-				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Aborted RTL, returned control to pilot");
+		//		main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
+		//		mavlink_log_critical(&mavlink_log_pub, "Aborted RTL, returned control to pilot");
 			}
 		}
 
@@ -2669,8 +2669,8 @@ int commander_thread_main(int argc, char *argv[])
 				 (fabsf(sp_man.r) - fabsf(_last_sp_man.r) > min_stick_change))) {
 
 				// revert to position control in any case
-				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
+		//		main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
+		//		mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
 			}
 		}
 
@@ -4237,7 +4237,7 @@ void *commander_low_prio_loop(void *arg)
 			/* only handle low-priority commands here */
 			switch (cmd.command) {
 			case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:{
-				if (is_safe(&safety, &armed)) {
+				if (1) {
 					do_commander_motor_test(cmd,&mavlink_log_pub);
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack,false);
 				} else {

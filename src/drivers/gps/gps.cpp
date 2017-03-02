@@ -85,7 +85,7 @@
 #include "devices/src/ubx.h"
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
-
+#include "devices/src/nova.h"
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
@@ -729,10 +729,13 @@ GPS::task_main()
 				_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
 				break;
 
+			case GPS_DRIVER_MODE_NOVA:
+				_helper = new GPSDriverNova(&GPS::callback, this, &_report_gps_pos);
+				break;
+
 			case GPS_DRIVER_MODE_ASHTECH:
 				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
 				break;
-
 			default:
 				break;
 			}
@@ -835,6 +838,10 @@ GPS::task_main()
 					break;
 
 				case GPS_DRIVER_MODE_MTK:
+					_mode = GPS_DRIVER_MODE_NOVA;
+					break;
+
+				case GPS_DRIVER_MODE_NOVA:
 					_mode = GPS_DRIVER_MODE_ASHTECH;
 					break;
 
@@ -905,7 +912,9 @@ GPS::print_info()
 		case GPS_DRIVER_MODE_ASHTECH:
 			PX4_WARN("protocol: ASHTECH");
 			break;
-
+		case GPS_DRIVER_MODE_NOVA:
+			PX4_WARN("protocol: NOVA");
+			break;
 		default:
 			break;
 		}
@@ -1156,6 +1165,9 @@ gps_main(int argc, char *argv[])
 
 					} else if (!strcmp(argv[mode_arg], "ash")) {
 						mode = GPS_DRIVER_MODE_ASHTECH;
+
+					} else if (!strcmp(argv[mode_arg], "nova")) {
+						mode = GPS_DRIVER_MODE_NOVA;
 
 					} else {
 						PX4_ERR("unknown protocol");

@@ -192,7 +192,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	verticalMovement = fabsf(_vehicleLocalPosition.vz) > (_params.hoverThrottle-_manual.z)*_params.maxDownRate * armThresholdFactor;
 
 	// only check  we are landing in mannul mode
-	if ((_state == LandDetectionState::FLYING||_state == LandDetectionState::GROUND_CONTACT)&&_has_manual_control_present()&&_control_mode.flag_control_climb_rate_enabled&&(!verticalMovement)) {
+	if ((_state == LandDetectionState::FLYING)&&_has_manual_control_present()&&_control_mode.flag_control_climb_rate_enabled&&(!verticalMovement)) {
 		return true;
 	}
 
@@ -279,7 +279,7 @@ float MulticopterLandDetector::_get_takeoff_throttle()
 		/* Should be above 0.5 because below that we do not gain altitude and won't take off.
 		 * Also it should be quite high such that we don't accidentally take off when using
 		 * a spring loaded throttle and have a useful vertical speed to start with. */
-		return 0.6f;//0.75
+		return 0.05f;//0.75
 	}
 
 	/* Manual/attitude mode */

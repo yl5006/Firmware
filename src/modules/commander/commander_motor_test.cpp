@@ -110,6 +110,12 @@ int do_commander_motor_test(struct vehicle_command_s cmd,orb_advert_t *mavlink_l
 	/* open for ioctl only */
 	int fd = px4_open(dev, 0);
 
+	int ret  = ioctl(fd, PWM_SERVO_ARM, 0);
+
+	if (ret != OK) {
+				err(1, "PWM_SERVO_ARM");
+			}
+
 	if (fd < 0) {
 		calibration_log_info(mavlink_log_pub,"can't open %s", dev);
 		return ERROR;
@@ -119,14 +125,13 @@ int do_commander_motor_test(struct vehicle_command_s cmd,orb_advert_t *mavlink_l
 
 	/* get the number of servo channels */
 	unsigned servo_count;
-	int ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 
 	if (ret != OK) {
 		calibration_log_info(mavlink_log_pub, "PWM_SERVO_GET_COUNT");
 		px4_close(fd);
 		return ERROR;
 	}
-
 	for (unsigned i = 0; i < servo_count; i++) {
 		if (set_mask & 1 << i) {
 			ret = px4_ioctl(fd, PWM_SERVO_SET(i), pwm_value);

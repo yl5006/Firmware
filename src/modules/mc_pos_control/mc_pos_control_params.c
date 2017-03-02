@@ -214,7 +214,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.2f);
  * @max 4.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 1.2f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 1.5f);
 
 /**
  * Transitional support, do not change / use
@@ -224,7 +224,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 1.2f);
  * @max 4.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.2f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
 
 /**
  * Vertical velocity feed forward
@@ -450,13 +450,13 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * Maximum horizonal acceleration in velocity controlled modes
  *
  * @unit m/s/s
- * @min 2.0
+ * @min 1.0
  * @max 15.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 1.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward

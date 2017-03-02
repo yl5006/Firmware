@@ -542,6 +542,7 @@ MissionBlock::item_contains_command(const struct mission_item_s *item)
 	if (//item->nav_cmd == NAV_CMD_DO_JUMP ||
 		item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item->nav_cmd == NAV_CMD_DO_LAND_START ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
 		//item->nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
