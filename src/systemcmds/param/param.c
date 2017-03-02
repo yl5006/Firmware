@@ -42,6 +42,7 @@
 #include <px4_config.h>
 #include <px4_posix.h>
 
+#include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -103,8 +104,10 @@ param_main(int argc, char *argv[])
 				return do_save(argv[2]);
 
 			} else {
-				if (do_save_default()) {
-					warnx("Param export failed.");
+				int ret = do_save_default();
+
+				if (ret) {
+					PX4_ERR("Param save failed (%i)", ret);
 					return 1;
 
 				} else {
@@ -139,7 +142,7 @@ param_main(int argc, char *argv[])
 				param_set_default_file(NULL);
 			}
 
-			warnx("selected parameter default file %s", param_get_default_file());
+			PX4_INFO("selected parameter default file %s", param_get_default_file());
 			return 0;
 		}
 
@@ -192,7 +195,7 @@ param_main(int argc, char *argv[])
 				return do_set(argv[2], argv[3], false);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
+				PX4_ERR("not enough arguments.\nTry 'param set PARAM_NAME 3 [fail]'");
 				return 1;
 			}
 		}
@@ -202,7 +205,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 				return 1;
 			}
 		}
@@ -212,7 +215,7 @@ param_main(int argc, char *argv[])
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
+				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
 				return 1;
 			}
 		}
@@ -240,7 +243,7 @@ param_main(int argc, char *argv[])
 				return do_show_index(argv[2], true);
 
 			} else {
-				warnx("no index provided");
+				PX4_ERR("no index provided");
 				return 1;
 			}
 		}
@@ -250,7 +253,7 @@ param_main(int argc, char *argv[])
 				return do_show_index(argv[2], false);
 
 			} else {
-				warnx("no index provided");
+				PX4_ERR("no index provided");
 				return 1;
 			}
 		}
@@ -260,7 +263,7 @@ param_main(int argc, char *argv[])
 				return do_find(argv[2]);
 
 			} else {
-				warnx("not enough arguments.\nTry 'param find PARAM_NAME'");
+				PX4_ERR("not enough arguments.\nTry 'param find PARAM_NAME'");
 				return 1;
 			}
 		}
@@ -301,7 +304,7 @@ do_save(const char *param_file_name)
 	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
-		warn("opening '%s' failed", param_file_name);
+		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 		return 1;
 	}
 
@@ -312,7 +315,7 @@ do_save(const char *param_file_name)
 #ifndef __PX4_QURT
 		(void)unlink(param_file_name);
 #endif
-		warnx("error exporting to '%s'", param_file_name);
+		PX4_ERR("exporting to '%s' failed (%i)", param_file_name, result);
 		return 1;
 	}
 
@@ -325,7 +328,7 @@ do_load(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open failed '%s'", param_file_name);
+		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 		return 1;
 	}
 
@@ -333,7 +336,7 @@ do_load(const char *param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		warnx("error importing from '%s'", param_file_name);
+		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
 		return 1;
 	}
 
@@ -346,7 +349,7 @@ do_import(const char *param_file_name)
 	int fd = open(param_file_name, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open '%s'", param_file_name);
+		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 		return 1;
 	}
 
@@ -354,7 +357,7 @@ do_import(const char *param_file_name)
 	close(fd);
 
 	if (result < 0) {
-		warnx("error importing from '%s'", param_file_name);
+		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
 		return 1;
 	}
 
@@ -384,7 +387,7 @@ do_find(const char *name)
 	param_t ret = param_find_no_notification(name);
 
 	if (ret == PARAM_INVALID) {
-		warnx("Parameter %s not found", name);
+		PX4_ERR("Parameter %s not found", name);
 		return 1;
 	}
 
@@ -409,7 +412,7 @@ do_show_index(const char *index, bool used_index)
 	}
 
 	if (param == PARAM_INVALID) {
-		warnx("param not found for index %u", i);
+		PX4_ERR("param not found for index %u", i);
 		return 1;
 	}
 
@@ -464,7 +467,7 @@ do_show_print(void *arg, param_t param)
 
 			} else if (*ss == '*') {
 				if (*(ss + 1) != '\0') {
-					warnx("* symbol only allowed at end of search string.");
+					PX4_WARN("* symbol only allowed at end of search string");
 					// FIXME - should exit
 					return;
 				}
@@ -530,7 +533,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
 		/* param not found - fail silenty in scripts as it prevents booting */
-		warnx("Error: Parameter %s not found.", name);
+		PX4_ERR("Parameter %s not found.", name);
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
@@ -582,12 +585,14 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		break;
 
 	default:
-		warnx("<unknown / unsupported type %d>\n", 0 + param_type(param));
+		PX4_ERR("<unknown / unsupported type %d>\n", 0 + param_type(param));
 		return 1;
 	}
 
-	if (param_save_default()) {
-		warnx("Param export failed.");
+	int ret = param_save_default();
+
+	if (ret) {
+		PX4_ERR("Param save failed (%i)", ret);
 		return 1;
 
 	} else {
@@ -605,7 +610,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
 		/* param not found */
-		warnx("Error: Parameter %s not found.", name);
+		PX4_ERR("Parameter %s not found", name);
 		return 1;
 	}
 
@@ -657,7 +662,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 		break;
 
 	default:
-		warnx("<unknown / unsupported type %d>\n", 0 + param_type(param));
+		PX4_ERR("<unknown / unsupported type %d>", 0 + param_type(param));
 		return 1;
 	}
 
@@ -680,8 +685,10 @@ do_reset(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
-	if (param_save_default()) {
-		warnx("Param export failed.");
+	int ret = param_save_default();
+
+	if (ret) {
+		PX4_ERR("Param save failed (%i)", ret);
 		return 1;
 	}
 
@@ -707,8 +714,10 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
 	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
 
-	if (param_save_default()) {
-		warnx("Param export failed.");
+	int ret = param_save_default();
+
+	if (ret) {
+		PX4_ERR("Param save failed (%i)", ret);
 		return 1;
 
 	}

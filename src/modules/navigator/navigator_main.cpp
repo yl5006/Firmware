@@ -279,6 +279,11 @@ Navigator::params_update()
 {
 	parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
+	updateParams();
+
+	if (_navigation_mode) {
+		_navigation_mode->updateParams();
+	}
 }
 
 void
@@ -342,6 +347,9 @@ Navigator::task_main()
 	fds[0].events = POLLIN;
 
 	bool global_pos_available_once = false;
+
+	/* rate-limit global pos subscription to 20 Hz / 50 ms */
+	orb_set_interval(_global_pos_sub, 49);
 
 	while (!_task_should_exit) {
 
@@ -411,7 +419,6 @@ Navigator::task_main()
 
 		if (updated) {
 			params_update();
-			updateParams();
 		}
 
 		/* vehicle control mode updated */
