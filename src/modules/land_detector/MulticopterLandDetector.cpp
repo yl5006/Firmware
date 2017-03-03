@@ -195,13 +195,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 	// Check if we are moving vertically - here only check in Position control mode or Alt mode
-	if(_manual.z >= _params.hoverThrottle *0.7f )
+	if(_manual.z >= _params.hoverThrottle *0.6f )
 		return false;
 	//if _vehicleLocalPosition.vz  <   50% * ( Command velocity )  ,there are 50% margin to command velocity ,but need vertical velocity much accurately
 	verticalMovement = fabsf(_vehicleLocalPosition.vz) > (_params.hoverThrottle-_manual.z)*_params.maxDownRate * armThresholdFactor;
 
 	// only check  we are landing in mannul mode
-	if ((_state == LandDetectionState::FLYING)&&_has_manual_control_present()&&_control_mode.flag_control_climb_rate_enabled&&(!verticalMovement)) {
+	if ((_state == LandDetectionState::FLYING||_state == LandDetectionState::GROUND_CONTACT)&&_has_manual_control_present()&&_control_mode.flag_control_climb_rate_enabled&&(!verticalMovement)) {
 		return true;
 	}
 

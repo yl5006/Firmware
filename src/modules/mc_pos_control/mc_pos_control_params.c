@@ -461,7 +461,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * Maximum horizonal acceleration in velocity controlled modes
  *
  * @unit m/s/s
- * @min 1.0
+ * @min 0.5
  * @max 15.0
  * @increment 1
  * @decimal 2
