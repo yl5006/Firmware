@@ -173,13 +173,13 @@ then
 		then
 		fi
 
-		if l3gd20 start
-		then
-		fi
+#		if l3gd20 start
+#		then
+#		fi
 
-		if lsm303d start
-		then
-		fi
+#		if lsm303d start
+#		then
+#		fi
 	fi
 fi
 

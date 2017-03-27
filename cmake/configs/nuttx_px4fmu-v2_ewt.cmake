@@ -22,13 +22,13 @@ set(config_module_list
 	drivers/mpu6000
 	#drivers/max1168
 	#drivers/mpu9250
-	drivers/lsm303d
-	drivers/l3gd20
+	#drivers/lsm303d
+	#drivers/l3gd20
 	drivers/hmc5883
 	drivers/ms5611
 	#drivers/mb12xx
 	#drivers/srf02    #range finder
-	drivers/sf0x
+	#drivers/sf0x
 	#drivers/ll40ls
 	drivers/trone
 	drivers/gps
@@ -50,7 +50,7 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/bst
 	#drivers/snapdragon_rc_pwm
-	drivers/lis3mdl
+	#drivers/lis3mdl
 	#drivers/iridiumsbd
 	drivers/ulanding
 	#drivers/milliwave

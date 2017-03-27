@@ -54,8 +54,9 @@
 #include <geo/geo.h>
 #include <drivers/drv_hrt.h>
 #include "navigator.h"
+#include <fcntl.h>
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
+#define GEOFENCE_RANGE_WARNING_LIMIT 8000000
 
 Geofence::Geofence(Navigator *navigator) :
 	SuperBlock(navigator, "GF"),
@@ -74,7 +75,11 @@ Geofence::Geofence(Navigator *navigator) :
 	_param_counter_threshold(this, "GF_COUNT", false),
 	_param_max_hor_distance(this, "GF_MAX_HOR_DIST", false),
 	_param_max_ver_distance(this, "GF_MAX_VER_DIST", false),
-	_outside_counter(0)
+	_outside_counter(0),
+	_maxindex(0),
+	_startindex(0),
+	_checkindex(0),
+	_indexinit(false)
 {
 	/* Load initial params */
 	updateParams();
@@ -324,6 +329,161 @@ Geofence::publishFence(unsigned vertices)
 	} else {
 		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
 	}
+}
+bool
+Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position)
+{
+	if(!_indexinit)
+		return false;
+	FILE		*fp;
+	forbidden 	place;
+	bool inside_fence=false;
+	/* open the mixer definition file */
+	fp = fopen(GEOFENCE_EWT, "rb");
+
+	if (fp == nullptr) {
+		warnx("load error");
+		return PX4_ERROR;
+	}
+	/* create geofence points from valid lines and store in DM */
+	fseek(fp, _checkindex*112, SEEK_SET);
+	int lat=(int)(global_position.lat*10000000);
+	int lon=(int)(global_position.lon*10000000);
+	for (int k=0;k < 10 && _checkindex < _maxindex;k++,_checkindex++) {
+		fread(&place, 112, 1, fp);  //读取112个字节global_position.lat >(double) place.maxlat*1e-7 ||||global_position.lat <(double) place.minlat*1e-7
+		if( lat >place.maxlat ||lat <  place.minlat|| lon <place.minlon || lon > place.maxlon)
+		{
+                continue ;
+		}
+		else
+		{
+			if(place.shape==0)
+			{
+				bool c = false;
+				/* Read until fence is finished */
+				for (int i = 0, j = place.numpoint-1; i < place.numpoint; j = i++) {
+
+					// skip vertex 0 (return point)
+					if (((double)place.pt.polygon[i].lon*1e-7 >= global_position.lon) != ((double)place.pt.polygon[j].lon *1e-7>= global_position.lon) &&
+					    (global_position.lat <= ((double)place.pt.polygon[j].lat*1e-7 - (double)place.pt.polygon[i].lat*1e-7) * (global_position.lon -  (double)place.pt.polygon[i].lon*1e-7) /
+					     ((double)place.pt.polygon[j].lon*1e-7- (double)place.pt.polygon[i].lon*1e-7) + (double)place.pt.polygon[i].lat*1e-7)) {
+						c = !c;
+					}
+
+				}
+				inside_fence=c;
+				if(inside_fence){
+					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+						_last_horizontal_range_warning = hrt_absolute_time();
+						if(place.type==4||place.type==5)
+						{
+							if (sys_language == 0) {
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入限飞区%d,类型%d,请申报",
+										place.cno,place.type);
+							} else {
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
+										place.cno,place.type);
+							}
+						}else
+						{
+							if (sys_language == 0) {
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入禁飞区%d,type=%d index=%d",
+										place.cno,place.type,_checkindex);
+							} else {
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
+										place.cno,place.type);
+							}
+						}
+					}
+					if(place.type==4||place.type==5)
+					{
+						inside_fence=false;   //not forbid fly
+					}
+				}
+			}else if(place.shape==1)  //circle
+			{
+				float dist_xy = -1.0f;
+				float dist_z = -1.0f;
+				get_distance_to_point_global_wgs84(global_position.lat, global_position.lon, global_position.alt,
+						(double)place.pt.cir.center.lat*1e-7, (double)place.pt.cir.center.lon*1e-7, _home_pos.alt,
+											   &dist_xy, &dist_z);
+
+					if ((int)dist_xy < place.pt.cir.radius) {
+							if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+								if(place.type==4||place.type==5)
+										{
+											if (sys_language == 0) {
+												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入限飞区%d,类型%d,请申报",
+														place.cno,place.type);
+											} else {
+												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
+														place.cno,place.type);
+											}
+										}else
+										{
+											if (sys_language == 0) {
+												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入禁飞区%d,类型%d,降落或返航",
+														place.cno,place.type);
+											} else {
+												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
+														place.cno,place.type);
+											}
+										}
+								_last_horizontal_range_warning = hrt_absolute_time();
+							}
+							inside_fence= true;
+					}
+			}else if(place.shape==2)//sector
+			{
+
+			}
+		}
+	}
+	if(_checkindex==_maxindex)
+	{
+		_checkindex=_startindex;
+	}
+	fclose(fp);
+	return inside_fence;
+}
+int
+Geofence::loadFromEwtFile(const struct vehicle_global_position_s &global_position)
+{
+	if(!_indexinit)
+	{
+		FILE		*fp;
+		forbidden 	place;
+		/* Make sure no data is left in the datamanager */
+		clearDm();
+
+		/* open the mixer definition file */
+		fp = fopen(GEOFENCE_EWT, "rb");
+
+		if (fp == nullptr) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "load error");
+			return PX4_ERROR;
+		}
+		/* create geofence points from valid lines and store in DM */
+		fseek(fp, _maxindex*112, SEEK_SET);
+		for (int i=0;i<100;i++,_maxindex++) {
+			fread(&place, 112, 1, fp);  //读取112个字节
+			if(_startindex==0&&(int)(global_position.lat*1e7-60000000) < place.minlat)
+				{
+				_startindex=_maxindex;
+				_checkindex=_startindex;
+				}
+			if((int)(global_position.lat*1e7+10000000) < place.minlat)
+			{
+				_indexinit=true;
+			//	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "_maxindex=%d,_startindex=%d",
+			//			_maxindex,_startindex);
+				break ;
+			}
+		}
+		fclose(fp);
+		return PX4_OK;
+	}
+	return PX4_OK;
 }
 
 int

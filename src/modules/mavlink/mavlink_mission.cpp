@@ -969,8 +969,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_SET_SERVO:
 		case MAV_CMD_DO_DIGICAM_CONTROL:
 		case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case MAV_CMD_DO_CAM:
+		case MAV_CMD_DO_TIME_CAM:
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 		case MAV_CMD_DO_CHANGE_SPEED:
+
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
@@ -1181,6 +1184,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_SET_SERVO:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+		case MAV_CMD_DO_CAM:
+		case MAV_CMD_DO_TIME_CAM:
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 		case NAV_CMD_DO_CHANGE_SPEED:
 			mavlink_mission_item->param1 = mission_item->time_inside;

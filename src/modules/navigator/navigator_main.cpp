@@ -604,13 +604,16 @@ Navigator::task_main()
 
 			_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
-			if (!inside) {
+			_geofence.loadFromEwtFile(_global_pos);
+			bool insidefile =  _geofence.intsideEwtFile(_global_pos);
+
+			if (!inside||insidefile) {
 				/* inform other apps via the mission result */
 				_geofence_result.geofence_violated = true;
 				publish_geofence_result();
 
 				/* Issue a warning about the geofence violation once */
-				if (!_geofence_violation_warning_sent) {
+				if (false) {//!_geofence_violation_warning_sent
 					if (sys_language == 0) {
 						mavlink_log_critical(&_mavlink_log_pub, "地理围栏违规");
 					} else {

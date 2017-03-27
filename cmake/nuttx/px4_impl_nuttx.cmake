@@ -436,6 +436,8 @@ function(px4_nuttx_add_romfs)
 		COMMAND ${PYTHON_EXECUTABLE} ${romfs_pruner}
 			--folder ${romfs_temp_dir}
 			--board ${BOARD}
+		COMMAND cmake -E copy_directory ${PX4_SOURCE_DIR}/date ${romfs_temp_dir}/extras
+
 		COMMAND ${GENROMFS} -f ${CMAKE_CURRENT_BINARY_DIR}/romfs.bin
 			-d ${romfs_temp_dir} -V "NSHInitVol"
 		#COMMAND cmake -E remove_directory ${romfs_temp_dir}

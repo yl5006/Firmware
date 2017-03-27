@@ -9,9 +9,18 @@ to output 4.
 
 Tilt mechanism servo mixer
 ---------------------------
-M: 1
+
+#RIGHT up:2000 down:1000
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 4      0 -20000  10000 -10000  10000
+S: 0 2   7000   7000      0 -10000  10000
+
+#LEFT up:1000 down:2000
+M: 2
 O:      10000  10000      0 -10000  10000
 S: 1 4      0  20000 -10000 -10000  10000
+S: 0 2   7000   7000      0 -10000  10000
 
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
 (roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps) 6 (flaperon).

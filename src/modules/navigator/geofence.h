@@ -53,6 +53,8 @@
 
 #define GEOFENCE_FILENAME PX4_ROOTFSDIR"/fs/microsd/etc/geofence.txt"
 
+#define GEOFENCE_EWT PX4_ROOTFSDIR"/etc/extras/ewt.dat"
+
 class Navigator;
 
 class Geofence : public control::SuperBlock
@@ -104,6 +106,8 @@ public:
 	void publishFence(unsigned vertices);
 
 	int loadFromFile(const char *filename);
+	int loadFromEwtFile(const struct vehicle_global_position_s &global_position);
+	bool intsideEwtFile(const struct vehicle_global_position_s &global_position);
 
 	bool isEmpty() {return _vertices_count == 0;}
 
@@ -142,6 +146,55 @@ private:
 	bool inside(double lat, double lon, float altitude);
 	bool inside(const struct vehicle_global_position_s &global_position);
 	bool inside(const struct vehicle_global_position_s &global_position, float baro_altitude_amsl);
+	//  这是飞控存储格式*********************************
+	typedef struct {
+		double lon;	      //经度： 1e7（度），精度：小数点后 7 位，单位：度。
+		double lat;       //纬度： 1e7（度），精度：小数点后 7 位，单位：度。
+	}latlonDouble;
+
+	typedef struct {
+		int lon;	   //经度： 1e7（度），精度：小数点后 7 位，单位：度。
+		int lat;       //纬度： 1e7（度），精度：小数点后 7 位，单位：度。
+	}latlon;
+
+	typedef struct
+	{
+		latlon center;
+		unsigned int  radius;   //   半径（米），单位：米。
+	}circle;
+	typedef struct
+	{
+		latlon center;
+		unsigned int  radius;   //   半径（米），单位：米。
+		int startangle;         //   从北0度-360 顺时针
+		int stopangle;
+	}sector;
+	typedef union
+	{
+			int  point[20];      // 多边形最大 10 条边
+			latlon polygon[10];
+			circle cir;
+			sector sect;
+	}Unionpoint;
+	typedef struct {
+		unsigned char fe;      //   总是 0xFE
+		unsigned char type;    //   对应地理编码   地理编码是空域对象的唯一标识码
+		unsigned char shape;   //   形状  0  :多边形    1:  圆   2 ：扇形  3 等
+		unsigned char numpoint;//   多边形边数 （ 圆为 ，扇形 为1 ）
+		unsigned int  cno;     //   编号   对应地理编码编号
+		int minlat; //   区域最小纬度	   1e7（度）  			且存贮按此排序
+		int maxlat; //   区域最小纬度	   1e7（度）
+		int minlon; //   区域最小经度	   1e7（度） 			且存贮按此排序
+		int maxlon; //   区域最大经度	   1e7（度）
+		unsigned int minalt;      //   最小高度（米），精度：单位：米。最大高度值为 0，则表明该高度为无限高。
+		unsigned int maxalt;      //   最大高度（米），精度：单位：米。最大高度值为 0，则表明该高度为无限高。
+		Unionpoint pt;//   多边形边经纬度 或 圆心 半径	扇形
+	}forbidden;       //   总共112个字节
+
+	int  _maxindex;
+	int  _startindex;
+	int  _checkindex;
+	bool _indexinit;
 };
 
 
