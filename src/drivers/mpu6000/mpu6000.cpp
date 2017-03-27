@@ -796,7 +796,7 @@ int MPU6000::reset()
 	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
-	set_accel_range(4);  //8G
+	set_accel_range(16);  //8G
 
 	usleep(1000);
 
@@ -2621,7 +2621,7 @@ mpu6000_main(int argc, char *argv[])
 	int device_type = MPU_DEVICE_TYPE_MPU6000;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = 4;//8
+	int accel_range = 16;//8
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = getopt(argc, argv, "T:XISsZzR:a:")) != EOF) {
