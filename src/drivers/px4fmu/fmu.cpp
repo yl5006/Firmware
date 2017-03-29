@@ -1158,6 +1158,7 @@ PX4FMU::cycle()
 		}
 
 		/* wait for an update */
+		unsigned n_updates = 0;
 		int ret = ::poll(_poll_fds, _poll_fds_num, poll_timeout);
 
 		/* this would be bad... */
@@ -1173,7 +1174,6 @@ PX4FMU::cycle()
 
 			/* get controls for required topics */
 			unsigned poll_id = 0;
-			unsigned n_updates = 0;
 
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 				if (_control_subs[i] > 0) {
@@ -1225,9 +1225,12 @@ PX4FMU::cycle()
 					_pwm_limit.state = PWM_LIMIT_STATE_ON;
 				}
 			}
+		} // poll_fds
 
-			// only mix if we have a new actuator_controls message
-			if ((n_updates > 0) && (_mixers != nullptr)) {
+		/* run the mixers on every cycle */
+		{
+			/* can we mix? */
+			if (_mixers != nullptr) {
 
 				size_t num_outputs;
 
@@ -1341,13 +1344,14 @@ PX4FMU::cycle()
 				 * the oneshots with updated values.
 				 */
 
-				up_pwm_update();
+				if (n_updates > 0) {
+					up_pwm_update();
+				}
 
 				publish_pwm_outputs(pwm_limited, num_outputs);
 				perf_end(_ctl_latency);
-			} // new actuator_controls message
-
-		} // poll_fds
+			}
+		}
 
 		_cycle_timestamp = hrt_absolute_time();
 
@@ -1770,6 +1774,11 @@ void PX4FMU::stop()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
+
+	orb_unadvertise(_to_input_rc);
+	orb_unadvertise(_outputs_pub);
+	orb_unadvertise(_to_safety);
+	orb_unadvertise(_to_mixer_status);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
