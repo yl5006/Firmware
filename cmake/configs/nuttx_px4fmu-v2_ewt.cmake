@@ -38,21 +38,21 @@ set(config_module_list
 	#drivers/hott/hott_sensors
 	#drivers/blinkm
 	drivers/airspeed
-	drivers/ets_airspeed
+	#drivers/ets_airspeed
 	drivers/meas_airspeed
 	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
-	drivers/px4flow
+	#drivers/px4flow
 	#drivers/oreoled
 	#drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
-	#drivers/bst
+	drivers/bst
 	#drivers/snapdragon_rc_pwm
 	#drivers/lis3mdl
 	#drivers/iridiumsbd
-	drivers/ulanding
+	#drivers/ulanding
 	#drivers/milliwave
 	#drivers/psk_cm12jl
 	#
