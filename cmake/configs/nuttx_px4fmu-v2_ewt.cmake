@@ -48,7 +48,7 @@ set(config_module_list
 	#drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
-	drivers/bst
+	#drivers/bst
 	#drivers/snapdragon_rc_pwm
 	#drivers/lis3mdl
 	#drivers/iridiumsbd
@@ -146,6 +146,7 @@ set(config_module_list
 	lib/geo_lookup
 	lib/conversion
 	lib/launchdetection
+	lib/led
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery

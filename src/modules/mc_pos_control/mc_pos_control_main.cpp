@@ -766,12 +766,6 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_state_sub, &_vehicle_attitude_state);
 		//test for pitch roll and yaw
-#if 0
-		printf("pitch %.2f roll %.2f yaw %.2f\r\n",
-		       (double)_vehicle_attitude_state.pitch,
-		       (double)_vehicle_attitude_state.roll,
-		       (double)_vehicle_attitude_state.yaw);
-#endif
 	}
 	orb_check(_att_sp_sub, &updated);
 
