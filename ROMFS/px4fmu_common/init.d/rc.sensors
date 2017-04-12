@@ -301,7 +301,7 @@ then
 	then
 	fi
 
-	if mpu6500 -R 14 start
+	if mpu9250 -s -R 14 start
 	then
 	fi
 
@@ -315,6 +315,10 @@ then
 	fi
 
 	if aerofc_adc start
+	then
+	fi
+
+	if ll40ls start i2c
 	then
 	fi
 fi
@@ -335,7 +339,7 @@ then
 	if lis3mdl -R 0 start
 	then
 	fi
-	
+
 	# Possible external compasses
 	if hmc5883 -X start
 	then
@@ -363,6 +367,11 @@ then
 
 	# Possible external compasses
 	if hmc5883 -X start
+	then
+	fi
+
+	# Possible external airspeed sensor
+	if meas_airspeed start -b 2
 	then
 	fi
 fi

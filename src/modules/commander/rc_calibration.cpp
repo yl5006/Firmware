@@ -101,11 +101,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	p = sp.r * yaw_scale + yaw_trim_active;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
-	/* store to permanent storage */
-	/* auto-save */
-	int save_ret = param_save_default();
-
-	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
+	if (p1r != 0 || p2r != 0 || p3r != 0) {
 		if (sys_language == 0) {
 			mavlink_log_critical(mavlink_log_pub, "中立值设置失败");
 		} else {

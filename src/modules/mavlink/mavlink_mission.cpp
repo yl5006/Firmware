@@ -927,10 +927,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		mission_item->altitude = mavlink_mission_item->z;
 
-		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL) {
+		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
+		    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT) {
 			mission_item->altitude_is_relative = false;
 
-		} else if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+		} else if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
+			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 			mission_item->altitude_is_relative = true;
 		}
 
@@ -1173,10 +1175,20 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->z = mission_item->altitude;
 
 		if (mission_item->altitude_is_relative) {
-			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+			if (_int_mode) {
+				mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
+
+			} else {
+				mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+			}
 
 		} else {
-			mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
+			if (_int_mode) {
+				mavlink_mission_item->frame = MAV_FRAME_GLOBAL_INT;
+
+			} else {
+				mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
+			}
 		}
 
 		switch (mission_item->nav_cmd) {

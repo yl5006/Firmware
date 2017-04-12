@@ -43,6 +43,12 @@ px4_add_sitl_app(APP_NAME px4
 set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
 file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
+# add a symlink to the logs dir to make it easier to find them
+add_custom_target(logs_symlink ALL
+                  COMMAND ${CMAKE_COMMAND} -E create_symlink tmp/rootfs/fs/microsd/log logs
+				  WORKING_DIRECTORY ${PX4_BINARY_DIR}
+				  )
+
 add_custom_target(run_config
 		COMMAND Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
@@ -74,7 +80,8 @@ ExternalProject_Add_Step(sitl_gazebo forceconfigure
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo replay)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
-set(models none iris iris_opt_flow standard_vtol plane solo tailsitter typhoon_h480)
+set(models none iris iris_opt_flow iris_rplidar
+	standard_vtol plane solo tailsitter typhoon_h480 rover)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})

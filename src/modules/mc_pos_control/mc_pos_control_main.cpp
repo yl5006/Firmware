@@ -53,39 +53,28 @@
 #include <px4_defines.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
 
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/control_state.h>
-#include <uORB/topics/mc_virtual_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/control_state.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/horizontal_distance.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/home_position.h>
 
 #include <float.h>
-#include <systemlib/mavlink_log.h>
-#include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
+#include <mathlib/mathlib.h>
 #include <platforms/px4_defines.h>
+#include <systemlib/mavlink_log.h>
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
@@ -182,6 +171,7 @@ private:
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
+	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -392,6 +382,8 @@ private:
 
 	float get_cruising_speed_xy();
 
+	bool in_auto_takeoff();
+
 	/**
 	 * limit altitude based on several conditions
 	 */
@@ -472,6 +464,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
+	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -983,6 +976,17 @@ MulticopterPositionControl::limit_vel_xy_gradually()
 	_vel_sp(1) = _vel_sp(1) / vel_mag_xy * vel_limit;
 }
 
+bool
+MulticopterPositionControl::in_auto_takeoff()
+{
+	/*
+	 * in auto mode, check if we do a takeoff
+	 */
+	return (_pos_sp_triplet.current.valid &&
+		_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
+	       _control_mode.flag_control_offboard_enabled;
+}
+
 float
 MulticopterPositionControl::get_cruising_speed_xy()
 {
@@ -1063,11 +1067,11 @@ MulticopterPositionControl::control_manual(float dt)
 	}
 
 	/* prepare yaw to rotate into NED frame */
-	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _local_pos.yaw;
+	float yaw_input_fame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _att_sp.yaw_body;
 
 	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
-	matrix::Vector3f vel_cruise_scale(_params.vel_cruise_xy,
-					  _params.vel_cruise_xy,
+	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
+	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag,
 					  (man_vel_sp(2) > 0.0f) ? _params.vel_max_down : _params.vel_max_up);
 
 	/* setpoint in NED frame and scaled to cruise velocity */
@@ -1282,7 +1286,9 @@ MulticopterPositionControl::control_non_manual(float dt)
 		if (!_takeoff_jumped) {
 			// ramp thrust setpoint up
 			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-				_takeoff_thrust_sp += 0.5f * dt;
+
+				// ramp up to hover throttle in one second
+				_takeoff_thrust_sp += _params.thr_hover * dt;
 				_vel_sp.zero();
 				_vel_prev.zero();
 
@@ -1295,10 +1301,6 @@ MulticopterPositionControl::control_non_manual(float dt)
 				_takeoff_jumped = true;
 				_reset_int_z = false;
 			}
-		}
-
-		if (_takeoff_jumped) {
-			_vel_sp(2) = -_params.tko_speed;
 		}
 
 	} else {
@@ -2038,8 +2040,17 @@ MulticopterPositionControl::control_position(float dt)
 	}
 
 	/* make sure velocity setpoint is saturated in z*/
-	if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && _control_mode.flag_armed
+	    && _takeoff_jumped
+	    && (_vel_sp(2) < -_params.tko_speed)) {
+
+		_vel_sp(2) = -_params.tko_speed;
+
+	} else if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
 		_vel_sp(2) = -1.0f * _params.vel_max_up;
+
 	}
 
 	_slow_land_gradual_velocity_limit();
@@ -2145,7 +2156,7 @@ MulticopterPositionControl::control_position(float dt)
 		}
 
 		/* if still or already on ground command zero xy velcoity and zero xy thrust_sp in body frame to consider uneven ground */
-		if (_vehicle_land_detected.ground_contact) {
+		if (_vehicle_land_detected.ground_contact && !in_auto_takeoff()) {
 
 			/* thrust setpoint in body frame*/
 			math::Vector<3> thrust_sp_body = _R.transposed() * thrust_sp;
@@ -2194,11 +2205,7 @@ MulticopterPositionControl::control_position(float dt)
 		// We can only run the control if we're already in-air, have a takeoff setpoint,
 		// or if we're in offboard control.
 		// Otherwise, we should just bail out
-		const bool got_takeoff_setpoint = (_pos_sp_triplet.current.valid &&
-						   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
-						  _control_mode.flag_control_offboard_enabled;
-
-		if (_vehicle_land_detected.landed && !got_takeoff_setpoint) {
+		if (_vehicle_land_detected.landed && !in_auto_takeoff()) {
 			// Keep throttle low while still on ground.
 			thr_max = 0.0f;
 

@@ -274,6 +274,7 @@ private:
 	void		publish_pwm_outputs(uint16_t *values, size_t numvalues);
 	void		update_pwm_out_state(bool on);
 	void		pwm_output_set(unsigned i, unsigned value);
+	void		update_params();
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -1027,15 +1028,6 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 void PX4FMU::rc_io_invert(bool invert)
 {
 	INVERT_RC_INPUT(invert);
-
-#ifdef GPIO_RC_OUT
-
-	if (!invert) {
-		// set FMU_RC_OUTPUT high to pull RC_INPUT up
-		px4_arch_gpiowrite(GPIO_RC_OUT, 1);
-	}
-
-#endif
 }
 #endif
 
@@ -1095,14 +1087,14 @@ PX4FMU::cycle()
 #endif
 
 #ifdef	GROUNDSTATION_RC_SBUS
-		_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
-		/* open uart */
+			_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
+			/* open uart */
 
-	    _rcs_fd	=sbus_initrc(GROUNDSTATION_RC_SBUS,false);
+	    		_rcs_fd	=sbus_initrc(GROUNDSTATION_RC_SBUS,false);
 
 #endif
-			param_find("MOT_SLEW_MAX");
-			param_find("THR_MDL_FAC");
+			// Getting initial parameter values
+			this->update_params();
 
 			for (unsigned i = 0; i < _max_actuators; i++) {
 				char pname[16];
@@ -1455,37 +1447,7 @@ PX4FMU::cycle()
 		orb_check(_param_sub, &updated);
 
 		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-
-			update_pwm_rev_mask();
-			update_pwm_trims();
-
-			int32_t dsm_bind_val;
-			param_t param_handle;
-
-			/* see if bind parameter has been set, and reset it to -1 */
-			param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
-
-			if (dsm_bind_val > -1) {
-				dsm_bind_ioctl(dsm_bind_val);
-				dsm_bind_val = -1;
-				param_set(param_handle, &dsm_bind_val);
-			}
-
-			// maximum motor slew rate parameter
-			param_handle = param_find("MOT_SLEW_MAX");
-
-			if (param_handle != PARAM_INVALID) {
-				param_get(param_handle, &_mot_t_max);
-			}
-
-			// thrust to pwm modelling factor
-			param_handle = param_find("THR_MDL_FAC");
-
-			if (param_handle != PARAM_INVALID) {
-				param_get(param_handle, &_thr_mdl_fac);
-			}
+			this->update_params();
 		}
 
 		/* update ADC sampling */
@@ -1764,6 +1726,42 @@ PX4FMU::cycle()
 		}
 	}
 }
+
+void PX4FMU::update_params()
+{
+	parameter_update_s pupdate;
+	orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
+
+	update_pwm_rev_mask();
+	update_pwm_trims();
+
+	int32_t dsm_bind_val;
+	param_t param_handle;
+
+	/* see if bind parameter has been set, and reset it to -1 */
+	param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
+
+	if (dsm_bind_val > -1) {
+		dsm_bind_ioctl(dsm_bind_val);
+		dsm_bind_val = -1;
+		param_set(param_handle, &dsm_bind_val);
+	}
+
+	// maximum motor slew rate parameter
+	param_handle = param_find("MOT_SLEW_MAX");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_mot_t_max);
+	}
+
+	// thrust to pwm modelling factor
+	param_handle = param_find("THR_MDL_FAC");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_thr_mdl_fac);
+	}
+}
+
 
 void PX4FMU::stop()
 {
@@ -2434,7 +2432,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-#ifdef GPIO_SPEKTRUM_PWR_EN
+#ifdef SPEKTRUM_POWER
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */

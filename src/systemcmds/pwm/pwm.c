@@ -656,7 +656,7 @@ pwm_main(int argc, char *argv[])
 
 			if (ret > 0) {
 
-				read(0, &c, 1);
+				ret = read(0, &c, 1);
 
 				if (c == 0x03 || c == 0x63 || c == 'q') {
 					/* reset output to the last value */
@@ -680,11 +680,13 @@ pwm_main(int argc, char *argv[])
 
 			usleep(2542);
 
+#ifdef __PX4_NUTTX
 			/* Trigger all timer's channels in Oneshot mode to fire
 			 * the oneshots with updated values.
 			 */
 
 			up_pwm_update();
+#endif
 		}
 
 		return 0;
@@ -926,10 +928,11 @@ pwm_main(int argc, char *argv[])
 			if (group_mask != 0) {
 				printf("channel group %u: channels", i);
 
-				for (unsigned j = 0; j < 32; j++)
+				for (unsigned j = 0; j < 32; j++) {
 					if (group_mask & (1 << j)) {
 						printf(" %u", j + 1);
 					}
+				}
 
 				printf("\n");
 			}
