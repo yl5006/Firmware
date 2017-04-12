@@ -51,6 +51,7 @@ __BEGIN_DECLS
 
 __EXPORT int	sbus_init(const char *device, bool singlewire);
 
+__EXPORT int	sbus_initrc(const char *device, bool singlewire);
 /**
  * Parse serial bytes on the S.BUS bus
  *

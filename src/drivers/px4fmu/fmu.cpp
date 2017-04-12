@@ -52,6 +52,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <math.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include <nuttx/arch.h>
@@ -1095,7 +1096,10 @@ PX4FMU::cycle()
 
 #ifdef	GROUNDSTATION_RC_SBUS
 		_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
-		_rcs_fd	=sbus_init(GROUNDSTATION_RC_SBUS,false);
+		/* open uart */
+
+	    _rcs_fd	=sbus_initrc(GROUNDSTATION_RC_SBUS,false);
+
 #endif
 			param_find("MOT_SLEW_MAX");
 			param_find("THR_MDL_FAC");
@@ -1438,6 +1442,16 @@ PX4FMU::cycle()
 
 #endif
 
+#ifdef GROUNDSTATION_RC_SBUS
+		/* vehicle command */
+		orb_check(_cammer_rc_sub, &updated);
+
+		if (updated) {
+			struct cammer_rc_s camrc;
+			orb_copy(ORB_ID(cammer_rc), _cammer_rc_sub, &camrc);
+			sbus1_output(_rcs_fd,camrc.values,16);
+		}
+#endif
 		orb_check(_param_sub, &updated);
 
 		if (updated) {

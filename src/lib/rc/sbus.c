@@ -153,6 +153,21 @@ sbus_init(const char *device, bool singlewire)
 }
 
 int
+sbus_initrc(const char *device, bool singlewire)
+{
+	int sbus_fd = open(device, O_RDWR | O_NONBLOCK);
+ 	struct termios t;
+	 	/* 115200, even parity, two stop bits */
+	 	tcgetattr(sbus_fd, &t);
+	 	cfsetispeed(&t, B115200);
+	 	cfsetospeed(&t, B115200);
+	 	t.c_cflag  |= CS8;
+	 	t.c_cflag  &= ~CRTSCTS ;
+     	t.c_cflag  &= ~(PARENB|CSTOPB);
+	 	tcsetattr(sbus_fd, TCSANOW, &t);
+		return sbus_fd;
+}
+int
 sbus_config(int sbus_fd, bool singlewire)
 {
 	int ret = -1;
@@ -237,7 +252,7 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 		* currently ignoring single bit channels.  */
 
 		for (unsigned i = 0; (i < num_values) && (i < 16); ++i) {
-			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
+			value =values[i];// (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
 
 			/*protect from out of bounds values and limit to 11 bits*/
 			if (value > 0x07ff) {
@@ -254,7 +269,6 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 			oframe[byteindex + 2] |= (value >> (16 - offset)) & 0xff;
 			offset += 11;
 		}
-
 		write(sbus_fd, oframe, SBUS_FRAME_SIZE);
 	}
 }
