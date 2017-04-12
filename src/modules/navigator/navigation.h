@@ -53,7 +53,7 @@
 #  define NUM_MISSIONS_SUPPORTED 2000 // This allocates a file of around 181 kB on the SD card.
 #endif
 
-#define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
+#define NAV_EPSILON_POSITION	0.01f	/**< Anything smaller than this is considered zero */
 
 extern int sys_language;
 
@@ -117,15 +117,15 @@ struct mission_item_s {
 				float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 			};
 			float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
-			union {
-				float loiter_radius;	/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
-				float cruise_speed;		/**< minimal pitch angle for fixed wing takeoff waypoints */
-			};
+			float cruise_speed;			/**< cruise_speed */
 			float yaw;					/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 			float ___lat_float;			/**< padding */
 			float ___lon_float;			/**< padding */
 			float altitude;				/**< altitude in meters	(AMSL)			*/
-			float param8;				//add for command param by yaoling
+			union {
+				float loiter_radius;	//add for command param by yaoling
+				float param8;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			};
 			float param9;
 			float param10;
 		};

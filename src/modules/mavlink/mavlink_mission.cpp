@@ -950,19 +950,22 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_WAYPOINT;
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
+			mission_item->cruise_speed = mavlink_mission_item->param3;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 			break;
 
 		case MAV_CMD_NAV_LOITER_UNLIM:
 			mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-			mission_item->loiter_radius = mavlink_mission_item->param3;
+			mission_item->cruise_speed = mavlink_mission_item->param3;
+			mission_item->loiter_radius = mavlink_mission_item->param8;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 			break;
 
 		case MAV_CMD_NAV_LOITER_TIME:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			mission_item->time_inside = mavlink_mission_item->param1;
-			mission_item->loiter_radius = mavlink_mission_item->param3;
+			mission_item->cruise_speed = mavlink_mission_item->param3;
+			mission_item->loiter_radius = mavlink_mission_item->param8;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
 			break;
 
@@ -981,7 +984,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_LOITER_TO_ALT:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TO_ALT;
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0) ? true : false;
-			mission_item->loiter_radius = mavlink_mission_item->param2;
+			mission_item->cruise_speed = mavlink_mission_item->param3;
+			mission_item->loiter_radius = mavlink_mission_item->param8;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0) ? true : false;
 			break;
 
@@ -1000,6 +1004,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
+			mission_item->cruise_speed = mavlink_mission_item->param3;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 
 			mission_item->param8 = mavlink_mission_item->param8;
@@ -1012,6 +1017,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
+			mission_item->cruise_speed = mavlink_mission_item->param3;
 			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
 			mission_item->do_jump_mission_index = mavlink_mission_item->param8;
 			mission_item->do_jump_current_count = 0;
@@ -1195,17 +1201,20 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_WAYPOINT:
 			mavlink_mission_item->param1 = mission_item->time_inside;
 			mavlink_mission_item->param2 = mission_item->acceptance_radius;
+			mavlink_mission_item->param3 = mission_item->cruise_speed;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 			break;
 
 		case NAV_CMD_LOITER_UNLIMITED:
-			mavlink_mission_item->param3 = mission_item->loiter_radius;
+			mavlink_mission_item->param3 = mission_item->cruise_speed;
+			mavlink_mission_item->param8 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 			break;
 
 		case NAV_CMD_LOITER_TIME_LIMIT:
 			mavlink_mission_item->param1 = mission_item->time_inside;
-			mavlink_mission_item->param3 = mission_item->loiter_radius;
+			mavlink_mission_item->param3 = mission_item->cruise_speed;
+			mavlink_mission_item->param8 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
 			break;
 
@@ -1221,7 +1230,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case NAV_CMD_LOITER_TO_ALT:
 			mavlink_mission_item->param1 = mission_item->force_heading;
-			mavlink_mission_item->param2 = mission_item->loiter_radius;
+			mavlink_mission_item->param3 = mission_item->cruise_speed;
+			mavlink_mission_item->param8 = mission_item->loiter_radius;
 			mavlink_mission_item->param4 = mission_item->loiter_exit_xtrack;
 			break;
 
@@ -1238,6 +1248,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_CHANGE_SPEED:
 			mavlink_mission_item->param1 = mission_item->time_inside;
 			mavlink_mission_item->param2 = mission_item->acceptance_radius;
+			mavlink_mission_item->param3 = mission_item->cruise_speed;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 
 			mavlink_mission_item->param8 = mission_item->param8;
@@ -1247,6 +1258,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_JUMP:
 			mavlink_mission_item->param1 = mission_item->time_inside;
 			mavlink_mission_item->param2 = mission_item->acceptance_radius;
+			mavlink_mission_item->param3 = mission_item->cruise_speed;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 
 			mavlink_mission_item->param8 = mission_item->do_jump_mission_index;

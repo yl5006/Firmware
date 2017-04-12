@@ -402,6 +402,10 @@ MissionBlock::is_mission_item_reached()
 					/* do nothing, this is a 3D waypoint */
 					break;
 			}
+			if(_mission_item.cruise_speed > NAV_EPSILON_POSITION)
+				{
+				_navigator->set_cruising_speed(_mission_item.cruise_speed);
+				}
 			return true;
 		}
 	}
@@ -617,7 +621,6 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		// initially use current altitude, and switch to mission item altitude once in loiter position
 		sp->alt = math::max(_navigator->get_global_position()->alt,
 				    _navigator->get_home_position()->alt + _param_loiter_min_alt.get());
-
 	// fall through
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
@@ -626,7 +629,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 		if (_navigator->get_vstatus()->is_vtol && _param_vtol_wv_loiter.get()) {
 			sp->disable_mc_yaw_control = true;
 		}
-
+		sp->cruising_speed = (fabsf(item->cruise_speed) > NAV_EPSILON_POSITION) ? fabsf(item->cruise_speed) : _navigator->get_cruising_speed();
 		break;
 
 	default:
