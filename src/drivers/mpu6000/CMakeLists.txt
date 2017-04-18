@@ -47,7 +47,6 @@ px4_add_module(
 	MAIN mpu6000
 	STACK_MAIN 1400
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common

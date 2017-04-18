@@ -1237,8 +1237,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN:
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
-	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
+	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED:
@@ -1374,6 +1374,7 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
+	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1762,6 +1763,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	int32_t geofence_action = 0;
 
+	/* RC override auto modes */
+	int32_t rc_override = 0;
+
+
 	/* Thresholds for engine failure detection */
 	int32_t ef_throttle_thres = 1.0f;
 	int32_t ef_current2throttle_thres = 0.0f;
@@ -1845,6 +1850,7 @@ int commander_thread_main(int argc, char *argv[])
 			status.rc_input_mode = rc_in_off;
 			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 			param_get(_param_min_stick_change, &min_stick_change);
+			param_get(_param_rc_override, &rc_override);
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
 			min_stick_change *= 0.02f;
 			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
@@ -2664,7 +2670,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
 		// but only if not in a low battery handling action
-		if (!critical_battery_voltage_actions_done && (warning_action_on &&
+		if (rc_override != 0 && !critical_battery_voltage_actions_done && (warning_action_on &&
 		   (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
@@ -2687,7 +2693,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		// abort landing or auto or loiter if sticks are moved significantly
 		// but only if not in a low battery handling action
-		if (!critical_battery_voltage_actions_done &&
+		if (rc_override != 0 && !critical_battery_voltage_actions_done &&
 			(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
@@ -3622,6 +3628,18 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		/* if we get here mode was rejected, continue to evaluate the main system mode */
 	}
 
+	/* Loiter switch overrides main switch */
+	if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+
+		if (res == TRANSITION_DENIED) {
+			print_reject_mode(status_local, "AUTO HOLD");
+
+		} else {
+			return res;
+		}
+	}
+
 	/* we know something has changed - check if we are in mode slot operation */
 	if (sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
 
@@ -3860,30 +3878,19 @@ set_main_state_rc(struct vehicle_status_s *status_local)
 		break;
 
 	case manual_control_setpoint_s::SWITCH_POS_ON:			// AUTO
-		if (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
 
-			if (res != TRANSITION_DENIED) {
-				break;	// changed successfully or already in this state
-			}
+		if (res != TRANSITION_DENIED) {
+			break;	// changed successfully or already in this state
+		}
 
-			print_reject_mode(status_local, "AUTO PAUSE");
+		print_reject_mode(status_local, "AUTO MISSION");
 
-		} else {
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, main_state_prev, &status_flags, &internal_state);
+		// fallback to LOITER if home position not set
+		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 
-			if (res != TRANSITION_DENIED) {
-				break;	// changed successfully or already in this state
-			}
-
-			print_reject_mode(status_local, "AUTO MISSION");
-
-			// fallback to LOITER if home position not set
-			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
-
-			if (res != TRANSITION_DENIED) {
-				break;  // changed successfully or already in this state
-			}
+		if (res != TRANSITION_DENIED) {
+			break;  // changed successfully or already in this state
 		}
 
 		// fallback to POSCTL

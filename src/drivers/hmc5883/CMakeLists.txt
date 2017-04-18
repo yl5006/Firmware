@@ -50,7 +50,6 @@ px4_add_module(
 	MAIN hmc5883
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS ${srcs}
 	DEPENDS
 		platforms__common

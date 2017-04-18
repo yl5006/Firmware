@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,43 +31,80 @@
  *
  ****************************************************************************/
 
-/**
- * @file LaunchMethod.h
- * Base class for different launch methods
+/*
+ * @file drv_pwm_trigger.c
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef LAUNCHMETHOD_H_
-#define LAUNCHMETHOD_H_
+#include <px4_config.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 
-namespace launchdetection
+#include <sys/types.h>
+#include <stdbool.h>
+
+#include <assert.h>
+#include <debug.h>
+#include <time.h>
+#include <queue.h>
+#include <errno.h>
+#include <string.h>
+#include <stdio.h>
+
+#include <arch/board/board.h>
+#include <drivers/drv_pwm_trigger.h>
+
+#include "drv_io_timer.h"
+#include "drv_pwm_trigger.h"
+
+#include <stm32_tim.h>
+
+int up_pwm_trigger_set(unsigned channel, uint16_t value)
 {
+	return io_timer_set_ccr(channel, value);
+}
 
-enum LaunchDetectionResult {
-	LAUNCHDETECTION_RES_NONE = 0, /**< No launch has been detected */
-	LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL = 1, /**< Launch has been detected, the controller should
-							  control the attitude. However any motors should not throttle
-							  up. For instance this is used to have a delay for the motor
-							  when launching a fixed wing aircraft from a bungee */
-	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
-							attitude and also throttle up the motors. */
-};
-
-class LaunchMethod
+int up_pwm_trigger_init(uint32_t channel_mask)
 {
-public:
-	virtual ~LaunchMethod() = default;
+	/* Init channels */
+	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+		if (channel_mask & (1 << channel)) {
 
-	virtual void update(float accel_x) = 0;
-	virtual LaunchDetectionResult getLaunchDetected() const = 0;
-	virtual void reset() = 0;
+			// First free any that were not trigger mode before
+			if (-EBUSY == io_timer_is_channel_free(channel)) {
+				io_timer_free_channel(channel);
+			}
 
-	/* Returns a upper pitch limit if required, otherwise returns pitchMaxDefault */
-	virtual float getPitchMax(float pitchMaxDefault) = 0;
+			io_timer_channel_init(channel, IOTimerChanMode_Trigger, NULL, NULL);
+			channel_mask &= ~(1 << channel);
+		}
+	}
 
-};
+	/* Enable the timers */
+	up_pwm_trigger_arm(true);
 
-} // namespace launchdetection
+	return OK;
+}
 
-#endif /* LAUNCHMETHOD_H_ */
+void up_pwm_trigger_deinit()
+{
+	/* Disable the timers */
+	up_pwm_trigger_arm(false);
+
+	/* Deinit channels */
+	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_Trigger);
+
+	for (unsigned channel = 0; current != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+		if (current & (1 << channel)) {
+
+			io_timer_channel_init(channel, IOTimerChanMode_NotUsed, NULL, NULL);
+			current &= ~(1 << channel);
+		}
+	}
+}
+
+void
+up_pwm_trigger_arm(bool armed)
+{
+	io_timer_set_enable(armed, IOTimerChanMode_Trigger, IO_TIMER_ALL_MODES_CHANNELS);
+}

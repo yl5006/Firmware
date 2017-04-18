@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file LaunchMethod.h
- * Base class for different launch methods
+ * @file PWM trigger output interface.
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef LAUNCHMETHOD_H_
-#define LAUNCHMETHOD_H_
+#pragma once
 
-namespace launchdetection
-{
+#include <px4_defines.h>
 
-enum LaunchDetectionResult {
-	LAUNCHDETECTION_RES_NONE = 0, /**< No launch has been detected */
-	LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL = 1, /**< Launch has been detected, the controller should
-							  control the attitude. However any motors should not throttle
-							  up. For instance this is used to have a delay for the motor
-							  when launching a fixed wing aircraft from a bungee */
-	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
-							attitude and also throttle up the motors. */
-};
+#include <stdint.h>
 
-class LaunchMethod
-{
-public:
-	virtual ~LaunchMethod() = default;
+__BEGIN_DECLS
 
-	virtual void update(float accel_x) = 0;
-	virtual LaunchDetectionResult getLaunchDetected() const = 0;
-	virtual void reset() = 0;
+/**
+ * Intialise the PWM servo outputs using the specified configuration.
+ *
+ * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
+ *			This allows some of the channels to remain configured
+ *			as GPIOs or as another function.
+ * @return		OK on success.
+ */
+__EXPORT extern int	up_pwm_trigger_init(uint32_t channel_mask);
 
-	/* Returns a upper pitch limit if required, otherwise returns pitchMaxDefault */
-	virtual float getPitchMax(float pitchMaxDefault) = 0;
+/**
+ * De-initialise the PWM trigger outputs.
+ */
+__EXPORT extern void	up_pwm_trigger_deinit(void);
 
-};
+/**
+ * Arm or disarm trigger outputs.
+ *
+ * @bug This function should, but does not, guarantee that any pulse
+ *      currently in progress is cleanly completed.
+ *
+ * @param armed		If true, outputs are armed; if false they
+ *			are disarmed.
+ */
+__EXPORT extern void	up_pwm_trigger_arm(bool armed);
 
-} // namespace launchdetection
+/**
+ * Set the current output value for a channel.
+ *
+ * @param channel	The channel to set.
+ * @param value		The output pulse width in microseconds.
+ */
+__EXPORT extern int	up_pwm_trigger_set(unsigned channel, uint16_t value);
 
-#endif /* LAUNCHMETHOD_H_ */
+__END_DECLS
