@@ -89,7 +89,7 @@ static char *param_user_file = NULL;
 #include <px4_workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
-struct work_s autosave_work;
+static struct work_s autosave_work;
 static bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 
@@ -676,8 +676,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	if (!handle_in_range(param)) {
 		return result;
 	}
-
-	mark_saved = true; //mark all params as saved
 
 	if (param_values == NULL) {
 		utarray_new(param_values, &param_icd);

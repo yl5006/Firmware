@@ -1261,7 +1261,7 @@ PX4FMU::cycle()
 
 				/* do mixing */
 				float outputs[_max_actuators];
-				_num_outputs = _mixers->mix(outputs, _num_outputs, NULL);
+				size_t mixed_num_outputs = _mixers->mix(outputs, _num_outputs, NULL);
 
 				/* publish mixer status */
 				multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -1280,7 +1280,7 @@ PX4FMU::cycle()
 
 				/* disable unused ports by setting their output to NaN */
 				for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
-					if (i >= _num_outputs) {
+					if (i >= mixed_num_outputs) {
 						outputs[i] = NAN_VALUE;
 					}
 				}
@@ -1288,26 +1288,26 @@ PX4FMU::cycle()
 				uint16_t pwm_limited[_max_actuators];
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
-				pwm_limit_calc(_throttle_armed, arm_nothrottle(), _num_outputs, _reverse_pwm_mask,
+				pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
 				if (_armed.force_failsafe) {
-					for (size_t i = 0; i < _num_outputs; i++) {
+					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						pwm_limited[i] = _failsafe_pwm[i];
 					}
 				}
 
 				/* overwrite outputs in case of lockdown with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
-					for (size_t i = 0; i < _num_outputs; i++) {
+					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
 					}
 				}
 
 				/* output to the servos */
-				for (size_t i = 0; i < _num_outputs; i++) {
+				for (size_t i = 0; i < mixed_num_outputs; i++) {
 					pwm_output_set(i, pwm_limited[i]);
 				}
 
@@ -1319,7 +1319,7 @@ PX4FMU::cycle()
 					up_pwm_update();
 				}
 
-				publish_pwm_outputs(pwm_limited, _num_outputs);
+				publish_pwm_outputs(pwm_limited, mixed_num_outputs);
 				perf_end(_ctl_latency);
 			}
 		}

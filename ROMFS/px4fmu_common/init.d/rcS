@@ -233,6 +233,11 @@ then
 		then
 			set USE_IO no
 		fi
+
+		if ver hwcmp AEROCORE2
+		then
+			set USE_IO no
+		fi
 	else
 		set USE_IO no
 	fi
@@ -412,6 +417,10 @@ then
 	if ver hwcmp AEROFC_V1
 	then
 		set DATAMAN_OPT -i
+	fi
+	if ver hwcmp AEROCORE2
+	then
+		set DATAMAN_OPT "-f /fs/mtd_dataman"
 	fi
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
@@ -1088,11 +1097,18 @@ then
 		# CF2 shouldn't have an sd card
 	else
 
-		# Run no SD alarm
-		if [ $LOG_FILE == /dev/null ]
+		if ver hwcmp AEROCORE2
 		then
-			# Play SOS
-			tone_alarm error
+			# AEROCORE2 shouldn't have an sd card
+		else
+
+			# Run no SD alarm
+			if [ $LOG_FILE == /dev/null ]
+			then
+				# Play SOS
+				tone_alarm error
+			fi
+
 		fi
 
 	fi
@@ -1122,6 +1138,15 @@ then
 		send_event temperature_calibration ${TEMP_CALIB_ARGS}
 	fi
 	unset TEMP_CALIB_ARGS
+
+	# vmount to control mounts such as gimbals, disabled by default.
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if vmount start
+		then
+		fi
+	fi
 
 # End of autostart
 fi
