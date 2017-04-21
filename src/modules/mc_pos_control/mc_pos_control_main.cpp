@@ -1149,13 +1149,13 @@ MulticopterPositionControl::manual_arminit(float dt)
 			return _params.thr_min;
 		}else if(timeindex<270)
 		{
-			return _params.thr_min*2.5;
+			return _params.thr_min*3;
 		}else if(timeindex<370)
 		{
 			return _params.thr_min;
 		}else if(timeindex<440)
 		{
-			return _params.thr_min*2.5;
+			return _params.thr_min*3;
 		}
 	}
 	if(timeindex>=440)
