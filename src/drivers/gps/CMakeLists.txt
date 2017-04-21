@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
-	STACK_MAIN 1200
+	STACK_MAIN 1300
 	COMPILE_FLAGS
 	SRCS
 		gps.cpp

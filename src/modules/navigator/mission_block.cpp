@@ -535,8 +535,8 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	    item->nav_cmd == NAV_CMD_ROI ||
 //	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 //	    item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
-	    item->nav_cmd == NAV_CMD_DELAY ||
-//	    item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+	    item->nav_cmd == NAV_CMD_DELAY) {
+//	    item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH
 
 		return false;
 	}

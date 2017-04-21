@@ -118,7 +118,6 @@ private:
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int 		_vehicle_attitude_state_sub;
 	int		_ctrl_state_sub;		/**< control state subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
@@ -135,7 +134,6 @@ private:
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
-	struct vehicle_attitude_s			_vehicle_attitude_state;		/**< real vehicle attitude plus angle*/
 	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
@@ -343,6 +341,7 @@ private:
 	 */
 	void		control_offboard(float dt);
 
+	float		manual_arminit(float dt);
 	/**
 	 * Set position setpoint for AUTO
 	 */
@@ -399,15 +398,14 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
-	_vehicle_attitude_state_sub(-1),
 	_ctrl_state_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
-	_horizontal_distance_sub(-1),
 	_home_pos_sub(-1),
+	_horizontal_distance_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -416,7 +414,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
-	_vehicle_attitude_state{},
 	_ctrl_state{},
 	_att_sp{},
 	_manual{},
@@ -731,13 +728,6 @@ MulticopterPositionControl::poll_subscriptions()
 			}
 		}
 	}
-
-	orb_check(_vehicle_attitude_state_sub, &updated);
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_state_sub, &_vehicle_attitude_state);
-		//test for pitch roll and yaw
-	}
-
 
 	orb_check(_control_mode_sub, &updated);
 
@@ -1090,7 +1080,7 @@ MulticopterPositionControl::control_manual(float dt)
 		/* during transition predict setpoint forward */
 		if (smooth_pos_transition) {
 			/* time to travel from current velocity to zero velocity */
-			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _acceleration_hor_max.get();
+			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _deceleration_hor_max.get();//_acceleration_hor_max.get();
 
 			/* p pos_sp in xy from max acceleration and current velocity */
 			math::Vector<2> pos(_pos(0), _pos(1));
@@ -1131,31 +1121,48 @@ MulticopterPositionControl::control_manual(float dt)
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust = 0.0f;
+		_att_sp.thrust = manual_arminit(dt);// _params.thr_min;//0.0f;
 
 		_att_sp.timestamp = hrt_absolute_time();
-
-//		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
-//
-//					/* copy quaternion setpoint to attitude setpoint topic */
-//	    matrix::Quatf q_sp = _R_setpoint;
-//		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
-//		_att_sp.q_d_valid = true;
-//
-//		_thrust_int(2)=-0.5f;
-//		_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-//
-//		/* publish attitude setpoint */
-//		if (_att_sp_pub != nullptr) {
-//			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-//
-//		} else if (_attitude_setpoint_id) {
-//			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-//		}
 
 	} else {
 		control_position(dt);
 	}
+}
+float
+MulticopterPositionControl::manual_arminit(float dt)
+{
+	static bool haveinit=false;
+	static int timeindex=0;
+	// only trigger flight conditions if we are armed
+	if (!_control_mode.flag_armed ) {
+		haveinit=false;
+		timeindex=0;
+	}else
+	{
+		timeindex++;
+	}
+	if(_control_mode.flag_armed && !haveinit)
+	{
+		if(timeindex<200)
+		{
+			return _params.thr_min;
+		}else if(timeindex<270)
+		{
+			return _params.thr_min*2.5;
+		}else if(timeindex<370)
+		{
+			return _params.thr_min;
+		}else if(timeindex<440)
+		{
+			return _params.thr_min*2.5;
+		}
+	}
+	if(timeindex>=440)
+	{
+		haveinit=true;
+	}
+	return _params.thr_min;
 }
 
 void
@@ -1704,32 +1711,8 @@ void MulticopterPositionControl::adjust_manual(float vx,bool positive,float &man
 }
 
 void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoint_s &manual) {
-	bool updated = false;
-	orb_check(_local_pos_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-	}
-
-	orb_check(_horizontal_distance_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(horizontal_distance), _horizontal_distance_sub, &_horizontal_dis);
-	}
-
-	orb_check(_vertical_distance_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(distance_sensor), _vertical_distance_sub, &_vertical_dis);
-	}
-
-	orb_check(_vehicle_attitude_state_sub, &updated);
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_state_sub, &_vehicle_attitude_state);
-	}
 	// get euler  angle   roll pitch yaw
-	matrix::Euler<float> euler = matrix::Quatf(_vehicle_attitude_state.q);
-
+	math::Vector<3> euler = _R.to_euler();
 	//we get altitude from distance sensors
 	// min 30cm max 500cm but shows 0
 	// if altitude larger than calcucated safe altitude, then we do it
@@ -2527,6 +2510,7 @@ MulticopterPositionControl::task_main()
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_horizontal_distance_sub = orb_subscribe(ORB_ID(horizontal_distance));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	parameters_update(true);

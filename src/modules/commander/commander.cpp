@@ -2245,7 +2245,6 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(land_detector_sub, &updated);
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
-
 			if (was_landed != land_detector.landed) {
 				if (land_detector.landed) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
@@ -2260,7 +2259,6 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
 				}
 			}
-
 
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
@@ -2804,6 +2802,8 @@ int commander_thread_main(int argc, char *argv[])
 						internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
+						internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL &&
+						internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
 						!land_detector.landed) {
 					if (sys_language == 0) {
 						print_reject_arm("未加锁:不在手动模式或地面上");
