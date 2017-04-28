@@ -322,7 +322,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 35.0f);
 
 /**
  * Maximum tilt during landing
@@ -395,7 +395,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
  *
  * @unit m/s
  * @min 0.0
- * @max 3.0
+ * @max 8.0
  * @decimal 2
  * @group Multicopter Position Control
  */
@@ -433,7 +433,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
  * Maximum horizonal braking deceleration in velocity controlled modes
@@ -445,7 +445,19 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 1.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 2.0f);
+PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 8.0f);
+
+/**
+ * Maximum horizonal braking deceleration in velocity controlled modes
+ *
+ * @unit m/s/s
+ * @min 0.2
+ * @max 15
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_SMO_HOR_MAX, 4.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward

@@ -375,7 +375,7 @@ Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position
 				float dist_xy = -1.0f;
 				float dist_z = -1.0f;
 				get_distance_to_point_global_wgs84(global_position.lat, global_position.lon, global_position.alt,
-						(double)place.pt.cir.center.lat*1e-7, (double)place.pt.cir.center.lon*1e-7, _home_pos.alt,
+						(double)place.pt.cir.center.lat*1e-7, (double)place.pt.cir.center.lon*1e-7, global_position.alt,
 											   &dist_xy, &dist_z);
 
 					if ((int)dist_xy < place.pt.cir.radius) {

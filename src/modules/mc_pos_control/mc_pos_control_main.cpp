@@ -154,6 +154,7 @@ private:
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
 	control::BlockParamFloat _acceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
 	control::BlockParamFloat _deceleration_hor_max; /**< maximum velocity setpoint slewrate while decelerating */
+	control::BlockParamFloat _smoothration_hor_max; /**< maximum velocity setpoint slewrate while smooth */
 	control::BlockParamFloat _target_threshold_xy; /**< distance threshold for slowdown close to target during mission */
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 
@@ -431,6 +432,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_hold_dz(this, "HOLD_DZ"),
 	_acceleration_hor_max(this, "ACC_HOR_MAX", true),
 	_deceleration_hor_max(this, "DEC_HOR_MAX", true),
+	_smoothration_hor_max(this, "SMO_HOR_MAX", true),
 	_target_threshold_xy(this, "TARGET_THRE"),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_vel_x_deriv(this, "VELD"),
@@ -1074,15 +1076,14 @@ MulticopterPositionControl::control_manual(float dt)
 		/* during transition predict setpoint forward */
 		if (smooth_pos_transition) {
 			/* time to travel from current velocity to zero velocity */
-			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _deceleration_hor_max.get();//_acceleration_hor_max.get();
+			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _smoothration_hor_max.get();//_acceleration_hor_max.get();
 
 			/* p pos_sp in xy from max acceleration and current velocity */
 			math::Vector<2> pos(_pos(0), _pos(1));
 			math::Vector<2> vel(_vel(0), _vel(1));
-			math::Vector<2> pos_sp = pos + vel * delta_t - vel.normalized() * 0.5f * _acceleration_hor_max.get() * delta_t *delta_t;
+			math::Vector<2> pos_sp = pos + vel * delta_t - vel.normalized() * 0.5f * _smoothration_hor_max.get() * delta_t *delta_t;
 			_pos_sp(0) = pos_sp(0);
 			_pos_sp(1) = pos_sp(1);
-
 			_pos_hold_engaged = true;
 		}
 	}
@@ -1144,15 +1145,15 @@ MulticopterPositionControl::manual_arminit(float dt)
 		}else if(timeindex<270)
 		{
 			return _params.thr_min*3;
-		}else if(timeindex<370)
+		}else if(timeindex<340)
 		{
 			return _params.thr_min;
-		}else if(timeindex<440)
+		}else if(timeindex<410)
 		{
 			return _params.thr_min*3;
 		}
 	}
-	if(timeindex>=440)
+	if(timeindex>=410)
 	{
 		haveinit=true;
 	}
@@ -1942,8 +1943,14 @@ MulticopterPositionControl::control_position(float dt)
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 
 	if (_run_pos_control) {
-		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+     if( _target_threshold_xy.get()<16.0f){
+    	 _vel_sp(0) = (_pos_sp(0) - _pos(0) - _vel(0)  * _params.vel_ff(0)) * _params.pos_p(0);
+		 _vel_sp(1) = (_pos_sp(1) - _pos(1) - _vel(1)  * _params.vel_ff(1)) * _params.pos_p(1);
+     }else
+     {
+    	 _vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+     	 _vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+     }
 	}
 
 	limit_altitude();
