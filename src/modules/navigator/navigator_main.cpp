@@ -101,9 +101,6 @@ Navigator::Navigator() :
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
 	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
 //	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
-	_param_cruising_speed_hover(this, "MPC_XY_CRUISE", false),
-	_param_cruising_speed_plane(this, "FW_AIRSPD_TRIM", false),
-	_param_cruising_throttle_plane(this, "FW_THR_CRUISE", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -753,7 +750,7 @@ Navigator::get_cruising_speed()
 			return _mission_cruising_speed_mc;
 
 		} else {
-			return _param_cruising_speed_hover.get();
+			return -1.0f;
 		}
 
 	} else {
@@ -761,7 +758,7 @@ Navigator::get_cruising_speed()
 			return _mission_cruising_speed_fw;
 
 		} else {
-			return _param_cruising_speed_plane.get();
+			return -1.0f;
 		}
 	}
 }
@@ -792,7 +789,7 @@ Navigator::get_cruising_throttle()
 		return _mission_throttle;
 
 	} else {
-		return _param_cruising_throttle_plane.get();
+		return -1.0f;
 	}
 }
 

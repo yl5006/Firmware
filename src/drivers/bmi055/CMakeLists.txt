@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
 px4_add_module(
-	MODULE drivers__bmp280
-	MAIN bmp280
+	MODULE drivers__bmi055
+	MAIN bmi055
+	STACK_MAIN 1200
 	COMPILE_FLAGS
-	SRCS
-		bmp280_spi.cpp
-		bmp280_i2c.cpp
-		bmp280.cpp
+	SRCS		
+		bmi055_accel.cpp
+		bmi055_gyro.cpp
+		bmi055_main.cpp
 	DEPENDS
 		platforms__common
 	)

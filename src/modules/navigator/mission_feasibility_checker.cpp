@@ -258,6 +258,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(dm_item_t dm_current, size_
 				} else {
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %d below home", i+1);
 				}
+				return true;
 			}
 		}
 	}
@@ -449,17 +450,10 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 						if (delta_altitude < 0) {
 							if (missionitem_previous.altitude > slope_alt_req) {
 								/* Landing waypoint is above altitude of slope at the given waypoint distance */
-								if (sys_language == 0) {
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "降落：最后航点太高/太近");
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "向下移动到％.1fm或远离％.1fm",
-										(double)(slope_alt_req),
-										(double)(wp_distance_req - wp_distance));
-							} else {
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Landing: last waypoint too high/too close");
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Move down to %.1fm or move further away by %.1fm",
-										(double)(slope_alt_req),
-										(double)(wp_distance_req - wp_distance));
-							}
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach");
+								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Move down %.1fm or move further away by %.1fm",
+										     (double)(slope_alt_req - missionitem_previous.altitude),
+										     (double)(wp_distance_req - wp_distance));
 
 								return false;
 							}
@@ -471,25 +465,16 @@ MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nM
 						}
 
 					} else {
-						/* Landing waypoint is above last waypoint */
-						if (sys_language == 0) {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "降落航点在最后航线航点上");
-						} else {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Landing waypoint above last nav waypoint");
-						}
+						/* Last wp is in flare region */
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: waypoint within landing flare");
 						return false;
 					}
 
 					landing_valid = true;
 
 				} else {
-					/* Last wp is in flare region */
-					//xxx give recommendations
-					if (sys_language == 0) {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "最后航点太靠近降落航点");
-					} else {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Last waypoint too close to landing waypoint");
-					}
+					// mission item before land doesn't have a position
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: need landing approach");
 					return false;
 				}
 
@@ -555,7 +540,6 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 						} else {
 							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "First waypoint too far: %d m > %d, refusing mission",
 								     (int)dist_to_1wp, (int)dist_first_wp);
-						}
 						warning_issued = true;
 						return false;
 					}

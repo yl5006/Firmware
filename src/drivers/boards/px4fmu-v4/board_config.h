@@ -82,9 +82,18 @@
 
 /* The BMI160 sensor replaces the MPU9250 on some boards. Only one is actually present and connected
  * to the second GPIO pin on port C. The wrong driver will fail during start becaus of an incorrect WHO_AM_I register.*/
-#define GPIO_SPI_CS_BMI160		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
+#define GPIO_SPI1_CS_PORTC_PIN2		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
 
 #define GPIO_SPI_CS_FRAM		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
+
+/* The BMI055 acceleration sensor replaces the ICM20608G on some boards. Only one is actually present and connected
+ * to the second GPIO pin on port C. The wrong driver will fail during start becaus of an incorrect WHO_AM_I register.*/
+#define GPIO_SPI1_CS_PORTC_PIN15  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
+
+/* The BMI055 gyroscope sensor replaces the LIS3MDL, HMC5983 on some boards. Only one is actually present and connected
+ * to the second GPIO pin on port E. The wrong driver will fail during start becaus of an incorrect WHO_AM_I register.*/
+#define GPIO_SPI1_CS_PORTE_PIN15  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
+
 
 /*  Define the Ready interrupts */
 
@@ -104,10 +113,11 @@
 #define GPIO_SPI_CS_OFF_LIS3MDL		_PIN_OFF(GPIO_SPI_CS_LIS3MDL)
 #define GPIO_SPI_CS_OFF_MS5611		_PIN_OFF(GPIO_SPI_CS_MS5611)
 #define GPIO_SPI_CS_OFF_ICM_2060X 	_PIN_OFF(GPIO_SPI_CS_ICM_2060X)
-#define GPIO_SPI_CS_OFF_BMI160		_PIN_OFF(GPIO_SPI_CS_BMI160)
+#define GPIO_SPI_CS_OFF_BMI160		_PIN_OFF(GPIO_SPI1_CS_PORTC_PIN2)
+#define GPIO_SPI_CS_OFF_BMI055_ACC _PIN_OFF(GPIO_SPI1_CS_PORTC_PIN15)
+#define GPIO_SPI_CS_OFF_BMI055_GYR _PIN_OFF(GPIO_SPI1_CS_PORTE_PIN15)
 
 #define GPIO_DRDY_OFF_MPU9250		_PIN_OFF(GPIO_DRDY_MPU9250)
-#define GPIO_DRDY_OFF_HMC5983		_PIN_OFF(GPIO_DRDY_HMC5983)
 #define GPIO_DRDY_OFF_ICM_2060X	_PIN_OFF(GPIO_DRDY_ICM_2060X)
 
 /* SPI1 off */
@@ -130,6 +140,8 @@
 #define PX4_SPIDEV_BMA			9
 #define PX4_SPIDEV_ICM_20608		10
 #define PX4_SPIDEV_ICM_20602		11
+#define PX4_SPIDEV_BMI055_ACC   	12
+#define PX4_SPIDEV_BMI055_GYR   	13
 
 /* onboard MS5611 and FRAM are both on bus SPI2
  * spi_dev_e:SPIDEV_FLASH has the value 2 and is used in the NuttX ramtron driver
@@ -143,6 +155,7 @@
 /* I2C busses */
 #define PX4_I2C_BUS_EXPANSION	1
 #define PX4_I2C_BUS_LED			PX4_I2C_BUS_EXPANSION
+#define PX4_I2C_BUS_BMM150 		PX4_I2C_BUS_EXPANSION
 
 /* Devices on the external bus.
  *
@@ -151,6 +164,8 @@
 #define PX4_I2C_OBDEV_LED	0x55
 #define PX4_I2C_OBDEV_HMC5883	0x1e
 #define PX4_I2C_OBDEV_LIS3MDL	0x1e
+#define PX4_I2C_OBDEV_BMM150	0x10
+#define PX4_I2C_OBDEV_BMP280	0x76
 
 /*
  * ADC channels

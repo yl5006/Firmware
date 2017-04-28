@@ -60,6 +60,7 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/drv_tone_alarm.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -297,6 +298,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_logging_ack(msg);
 		break;
 
+	case MAVLINK_MSG_ID_PLAY_TUNE:
+		handle_message_play_tune(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -379,12 +384,13 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (!target_ok) {
-		return;
-	}
-
 	bool send_ack = true;
 	int ret = 0;
+
+	if (!target_ok) {
+		ret = PX4_ERROR;
+		goto out;
+	}
 
 	//check for MAVLINK terminate command
 	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
@@ -415,8 +421,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-			      mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				 mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -471,6 +477,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		}
 	}
 
+out:
+
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
 		command_ack.command = cmd_mavlink.command;
@@ -501,17 +509,18 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
-	if (!target_ok) {
-		return;
-	}
-
 	bool send_ack = true;
 	int ret = 0;
+
+	if (!target_ok) {
+		ret = PX4_ERROR;
+		goto out;
+	}
 
 	//check for MAVLINK terminate command
 	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
 		/* This is the link shutdown command, terminate mavlink */
-		warnx("terminated by remote");
+		PX4_WARN("terminated by remote");
 		fflush(stdout);
 		usleep(50000);
 
@@ -528,8 +537,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	} else {
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			warnx("ignoring CMD with same SYS/COMP (%d/%d) ID",
-			      mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
+				 mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -573,6 +582,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
 		}
 	}
+
+out:
 
 	if (send_ack) {
 		vehicle_command_ack_s command_ack;
@@ -1432,6 +1443,30 @@ MavlinkReceiver::handle_message_logging_ack(mavlink_message_t *msg)
 
 	if (ulog_streaming) {
 		ulog_streaming->handle_ack(logging_ack);
+	}
+}
+
+void
+MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
+{
+	mavlink_play_tune_t play_tune;
+	mavlink_msg_play_tune_decode(msg, &play_tune);
+
+	char *tune = play_tune.tune;
+
+	if ((mavlink_system.sysid == play_tune.target_system ||
+	     play_tune.target_system == 0) &&
+	    (mavlink_system.compid == play_tune.target_component ||
+	     play_tune.target_component == 0)) {
+
+		if (*tune == 'M') {
+			int fd = px4_open(TONEALARM0_DEVICE_PATH, PX4_F_WRONLY);
+
+			if (fd >= 0) {
+				px4_write(fd, tune, strlen(tune) + 1);
+				px4_close(fd);
+			}
+		}
 	}
 }
 
