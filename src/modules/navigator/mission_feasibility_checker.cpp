@@ -539,12 +539,12 @@ MissionFeasibilityChecker::check_dist_1wp(dm_item_t dm_current, size_t nMissionI
 							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "第一个航点太远：%d m> %d,，拒绝任务。",(int)dist_to_1wp, (int)dist_first_wp);
 						} else {
 							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "First waypoint too far: %d m > %d, refusing mission",
-								     (int)dist_to_1wp, (int)dist_first_wp);
-						warning_issued = true;
-						return false;
+									(int)dist_to_1wp, (int)dist_first_wp);
+							warning_issued = true;
+							return false;
+						}
 					}
 				}
-
 			} else {
 				/* error reading, mission is invalid */
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "error reading offboard mission");
