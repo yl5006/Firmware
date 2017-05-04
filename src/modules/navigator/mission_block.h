@@ -69,7 +69,7 @@ public:
 	static bool item_contains_position(const struct mission_item_s *item);
 
 	/* TODO: move this to a helper class in navigator */
-	static bool item_contains_command(const struct mission_item_s *item);
+	static bool position_contains_command(const struct mission_item_s *item);
 
 protected:
 	/**

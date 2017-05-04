@@ -195,7 +195,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 	// Check if we are moving vertically - here only check in Position control mode or Alt mode
-	if(_manual.z >= _params.hoverThrottle *0.5f )
+	if(_manual.z >= _params.hoverThrottle *0.4f )
 	{
 		return false;
 	}

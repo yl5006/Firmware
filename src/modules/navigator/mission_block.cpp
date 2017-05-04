@@ -97,7 +97,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_ROI:
 //	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 		return true;
-#if 0
+
 	case NAV_CMD_DO_VTOL_TRANSITION:
 
 		/*
@@ -114,7 +114,7 @@ MissionBlock::is_mission_item_reached()
 		} else {
 			return false;
 		}
-
+#if 0
 	case NAV_CMD_DO_CHANGE_SPEED:
 		return true;
 #endif
@@ -369,24 +369,6 @@ MissionBlock::is_mission_item_reached()
 				curr_sp->lon = _navigator->get_global_position()->lon;
 			}
 
-			switch (_mission_item.nav_cmd) {
-				case NAV_CMD_DO_VTOL_TRANSITION:
-					/*
-					 * We wait half a second to give the transition command time to propagate.
-					 * Then monitor the transition status for completion.
-					 */
-					if (hrt_absolute_time() - _action_start > 500000 &&
-							!_navigator->get_vstatus()->in_transition_mode) {
-
-						_action_start = 0;
-						return true;
-					} else {
-						return false;
-					}
-				default:
-					/* do nothing, this is a 3D waypoint */
-					break;
-			}
 			if(_mission_item.cruise_speed > NAV_EPSILON_POSITION)
 				{
 				_navigator->set_cruising_speed(_mission_item.cruise_speed);
@@ -507,10 +489,10 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
 	    item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 	    item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-	    item->nav_cmd == NAV_CMD_DO_LAND_START ||
 	    item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-	    item->nav_cmd == NAV_CMD_DO_VTOL_TRANSITION ||
+		item->nav_cmd == MAV_CMD_DO_CAM ||
+		item->nav_cmd == MAV_CMD_DO_TIME_CAM ||
 	    item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
 	    item->nav_cmd == NAV_CMD_WAYPOINT ||
 	    item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
@@ -529,14 +511,15 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 }
 
 bool
-MissionBlock::item_contains_command(const struct mission_item_s *item)
+MissionBlock::position_contains_command(const struct mission_item_s *item)
 {
 	// XXX: first to test this three cmd
 	if (item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-		item->nav_cmd == NAV_CMD_DO_LAND_START ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
+		item->nav_cmd == MAV_CMD_DO_CAM ||
+		item->nav_cmd == MAV_CMD_DO_TIME_CAM ||
 		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ){
 
 		return true;

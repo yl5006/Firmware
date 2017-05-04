@@ -190,7 +190,7 @@ Mission::on_active()
 			set_mission_item_reached();
 		}
 
-		if(item_contains_command(&_mission_item))   //add by yaoling
+		if(position_contains_command(&_mission_item))   //add by yaoling
 		{
 			issue_command(&_mission_item);
 		}
@@ -805,7 +805,7 @@ Mission::set_mission_items()
 
 			new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
-			/* set position setpoint to target during the transition */
+			/* set position setpoint to target during the transitiposition_contains_commandon */
 			set_previous_pos_setpoint();
 			generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
 		}
@@ -841,7 +841,10 @@ Mission::set_mission_items()
 	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 
 	/* issue command if ready (will do nothing for position mission items) */
-//	issue_command(&_mission_item);
+	if(!item_contains_position(&_mission_item))
+	{
+		issue_command(&_mission_item);
+	}
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;

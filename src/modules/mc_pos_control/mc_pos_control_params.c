@@ -457,7 +457,7 @@ PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 8.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_SMO_HOR_MAX, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_SMO_HOR_MAX, 5.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
