@@ -1944,14 +1944,21 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
-     if( _target_threshold_xy.get()<16.0f){
-    	 _vel_sp(0) = (_pos_sp(0) - _pos(0) - _vel(0)  * _params.vel_ff(0)) * _params.pos_p(0);
-		 _vel_sp(1) = (_pos_sp(1) - _pos(1) - _vel(1)  * _params.vel_ff(1)) * _params.pos_p(1);
-     }else
-     {
-    	 _vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-     	 _vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
-     }
+
+		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
+		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
+     			if( _target_threshold_xy.get()<16.0f){
+    				_vel_sp(0) = (_pos_sp(0) - _pos(0) - _vel(0)  * _params.vel_ff(0)) * _params.pos_p(0);
+		 		_vel_sp(1) = (_pos_sp(1) - _pos(1) - _vel(1)  * _params.vel_ff(1)) * _params.pos_p(1);
+     			}else
+     			{
+    	 			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
+     	 			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+     			}
+		} else {
+			_vel_sp(0) = 0.0f;
+			_vel_sp(1) = 0.0f;
+		}
 	}
 
 	limit_altitude();

@@ -201,8 +201,8 @@ static uint64_t last_print_mode_reject_time = 0;
 
 static systemlib::Hysteresis auto_disarm_hysteresis(false);
 
-static float eph_threshold = 1.0f;	// Horizontal position error threshold (m)
-static float epv_threshold = 3.0f;	// Vertivcal position error threshold (m)
+static float eph_threshold = 3.0f;	// Horizontal position error threshold (m)
+static float epv_threshold = 5.0f;	// Vertivcal position error threshold (m)
 static float evh_threshold = 1.0f;	// Horizontal velocity error threshold (m)
 
 static hrt_abstime last_lpos_fail_time_us = 0;	// Last time that the local position validity recovery check failed (usec)
