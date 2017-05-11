@@ -891,11 +891,16 @@ FixedwingAttitudeControl::task_main()
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[7] = 1.0f;
-				//warnx("_actuators_airframe.control[1] = 1.0f;");
+				_actuators_airframe.control[7] = 1.0f * _parameters.flaps_scale;
 
 			} else {
-				_actuators_airframe.control[7] = 0.0f;
+				if(PX4_ISFINITE(_manual.aux1) && _vcontrol_mode.flag_control_manual_enabled)
+				{
+					_actuators_airframe.control[7] =_manual.aux1>0.01f ? _manual.aux1 : 0.0f;
+				}else
+				{
+					_actuators_airframe.control[7] = 0.0f;
+				}
 				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 

@@ -389,9 +389,9 @@ MissionBlock::is_mission_item_reached()
 			}
 
 			if(_mission_item.cruise_speed > NAV_EPSILON_POSITION)
-				{
+			{
 				_navigator->set_cruising_speed(_mission_item.cruise_speed);
-				}
+			}
 			return true;
 		}
 	}
@@ -495,7 +495,7 @@ MissionBlock::issue_command(const struct mission_item_s *item)
 float
 MissionBlock::get_time_inside(const struct mission_item_s &item)
 {
-	if (item.nav_cmd == NAV_CMD_TAKEOFF) {
+	if (item.nav_cmd != NAV_CMD_TAKEOFF) {
 		return item.time_inside;
 	}
 

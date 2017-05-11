@@ -249,7 +249,7 @@ static struct cpuload_s cpuload = {};
 static uint8_t main_state_prev = 0;
 static bool warning_action_on = false;
 static bool last_overload = false;
-
+static bool parachute=false;
 static struct status_flags_s status_flags = {};
 
 static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was lost
@@ -918,7 +918,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			} else {
 
 				bool cmd_arms = (static_cast<int>(cmd->param1 + 0.5f) == 1);
-
+                	parachute = (static_cast<int>(cmd->param2)== 21196);
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd->source_system == status_local->system_id && cmd->source_component == status_local->component_id) {
 					status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
@@ -971,6 +971,10 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 						(hrt_absolute_time() > (commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL))) {
 
 						commander_set_home_position(*home_pub, *home, *local_pos, *global_pos, *attitude);
+					}
+					if(parachute)
+					{
+						main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
 					}
 				}
 			}
@@ -4078,7 +4082,7 @@ set_control_mode()
 		control_mode.flag_control_position_enabled = false;
 		control_mode.flag_control_velocity_enabled = false;
 		control_mode.flag_control_acceleration_enabled = false;
-		control_mode.flag_control_termination_enabled = false;
+		control_mode.flag_control_termination_enabled = parachute;
 		/* override is not ok in stabilized mode */
 		control_mode.flag_external_manual_override_ok = false;
 		break;

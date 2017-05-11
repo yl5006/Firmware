@@ -320,10 +320,7 @@ Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position
 	int lat=(int)(global_position.lat*10000000);
 	int lon=(int)(global_position.lon*10000000);
 	for (int k=0;k < 10 && _checkindex < _maxindex;k++,_checkindex++) {
-		size_t sizeRead=fread(&place, 112, 1, fp);  //读取112个字节global_position.lat >(double) place.maxlat*1e-7 ||||global_position.lat <(double) place.minlat*1e-7
-		if(sizeRead!=112){
-			continue ;
-		}
+		if(fread(&place, 112, 1, fp)){};  //读取112个字节
 		if( lat >place.maxlat ||lat <  place.minlat|| lon <place.minlon || lon > place.maxlon)
 		{
                 continue ;
@@ -422,7 +419,8 @@ Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position
 int
 Geofence::loadFromEwtFile(const struct vehicle_global_position_s &global_position)
 {
-	if(!_indexinit)
+	static bool havefile=true;
+	if(!_indexinit&&havefile)
 	{
 		FILE		*fp;
 		forbidden 	place;
@@ -433,16 +431,14 @@ Geofence::loadFromEwtFile(const struct vehicle_global_position_s &global_positio
 		fp = fopen(GEOFENCE_EWT, "rb");
 
 		if (fp == nullptr) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "load error");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fence load error");
+			havefile=false;
 			return PX4_ERROR;
 		}
 		/* create geofence points from valid lines and store in DM */
 		fseek(fp, _maxindex*112, SEEK_SET);
 		for (int i=0;i<100;i++,_maxindex++) {
-			size_t sizeRead=fread(&place, 112, 1, fp);  //读取112个字节
-			if(sizeRead!=112){
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "read error");
-				}
+			if(fread(&place, 112, 1, fp)){};  //读取112个字节
 			if(_startindex==0&&(int)(global_position.lat*1e7-60000000) < place.minlat)
 				{
 				_startindex=_maxindex;

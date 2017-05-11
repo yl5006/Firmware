@@ -61,7 +61,7 @@
  * @value 4 Flight terminate
  * @group Geofence
  */
-PARAM_DEFINE_INT32(GF_ACTION, 1);
+PARAM_DEFINE_INT32(GF_ACTION, 3);
 
 /**
  * Geofence altitude mode

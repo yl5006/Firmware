@@ -1949,7 +1949,7 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
      			if( _target_threshold_xy.get()<16.0f){
     				_vel_sp(0) = (_pos_sp(0) - _pos(0) - _vel(0)  * _params.vel_ff(0)) * _params.pos_p(0);
-		 		_vel_sp(1) = (_pos_sp(1) - _pos(1) - _vel(1)  * _params.vel_ff(1)) * _params.pos_p(1);
+    				_vel_sp(1) = (_pos_sp(1) - _pos(1) - _vel(1)  * _params.vel_ff(1)) * _params.pos_p(1);
      			}else
      			{
     	 			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
@@ -1977,7 +1977,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	if (_limit_vel_xy) {
 		limit_vel_xy_gradually();
 	}
-
 	if (!_control_mode.flag_control_position_enabled) {
 		_reset_pos_sp = true;
 	}

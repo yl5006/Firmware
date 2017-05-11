@@ -672,7 +672,7 @@ Mission::set_mission_items()
 			}
 
 			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-			_mission_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			_mission_item.param8 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 			_mission_item.yaw = _navigator->get_global_position()->yaw;
 
 			/* set position setpoint to target during the transition */
@@ -726,7 +726,7 @@ Mission::set_mission_items()
 		    && !_navigator->get_land_detected()->landed) {
 
 			_mission_item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-			_mission_item.params[0] = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			_mission_item.param8 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			_mission_item.autocontinue = true;
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 		}
