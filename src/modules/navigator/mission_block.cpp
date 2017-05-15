@@ -511,7 +511,7 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 	    item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
 		item->nav_cmd == MAV_CMD_DO_CAM ||
-		item->nav_cmd == MAV_CMD_DO_TIME_CAM ||
+		item->nav_cmd == MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
 	    item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
 	    item->nav_cmd == NAV_CMD_WAYPOINT ||
 	    item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
@@ -538,7 +538,7 @@ MissionBlock::position_contains_command(const struct mission_item_s *item)
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
 		item->nav_cmd == MAV_CMD_DO_CAM ||
-		item->nav_cmd == MAV_CMD_DO_TIME_CAM ||
+		item->nav_cmd == MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
 		item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ){
 
 		return true;
