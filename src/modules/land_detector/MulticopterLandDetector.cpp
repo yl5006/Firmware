@@ -75,7 +75,7 @@ MulticopterLandDetector::MulticopterLandDetector() : LandDetector(),
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
-	_paramHandle.maxDownRate = param_find("MPC_Z_VEL_MAX_DN");
+	_paramHandle.maxDownRate = param_find("MPC_LAND_SPEED");
 	_paramHandle.throttleRange = param_find("LNDMC_THR_RANGE");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");

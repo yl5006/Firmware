@@ -507,6 +507,7 @@ MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
 	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
 	    item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item->nav_cmd == MAV_CMD_COMPONENT_ARM_DISARM ||
 	    item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 	    item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
@@ -534,6 +535,7 @@ MissionBlock::position_contains_command(const struct mission_item_s *item)
 {
 	// XXX: first to test this three cmd
 	if (item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item->nav_cmd == MAV_CMD_COMPONENT_ARM_DISARM ||
 		item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
 		item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
 		item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||

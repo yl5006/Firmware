@@ -294,6 +294,7 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 		    missionitem.nav_cmd != NAV_CMD_DELAY &&
 		    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 		    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
+			missionitem.nav_cmd != MAV_CMD_COMPONENT_ARM_DISARM &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 		    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
 		    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
@@ -322,16 +323,16 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 		if (missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO) {
 
 			/* check actuator number */
-			if (missionitem.params[0] < 0 || missionitem.params[0] > 5) {
+			if (missionitem.param8 < 0 || missionitem.param8 > 5) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Actuator number %d is out of bounds 0..5",
-						     (int)missionitem.params[0]);
+						     (int)missionitem.param8);
 				return false;
 			}
 
 			/* check actuator value */
-			if (missionitem.params[1] < -PWM_DEFAULT_MAX || missionitem.params[1] > PWM_DEFAULT_MAX) {
+			if (missionitem.param9 < -PWM_DEFAULT_MAX || missionitem.param9 > PWM_DEFAULT_MAX) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Actuator value %d is out of bounds -PWM_DEFAULT_MAX..PWM_DEFAULT_MAX", (int)missionitem.params[1]);
+						     "Actuator value %d is out of bounds -PWM_DEFAULT_MAX..PWM_DEFAULT_MAX", (int)missionitem.param9);
 				return false;
 			}
 		}
