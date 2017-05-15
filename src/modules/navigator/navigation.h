@@ -81,14 +81,15 @@ enum NAV_CMD {
 	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
 	NAV_CMD_DO_MOUNT_CONTROL = 205,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
-	MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL=214,       	/*cammer do time*/
-	MAV_CMD_DO_CAM=215,								/*cammer do*/
+	MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL=214,       	//cammer do time
+	MAV_CMD_DO_CAM=215,								//cammer do
+	MAV_CMD_COMPONENT_ARM_DISARM=400,
 	NAV_CMD_IMAGE_START_CAPTURE = 2000,
 	NAV_CMD_IMAGE_STOP_CAPTURE = 2001,
 	NAV_CMD_VIDEO_START_CAPTURE = 2500,
 	NAV_CMD_VIDEO_STOP_CAPTURE = 2501,
 	NAV_CMD_DO_VTOL_TRANSITION = 3000,
-	NAV_CMD_INVALID = UINT16_MAX /* ensure that casting a large number results in a specific error */
+	NAV_CMD_INVALID = UINT16_MAX // ensure that casting a large number results in a specific error
 };
 
 enum ORIGIN {
