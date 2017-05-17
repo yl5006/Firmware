@@ -1314,6 +1314,9 @@ void Mavlink::send_autopilot_capabilites()
 		board_get_uuid32(uid);
 		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
 
+		char uid_fmt_buffer[24];
+		board_get_uuid32_formated(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%X", "");
+		memcpy(&msg.flight_custom_version, uid_fmt_buffer, 24);
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
 	}
 }

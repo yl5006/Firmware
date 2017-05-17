@@ -170,7 +170,7 @@ static uint32_t version_tag_to_middleware(const char *tag)
                {
             	   for(int j=0;j<4;j++)
             		   {
-            		   ver = ver + (tag[i+j+1] - '0') * 10;
+            		   ver = ver *10 + (tag[i+j+1] - '0');
             		   }
                }
            break ;
