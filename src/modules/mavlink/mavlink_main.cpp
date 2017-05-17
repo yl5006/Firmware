@@ -1292,7 +1292,7 @@ void Mavlink::send_autopilot_capabilites()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.flight_sw_version = px4_firmware_version();
-		msg.middleware_sw_version = px4_firmware_version();
+		msg.middleware_sw_version = px4_middleware_version();
 		msg.os_sw_version = px4_os_version();
 		msg.board_version = px4_board_version();
 		uint64_t fw_git_version_binary = px4_firmware_version_binary();

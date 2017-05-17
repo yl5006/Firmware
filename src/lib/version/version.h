@@ -81,6 +81,12 @@ static inline const char *px4_build_uri(void)
 __EXPORT uint32_t px4_firmware_version(void);
 
 /**
+ * get the PX4 Firmware version
+ * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
+ */
+__EXPORT uint32_t px4_middleware_version(void);
+
+/**
  * get the board version (last 8 bytes should be silicon ID, if any)
  */
 __EXPORT uint32_t px4_board_version(void);

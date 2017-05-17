@@ -150,10 +150,43 @@ static uint32_t version_tag_to_number(const char *tag)
 	return ver | type;
 }
 
+/**
+ * Convert a version tag string to a number
+ * @param tag version tag in one of the following forms:
+ *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - rc: v1.4.0rc4
+ *            - release: v1.4.0
+ *            - linux: 7.9.3
+ * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
+ */
+static uint32_t version_tag_to_middleware(const char *tag)
+{
+	uint32_t ver = 0;
+	unsigned len = strlen(tag);
+
+	for (int i = 0; i <  len; i++) {
+		if (tag[i] == '-') {
+               if(i<len-5)
+               {
+            	   for(int j=0;j<4;j++)
+            		   {
+            		   ver = ver + (tag[i+j+1] - '0') * 10;
+            		   }
+               }
+           break ;
+		}
+	}
+	return ver ;
+}
 
 uint32_t px4_firmware_version(void)
 {
 	return version_tag_to_number(PX4_GIT_TAG_STR);
+}
+
+uint32_t px4_middleware_version(void)
+{
+	return version_tag_to_middleware(PX4_GIT_TAG_STR);
 }
 
 uint32_t px4_board_version(void)
