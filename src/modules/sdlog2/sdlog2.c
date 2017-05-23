@@ -531,7 +531,7 @@ int open_log_file()
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_log_critical(&mavlink_log_pub, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_log_critical(&mavlink_log_pub,770, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -543,7 +543,7 @@ int open_log_file()
 #endif
 
 	if (fd < 0) {
-		mavlink_log_critical(&mavlink_log_pub, "[blackbox] failed: %s", log_file_name);
+		mavlink_log_critical(&mavlink_log_pub,771, "[blackbox] failed: %s", log_file_name);
 
 	} else {
 		mavlink_and_console_log_info(&mavlink_log_pub, "[blackbox] recording: %s", log_file_name);
@@ -583,7 +583,7 @@ int open_perf_file(const char* str)
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-			mavlink_log_critical(&mavlink_log_pub, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
+			mavlink_log_critical(&mavlink_log_pub,772, "[blackbox] ERR: max files %d", MAX_NO_LOGFILE);
 			return -1;
 		}
 	}
@@ -595,7 +595,7 @@ int open_perf_file(const char* str)
 #endif
 
 	if (fd < 0) {
-		mavlink_log_critical(&mavlink_log_pub, "[blackbox] failed: %s", log_file_name);
+		mavlink_log_critical(&mavlink_log_pub,773, "[blackbox] failed: %s", log_file_name);
 
 	}
 
@@ -722,7 +722,7 @@ void sdlog2_start_log()
 
 	/* create log dir if needed */
 	if (create_log_dir() != 0) {
-		mavlink_log_critical(&mavlink_log_pub, "[blackbox] error creating log dir");
+		mavlink_log_critical(&mavlink_log_pub,774, "[blackbox] error creating log dir");
 		return;
 	}
 
@@ -2378,20 +2378,20 @@ int check_free_space()
 	/* use statfs to determine the number of blocks left */
 	FAR struct statfs statfs_buf;
 	if (statfs(mountpoint, &statfs_buf) != OK) {
-		mavlink_log_critical(&mavlink_log_pub, "[blackbox] no microSD card, disabling logging");
+		mavlink_log_critical(&mavlink_log_pub,775, "[blackbox] no microSD card, disabling logging");
 		return PX4_ERROR;
 	}
 
 	/* use a threshold of 50 MiB */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_log_critical(&mavlink_log_pub, "[blackbox] no space on MicroSD: %u MiB",
+		mavlink_log_critical(&mavlink_log_pub,776, "[blackbox] no space on MicroSD: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we do not need a flag to remember that we sent this warning because we will exit anyway */
 		return PX4_ERROR;
 
 	/* use a threshold of 100 MiB to send a warning */
 	} else if (!space_warning_sent && statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(100 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_log_critical(&mavlink_log_pub, "[blackbox] space on MicroSD low: %u MiB",
+		mavlink_log_critical(&mavlink_log_pub,777, "[blackbox] space on MicroSD low: %u MiB",
 			(unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize) / (1024U * 1024U));
 		/* we don't want to flood the user with warnings */
 		space_warning_sent = true;

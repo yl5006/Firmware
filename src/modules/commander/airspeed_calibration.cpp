@@ -57,8 +57,6 @@
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
 
-extern int sys_language;
-
 static const char *sensor_name = "airspeed";
 
 static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub)
@@ -124,13 +122,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		}
 	}
 
-	if(sys_language==0)
-	{
-		calibration_log_info(mavlink_log_pub, "[cal] 确保传感器未在风中测量");// all critical change to info
-	} else
-	{
-		calibration_log_info(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");// all critical change to info
-	}
+	calibration_log_info(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");// all critical change to info
+
 	usleep(500 * 1000);
 
 	while (calibration_counter < calibration_count) {
@@ -194,25 +187,13 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		feedback_calibration_failed(mavlink_log_pub);
 		goto error_return;
 	}
-
-	if(sys_language==0)
-	{
-			calibration_log_info(mavlink_log_pub, "[cal] 偏移 %d 帕斯卡", (int)diff_pres_offset);// all critical change to info
-	} else
-	{
-			calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);// all critical change to info
-	}
+	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);// all critical change to info
 
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);
 
-	if(sys_language==0)
-	{
-			calibration_log_info(mavlink_log_pub, "[cal] 从前方吹空速计，注意不要触碰");// all critical change to info
-	} else
-	{
-		calibration_log_info(mavlink_log_pub, "[cal] Blow across front of pitot without touching");// all critical change to info
-	}
+	calibration_log_info(mavlink_log_pub, "[cal] Blow across front of pitot without touching");// all critical change to info
+
 	calibration_counter = 0;
 
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */

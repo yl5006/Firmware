@@ -336,7 +336,7 @@ public:
 	 *
 	 * @param string the message to send (will be capped by mavlink max string length)
 	 */
-	void			send_statustext_emergency(const char *string);
+	void			send_statustext_emergency(uint16_t msgid,const char *string);
 
 	/**
 	 * Send a status text with loglevel, the difference from mavlink_log_xxx() is that message sent

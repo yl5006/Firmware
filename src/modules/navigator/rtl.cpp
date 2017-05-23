@@ -102,11 +102,7 @@ RTL::on_activation()
 	/* for safety reasons don't go into RTL if landed */
 	if (_navigator->get_land_detected()->landed) {
 		_rtl_state = RTL_STATE_LANDED;
-		if (sys_language == 0) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "已经着陆，不执行RTL");
-			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already landed, not executing RTL");
-			}
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),750, "Already landed, not executing RTL");
 
 		/* if lower than return altitude, climb up first */
 

@@ -222,7 +222,7 @@ Mission::on_active()
 							&_mission_item, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP waypoint could not be written");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),700, "ERROR DO JUMP waypoint could not be written");
 						//		return false;
 					}
 					report_do_jump_mission_changed(*mission_index_ptr, _mission_item.do_jump_repeat_count);
@@ -548,18 +548,10 @@ Mission::set_mission_items()
 
 			if (_navigator->get_land_detected()->landed) {
 				/* landed, refusing to take off without a mission */
-				if (sys_language == 0) {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "没有有效的任务可用，拒绝起飞");
-				} else {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, refusing takeoff");
-				}
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),701, "no valid mission available, refusing takeoff");
 
 			} else {
-				if (sys_language == 0) {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "没有有效的任务可用，悬停");
-				} else {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no valid mission available, loitering");
-				}
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),702, "no valid mission available, loitering");
 			}
 
 			user_feedback_done = true;
@@ -1306,7 +1298,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if (*mission_index_ptr != (int)mission->count) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "[wpm] err: index: %d, max: %d", *mission_index_ptr,
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),703, "[wpm] err: index: %d, max: %d", *mission_index_ptr,
 						     (int)mission->count);
 			}
 
@@ -1321,7 +1313,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),704, "ERROR waypoint could not be read");
 			return false;
 		}
 		memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
@@ -1344,7 +1336,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 						     &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the
 						 * dataman */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP waypoint could not be written");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),705, "ERROR DO JUMP waypoint could not be written");
 						return false;
 					}
 
@@ -1414,11 +1406,7 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 //	}
 
 	/* we have given up, we don't want to cycle forever */
-	if (sys_language == 0) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "错误:跳转任务是个循环，放弃");
-	} else {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR DO JUMP is cycling, giving up");
-	}
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), 706,"ERROR DO JUMP is cycling, giving up");
 	return false;
 }
 
@@ -1442,7 +1430,7 @@ Mission::save_offboard_mission_state()
 					     sizeof(mission_s)) != sizeof(mission_s)) {
 
 					warnx("ERROR: can't save mission state");
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: can't save mission state");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),707, "ERROR: can't save mission state");
 				}
 			}
 		}
@@ -1454,14 +1442,14 @@ Mission::save_offboard_mission_state()
 		mission_state.current_seq = _current_offboard_mission_index;
 
 		warnx("ERROR: invalid mission state");
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: invalid mission state");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),708, "ERROR: invalid mission state");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
 			     sizeof(mission_s)) != sizeof(mission_s)) {
 
 			warnx("ERROR: can't save mission state");
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: can't save mission state");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),709, "ERROR: can't save mission state");
 		}
 	}
 
@@ -1556,7 +1544,7 @@ Mission::reset_offboard_mission(struct mission_s &mission)
 			}
 
 		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR: could not read mission");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),710, "ERROR: could not read mission");
 
 			/* initialize mission state in dataman */
 			mission.dataman_id = 0;

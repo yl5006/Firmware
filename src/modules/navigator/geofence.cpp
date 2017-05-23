@@ -124,30 +124,15 @@ bool Geofence::inside(double lat, double lon, float altitude)
 
 		if (max_vertical_distance > FLT_EPSILON && (dist_z > max_vertical_distance)) {
 			if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-					if (sys_language == 0) {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "地理围栏超过最大垂直距离%.1f m",
-									(double)(dist_z - max_vertical_distance));
-						} else {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-									"Maximum altitude above home exceeded by %.1f m",
-									(double)(dist_z - max_vertical_distance));
-						}
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),610,"Maximum altitude above home exceeded by %.1f m",(double)(dist_z - max_vertical_distance));
 				_last_vertical_range_warning = hrt_absolute_time();
 			}
-
 			inside_fence = false;
 		}
 
 		if (max_horizontal_distance > FLT_EPSILON && (dist_xy > max_horizontal_distance)) {
 			if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				if (sys_language == 0) {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "地理围栏超过最大水平距离%.1f m",
-									(double)(dist_xy - max_horizontal_distance));
-						} else {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-									"Maximum distance from home exceeded by %.1f m",
-									(double)(dist_xy - max_horizontal_distance));
-						}
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),611,"Maximum distance from home exceeded by %.1f m",(double)(dist_xy - max_horizontal_distance));
 				_last_horizontal_range_warning = hrt_absolute_time();
 			}
 
@@ -347,22 +332,12 @@ Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position
 						_last_horizontal_range_warning = hrt_absolute_time();
 						if(place.type==4||place.type==5)
 						{
-							if (sys_language == 0) {
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入限飞区%d,类型%d,请申报",
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(),612, "Fly in forbidden place %d,type %d",
 										place.cno,place.type);
-							} else {
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
-										place.cno,place.type);
-							}
 						}else
 						{
-							if (sys_language == 0) {
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入禁飞区%d,type=%d index=%d",
-										place.cno,place.type,_checkindex);
-							} else {
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(),613, "Fly in forbidden place %d,type %d",
 										place.cno,place.type);
-							}
 						}
 					}
 					if(place.type==4||place.type==5)
@@ -382,22 +357,12 @@ Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position
 							if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
 								if(place.type==4||place.type==5)
 										{
-											if (sys_language == 0) {
-												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入限飞区%d,类型%d,请申报",
+											mavlink_log_critical(_navigator->get_mavlink_log_pub(),614, "Fly in forbidden place %d,type %d",
 														place.cno,place.type);
-											} else {
-												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
-														place.cno,place.type);
-											}
 										}else
 										{
-											if (sys_language == 0) {
-												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "进入禁飞区%d,类型%d,降落或返航",
+											mavlink_log_critical(_navigator->get_mavlink_log_pub(),615, "Fly in forbidden place %d,type %d",
 														place.cno,place.type);
-											} else {
-												mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Fly in forbidden place %d,type %d",
-														place.cno,place.type);
-											}
 										}
 								_last_horizontal_range_warning = hrt_absolute_time();
 							}
@@ -431,7 +396,7 @@ Geofence::loadFromEwtFile(const struct vehicle_global_position_s &global_positio
 		fp = fopen(GEOFENCE_EWT, "rb");
 
 		if (fp == nullptr) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fence load error");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),616, "fence load error");
 			havefile=false;
 			return PX4_ERROR;
 		}
@@ -553,11 +518,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		warnx("Geofence: import error");
-		if (sys_language == 0) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "地理围栏载入错误");
-		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence import error");
-		}
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),617, "Geofence import error");
 	}
 
 error:

@@ -144,7 +144,7 @@ void BlockLocalPositionEstimator::visionCheckTimeout()
 		if (!(_sensorTimeout & SENSOR_VISION)) {
 			_sensorTimeout |= SENSOR_VISION;
 			_visionStats.reset();
-			mavlink_log_critical(&mavlink_log_pub, "[lpe] vision position timeout ");
+			mavlink_log_info(&mavlink_log_pub, "[lpe] vision position timeout ");
 		}
 	}
 }

@@ -64,17 +64,14 @@
 using namespace DriverFramework;
 #endif
 
-static const char reason_no_rc[] = "no RC";
-static const char reason_no_offboard[] = "no offboard";
-static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
-static const char reason_no_gps[] = "no gps";
-static const char reason_no_gps_cmd[] = "no gps cmd";
-static const char reason_no_local_position[] = "no local position";
-static const char reason_no_global_position[] = "no global position";
-static const char reason_no_datalink[] = "no datalink";
-
-extern int sys_language;
-//add critical message for chinese by yaoling
+static const char reason_no_rc[] = "no RC";									//420
+static const char reason_no_offboard[] = "no offboard";  					//421
+static const char reason_no_rc_and_no_offboard[] = "no RC and no offboard"; //422
+static const char reason_no_gps[] = "no gps";    							//423
+static const char reason_no_gps_cmd[] = "no gps cmd";						//424
+static const char reason_no_local_position[] = "no local position";			//425
+static const char reason_no_global_position[] = "no global position";		//426
+static const char reason_no_datalink[] = "no datalink";						//427
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
@@ -218,11 +215,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 						// Fail transition if we need safety switch press
 
 					} else if (safety->safety_switch_available && !safety->safety_off) {
-						if (sys_language == 0) {
-							mavlink_log_critical(mavlink_log_pub,"未解锁，请先按安全开关");
-						} else {
-							mavlink_log_critical(mavlink_log_pub,"NOT ARMING: Press safety switch first!");
-						}
+						mavlink_log_critical(mavlink_log_pub,381,"NOT ARMING: Press safety switch first!");
 						feedback_provided = true;
 						valid_transition = false;
 					}
@@ -232,11 +225,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 					if (!status_flags->circuit_breaker_engaged_power_check) {
 						// Fail transition if power is not good
 						if (!status_flags->condition_power_input_valid) {
-							if (sys_language == 0) {
-								mavlink_log_critical(mavlink_log_pub, "未解锁，连接电源模块");
-							} else {
-								mavlink_log_critical(mavlink_log_pub,"NOT ARMING: Connect power module.");
-							}
+							mavlink_log_critical(mavlink_log_pub,382,"NOT ARMING: Connect power module.");
 							feedback_provided = true;
 							valid_transition = false;
 						}
@@ -246,34 +235,18 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 						if (status_flags->condition_power_input_valid && (avionics_power_rail_voltage > 0.0f)) {
 							// Check avionics rail voltages
 							if (avionics_power_rail_voltage < 4.5f) {
-								if (sys_language == 0) {
-									mavlink_log_critical(mavlink_log_pub,"未解锁: 系统电压低: %6.2f V",
-											(double )avionics_power_rail_voltage);
-								} else {
-									mavlink_log_critical(mavlink_log_pub,"NOT ARMING: Avionics power low: %6.2f Volt",
-											(double )avionics_power_rail_voltage);
-								}
+								mavlink_log_critical(mavlink_log_pub,383,"NOT ARMING: Avionics power low: %6.2f Volt",(double )avionics_power_rail_voltage);
 								feedback_provided = true;
 								valid_transition = false;
 
 							} else if (avionics_power_rail_voltage < 4.9f) {
-								if (sys_language == 0) {
-									mavlink_log_critical(mavlink_log_pub,"注意: 系统电压低: %6.2f V",
+								mavlink_log_critical(mavlink_log_pub,384,"CAUTION: Avionics power low: %6.2f Volt",
 											(double )avionics_power_rail_voltage);
-								} else {
-									mavlink_log_critical(mavlink_log_pub,"CAUTION: Avionics power low: %6.2f Volt",
-											(double )avionics_power_rail_voltage);
-								}
 								feedback_provided = true;
 
 							} else if (avionics_power_rail_voltage > 5.4f) {
-								if (sys_language == 0) {
-									mavlink_log_critical(mavlink_log_pub,"注意: 系统电压高: %6.2f V",
+								mavlink_log_critical(mavlink_log_pub,385,"CAUTION: Avionics power high: %6.2f Volt",
 											(double )avionics_power_rail_voltage);
-								} else {
-									mavlink_log_critical(mavlink_log_pub,"CAUTION: Avionics power high: %6.2f Volt",
-											(double )avionics_power_rail_voltage);
-								}
 								feedback_provided = true;
 							}
 						}
@@ -297,34 +270,16 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
 				if (status_flags->condition_system_sensors_initialized) {
-					if (sys_language == 0) {
-						mavlink_log_critical(mavlink_log_pub,
-								"预备飞行,解锁前重启");
-					} else {
-						mavlink_log_critical(mavlink_log_pub,
-								"Preflight check resolved, reboot before arming");
-					}
+					mavlink_log_critical(mavlink_log_pub,386,"Preflight check resolved, reboot before arming");
 				} else {
-					if (sys_language == 0) {
-						mavlink_log_critical(mavlink_log_pub,
-								"预备飞行检查失败,拒绝解锁");
-					} else {
-						mavlink_log_critical(mavlink_log_pub,
-								"Preflight check failed, refusing to arm");
-					}
+					mavlink_log_critical(mavlink_log_pub,387,"Preflight check failed, refusing to arm");
 				}
 
 				feedback_provided = true;
 
 			} else if ((new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
 				   status_flags->condition_system_sensors_initialized) {
-				if (sys_language == 0) {
-					mavlink_log_critical(mavlink_log_pub,
-							"预备飞行检查，重启完成");
-				} else {
-					mavlink_log_critical(mavlink_log_pub,
-							"Preflight check resolved, reboot to complete");
-				}
+				mavlink_log_critical(mavlink_log_pub,388,"Preflight check resolved, reboot to complete");
 				feedback_provided = true;
 
 			} else {
@@ -342,13 +297,7 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 
 				if (status_flags->condition_system_hotplug_timeout) {
 					if (!status_flags->condition_system_prearm_error_reported) {
-						if (sys_language == 0) {
-							mavlink_log_critical(mavlink_log_pub,
-									"预备飞行失败:传感器设置未完成");
-						} else {
-							mavlink_log_critical(mavlink_log_pub,
-									"Not ready to fly: Sensors not set up correctly");
-						}
+						mavlink_log_critical(mavlink_log_pub,389,"Not ready to fly: Sensors not set up correctly");
 						status_flags->condition_system_prearm_error_reported = true;
 					}
 				}
@@ -384,13 +333,9 @@ transition_result_t arming_state_transition(struct vehicle_status_s *status,
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			if (sys_language == 0) {
-				mavlink_log_critical(mavlink_log_pub,"状态转换拒绝");
-			} else {
-				mavlink_log_critical(mavlink_log_pub,"TRANSITION_DENIED: %s - %s",
+			mavlink_log_critical(mavlink_log_pub,390,"TRANSITION_DENIED: %s - %s",
 						state_names[status->arming_state],
 						state_names[new_arming_state]);
-			}
 		}
 	}
 
@@ -541,7 +486,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 		switch (new_state) {
 		case vehicle_status_s::HIL_STATE_OFF:
 			/* we're in HIL and unexpected things can happen if we disable HIL now */
-			mavlink_log_critical(mavlink_log_pub, "Not switching off HIL (safety)");
+			mavlink_log_critical(mavlink_log_pub,391, "Not switching off HIL (safety)");
 			ret = TRANSITION_DENIED;
 			break;
 
@@ -551,10 +496,10 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
 
 				ret = TRANSITION_CHANGED;
-				mavlink_log_critical(mavlink_log_pub, "Switched to ON hil state");
+				mavlink_log_critical(mavlink_log_pub,392, "Switched to ON hil state");
 
 			} else {
-				mavlink_log_critical(mavlink_log_pub, "Not switching to HIL when armed");
+				mavlink_log_critical(mavlink_log_pub,393, "Not switching to HIL when armed");
 				ret = TRANSITION_DENIED;
 			}
 
@@ -579,11 +524,11 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 /**
  * Enable failsafe and report to user
  */
-void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
+void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,uint16_t msgid,
 		     const char *reason)
 {
 	if (!old_failsafe) {
-		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
+		mavlink_log_critical(mavlink_log_pub, msgid, "Failsafe enabled: %s", reason);
 	}
 
 	status->failsafe = true;
@@ -631,7 +576,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		/* require RC for all manual modes */
 		if (rc_lost && is_armed) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, 420, reason_no_rc);
 
 			set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
 
@@ -668,7 +613,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 	case commander_state_s::MAIN_STATE_POSCTL: {
 
 			if (rc_lost && is_armed) {
-				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, 420, reason_no_rc);
 
 				set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
 
@@ -702,7 +647,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		} else if (status_flags->gps_failure_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps_cmd);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,424, reason_no_gps_cmd);
 
 		} else if (status_flags->rc_signal_lost_cmd) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER;
@@ -714,7 +659,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		} else if (status_flags->gps_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,423, reason_no_gps);
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
@@ -731,7 +676,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 			 * check for datalink lost: this should always trigger RTGS */
 
 		} else if (data_link_loss_act_configured && status->data_link_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,427, reason_no_datalink);
 
 			set_data_link_loss_nav_state(status, armed, status_flags, data_link_loss_act);
 
@@ -742,7 +687,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else if (!data_link_loss_act_configured && status->rc_signal_lost && status->data_link_lost && !landed
 			   && mission_finished) {
 
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,427, reason_no_datalink);
 
 			set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
 
@@ -762,11 +707,11 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		} else if (status_flags->gps_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,423, reason_no_gps);
 
 			/* also go into failsafe if just datalink is lost, and we're actually in air */
 
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,427, reason_no_datalink);
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
@@ -776,7 +721,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
 
 		} else if (rc_lost && !data_link_loss_act_configured) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,420, reason_no_rc);
 
 			set_rc_loss_nav_state(status, armed, status_flags, rc_loss_act);
 
@@ -803,7 +748,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		} else if (status_flags->gps_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_gps);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,423, reason_no_gps);
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
@@ -865,7 +810,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 
 		/* require offboard control, otherwise stay where you are */
 		if (status_flags->offboard_control_signal_lost && !status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_offboard);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,421, reason_no_offboard);
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_rc_act < 5 && offb_loss_rc_act >= 0) {
 				if (offb_loss_rc_act == 3 && status_flags->condition_global_position_valid
@@ -907,7 +852,7 @@ bool set_nav_state(struct vehicle_status_s *status,
 			}
 
 		} else if (status_flags->offboard_control_signal_lost && status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_offboard);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,422, reason_no_rc_and_no_offboard);
 
 			if (status_flags->offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
 				if (offb_loss_act == 2 && status_flags->condition_global_position_valid
@@ -995,9 +940,9 @@ bool check_invalid_pos_nav_state(struct vehicle_status_s *status,
 		}
 
 		if (using_global_pos) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_global_position);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,426, reason_no_global_position);
 		} else {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_local_position);
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,425,reason_no_local_position);
 		}
 
 	}
@@ -1094,11 +1039,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			if (sys_language == 0) {
-				mavlink_log_critical(mavlink_log_pub,"解锁被拒绝：与USB飞行不安全");
-			} else {
-				mavlink_log_critical(mavlink_log_pub,"ARMING DENIED: Flying with USB is not safe");
-			}
+			mavlink_log_critical(mavlink_log_pub,394,"ARMING DENIED: Flying with USB is not safe");
 		}
 	}
 
@@ -1106,11 +1047,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			if (sys_language == 0) {
-				mavlink_log_critical(mavlink_log_pub,"解锁被拒绝：低电池电量");
-			} else {
-				mavlink_log_critical(mavlink_log_pub,"ARMING DENIED: LOW BATTERY");
-			}
+			mavlink_log_critical(mavlink_log_pub,395,"ARMING DENIED: LOW BATTERY");
 		}
 	}
 
@@ -1123,7 +1060,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+			mavlink_log_critical(mavlink_log_pub, 396,"ARMING DENIED: valid mission required");
 		}
 	}
 
@@ -1136,7 +1073,7 @@ int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_p
 		preflight_ok = false;
 
 		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+			mavlink_log_critical(mavlink_log_pub,397, "ARMING DENIED: valid mission required");
 		}
 	}
 

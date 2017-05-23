@@ -179,14 +179,6 @@ static orb_advert_t mavlink_log_pub = nullptr;
 
 /* System autostart ID */
 static int autostart_id;
-
-/* System language*/
-int sys_language;
-//critical message that seed in chinese or english
-/***********************
- many critical message are modify
- not info message or cal message
- */
 /* flags */
 static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -314,9 +306,9 @@ void set_control_mode();
 
 bool stabilization_required();
 
-void print_reject_mode(struct vehicle_status_s *current_status, const char *msg);
+void print_reject_mode(struct vehicle_status_s *current_status,uint16_t msgid, const char *msg);
 
-void print_reject_arm(const char *msg);
+void print_reject_arm(uint16_t msgid,const char *msg);
 
 void print_status();
 
@@ -707,7 +699,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
 		is_hil_setup(autostart_id) && status.hil_state != vehicle_status_s::HIL_STATE_ON) {
 
-		mavlink_log_critical(mavlink_log_pub_local, "HIL platform: Connect to simulator before arming");
+		mavlink_log_critical(mavlink_log_pub_local,102, "HIL platform: Connect to simulator before arming");
 		return TRANSITION_DENIED;
 	}
 
@@ -770,11 +762,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 			} else {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub, "拒绝响应命令");
-				} else {
-					mavlink_log_critical(&mavlink_log_pub, "Rejecting reposition command");
-				}
+				mavlink_log_critical(&mavlink_log_pub,103, "Rejecting reposition command");
 			}
 		} else {
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -839,11 +827,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 						default:
 							main_ret = TRANSITION_DENIED;
-							if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub, "不支持的自动模式");
-							} else {
-								mavlink_log_critical(&mavlink_log_pub,"Unsupported auto mode");
-							}
+							mavlink_log_critical(&mavlink_log_pub,104,"Unsupported auto mode");
 							break;
 						}
 
@@ -897,11 +881,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				if (arming_ret == TRANSITION_DENIED) {
-					if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub, "命令拒绝");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub, "Rejecting arming cmd");
-						}
+					mavlink_log_critical(&mavlink_log_pub,105, "Rejecting arming cmd");
 				}
 			}
 		}
@@ -912,11 +892,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
 			if (static_cast<int>(cmd->param1 + 0.5f) != 0 && static_cast<int>(cmd->param1 + 0.5f) != 1) {
-				if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "不支持加锁或解锁参数");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f", (double)cmd->param1);
-					}
+				mavlink_log_critical(&mavlink_log_pub,106, "Unsupported ARM_DISARM param: %.3f", (double)cmd->param1);
 			} else {
 
 				bool cmd_arms = (static_cast<int>(cmd->param1 + 0.5f) == 1);
@@ -928,11 +904,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				} else {
 					// Refuse to arm if preflight checks have failed
 					if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON && !status_flags.condition_system_sensors_initialized) {
-						if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub, "拒绝解锁. 预备飞行检查失败");
-							} else {
-								mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Preflight checks have failed.");
-							}
+						mavlink_log_critical(&mavlink_log_pub,107, "Arming DENIED. Preflight checks have failed.");
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 						break;
 					}
@@ -944,12 +916,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
 						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)
 						&& (sp_man.z > 0.1f)) {
-
-						if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub, "拒绝解锁,手动油门非零");
-							} else {
-								mavlink_log_critical(&mavlink_log_pub, "Arming DENIED. Manual throttle non-zero.");
-							}
+						mavlink_log_critical(&mavlink_log_pub,108, "Arming DENIED. Manual throttle non-zero.");
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 						break;
 					}
@@ -958,11 +925,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				transition_result_t arming_res = arm_disarm(cmd_arms, &mavlink_log_pub, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "解锁命令拒绝");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "REJECTING component arm cmd");
-					}
+					mavlink_log_critical(&mavlink_log_pub,109, "REJECTING component arm cmd");
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				} else {
@@ -993,27 +956,16 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 
 			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
 				status_local->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub, "暂停任务命令");
-				} else {
-					mavlink_log_critical(&mavlink_log_pub, "Pause mission cmd");
-				}
+				mavlink_log_critical(&mavlink_log_pub,110, "Pause mission cmd");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
 				status_local->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-				if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "继续任务命令");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "Continue mission cmd");
-					};
+				mavlink_log_critical(&mavlink_log_pub,111, "Continue mission cmd");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "拒绝命令");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "REJ CMD: %.1f %.1f %.1f %.1f %.1f %.1f %.1f",
+				mavlink_log_critical(&mavlink_log_pub,112,"REJ CMD: %.1f %.1f %.1f %.1f %.1f %.1f %.1f",
 												     (double)cmd->param1,
 												     (double)cmd->param2,
 												     (double)cmd->param3,
@@ -1021,7 +973,6 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 												     (double)cmd->param5,
 												     (double)cmd->param6,
 												     (double)cmd->param7);
-					}
 			}
 		}
 		break;
@@ -1142,7 +1093,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				res = main_state_transition(status_local, commander_state_s::MAIN_STATE_OFFBOARD, main_state_prev, &status_flags, &internal_state);
 
 				if (res == TRANSITION_DENIED) {
-					print_reject_mode(status_local, "OFFBOARD");
+					print_reject_mode(status_local,180, "OFFBOARD");
 					status_flags.offboard_control_set_by_command = false;
 
 				} else {
@@ -1173,13 +1124,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				if(sys_language==0)
-				{
-					mavlink_log_critical(&mavlink_log_pub,"拒绝返航");
-				} else
-				{
-					mavlink_log_critical(&mavlink_log_pub, "Return to launch denied");
-				}
+				mavlink_log_critical(&mavlink_log_pub,113, "Return to launch denied");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1194,13 +1139,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				if(sys_language==0)
-				{
-					mavlink_log_critical(&mavlink_log_pub,"起飞拒接，加锁和重试");
-				} else
-				{
-					mavlink_log_critical(&mavlink_log_pub, "Takeoff denied, disarm and re-try");
-				}
+				mavlink_log_critical(&mavlink_log_pub,114, "Takeoff denied, disarm and re-try");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1212,13 +1151,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				if(sys_language==0)
-					{
-						mavlink_log_critical(&mavlink_log_pub,"降落拒绝,手动降落");
-					} else
-					{
-						mavlink_log_critical(&mavlink_log_pub, "Landing denied, land manually");
-					}
+				mavlink_log_critical(&mavlink_log_pub,115, "Landing denied, land manually");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1269,11 +1202,11 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-					mavlink_log_critical(&mavlink_log_pub, "Mission start denied");
+					mavlink_log_critical(&mavlink_log_pub,116, "Mission start denied");
 				}
 			}
 		} else {
-			mavlink_log_critical(&mavlink_log_pub, "Mission start denied, no valid mission");
+			mavlink_log_critical(&mavlink_log_pub,117, "Mission start denied, no valid mission");
 		}
 	}
 	break;
@@ -1416,7 +1349,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
 	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
-	param_t _param_language = param_find("SYS_LANGUAGE");
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
 	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
@@ -1615,11 +1547,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			const char *missionfail = "reading mission state failed";
 			warnx("%s", missionfail);
-			if (sys_language == 0) {
-				mavlink_log_critical(&mavlink_log_pub, "读取任务状态失败");
-			} else {
-				mavlink_log_critical(&mavlink_log_pub, missionfail);
-			}
+			mavlink_log_critical(&mavlink_log_pub,118, missionfail);
 
 			/* initialize mission state in dataman */
 			mission.dataman_id = 0;
@@ -1961,9 +1889,6 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* Autostart id */
 			param_get(_param_autostart_id, &autostart_id);
-			/* sys_language */
-			param_get(_param_language, &sys_language);
-
 
 			/* EPH / EPV */
 			param_get(_param_eph, &eph_threshold);
@@ -2110,11 +2035,7 @@ int commander_thread_main(int argc, char *argv[])
 					status_flags.barometer_failure = false;
 					status_changed = true;
 					if (status_flags.ever_had_barometer_data) {
-						if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "气压健康");
-						} else {
-						mavlink_log_critical(&mavlink_log_pub, "baro healthy");
-						}
+						mavlink_log_critical(&mavlink_log_pub,119, "baro healthy");
 					}
 					status_flags.ever_had_barometer_data = true;
 				}
@@ -2123,11 +2044,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (!status_flags.barometer_failure) {
 					status_flags.barometer_failure = true;
 					status_changed = true;
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "气压失败");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "baro failed");
-					}
+					mavlink_log_critical(&mavlink_log_pub,120, "baro failed");
 				}
 			}
 		}
@@ -2163,11 +2080,7 @@ int commander_thread_main(int argc, char *argv[])
 					 * apparently the USB cable went away but we are still powered,
 					 * so lets reset to a classic non-usb state.
 					 */
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "USB断开连接，重新启动。");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"USB disconnected, rebooting.");
-					}
+					mavlink_log_critical(&mavlink_log_pub,121,"USB disconnected, rebooting.");
 					usleep(400000);
 					px4_shutdown_request(true, false);
 				}
@@ -2380,17 +2293,9 @@ int commander_thread_main(int argc, char *argv[])
 				   !low_battery_voltage_actions_done) {
 					low_battery_voltage_actions_done = true;
 					if (armed.armed) {
-						if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub, "电量不足，请降落");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAND ADVISED");
-						}
+						mavlink_log_critical(&mavlink_log_pub,122,"LOW BATTERY, RETURN TO LAND ADVISED");
 					} else {
-						if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub, "电量不足，不建议起飞");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub,"LOW BATTERY, TAKEOFF DISCOURAGED");
-						}
+						mavlink_log_critical(&mavlink_log_pub,123,"LOW BATTERY, TAKEOFF DISCOURAGED");
 					}
 
 					status_changed = true;
@@ -2400,54 +2305,27 @@ int commander_thread_main(int argc, char *argv[])
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub,"电池电量严重不足，关闭系统");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub,"CRITICAL BATTERY, SHUT SYSTEM DOWN");
-						}
-
+						mavlink_log_critical(&mavlink_log_pub,124,"CRITICAL BATTERY, SHUT SYSTEM DOWN");
 					} else {
 						if (low_bat_action == 1 || low_bat_action == 3) {
 							// let us send the critical message even if already in RTL
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
-									if (sys_language == 0) {
-										mavlink_log_emergency(&mavlink_log_pub,"电池电量严重不足，开始降落");
-									} else {
-										mavlink_log_emergency(&mavlink_log_pub,"CRITICAL BATTERY, RETURNING TO LAND");
-									}
-
+								mavlink_log_emergency(&mavlink_log_pub,1120,"CRITICAL BATTERY, RETURNING TO LAND");
 							} else {
-								if (sys_language == 0) {
-										mavlink_log_emergency(&mavlink_log_pub,"电池电量严重不足，返航失败");
-									} else {
-										mavlink_log_emergency(&mavlink_log_pub,"CRITICAL BATTERY, RTL FAILED");
-									}
+								mavlink_log_emergency(&mavlink_log_pub,1121, "CRITICAL BATTERY, RTL FAILED");
 							}
 
 						} else if (low_bat_action == 2) {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
-								if (sys_language == 0) {
-									mavlink_log_emergency(&mavlink_log_pub, "电池电量严重不足，在当前位置降落");
-								} else {
-									mavlink_log_emergency(&mavlink_log_pub,"CRITICAL BATTERY, LANDING AT CURRENT POSITION");
-								}
-
+								mavlink_log_emergency(&mavlink_log_pub,1122,"CRITICAL BATTERY, LANDING AT CURRENT POSITION");
 							} else {
-								if (sys_language == 0) {
-									mavlink_log_emergency(&mavlink_log_pub, "电池电量严重不足，降落失败");
-								} else {
-									mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
-								}
+								mavlink_log_emergency(&mavlink_log_pub,1123,"CRITICAL BATTERY, LANDING FAILED");
 							}
 
 						} else {
-								if (sys_language == 0) {
-									mavlink_log_emergency(&mavlink_log_pub,"电池电量严重不足，建议返航");
-									} else {
-									mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURN TO LAUNCH ADVISED!");
-									}
+								mavlink_log_emergency(&mavlink_log_pub,1124, "CRITICAL BATTERY, RETURN TO LAUNCH ADVISED!");
 						}
 					}
 
@@ -2459,15 +2337,11 @@ int commander_thread_main(int argc, char *argv[])
 					emergency_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub,"电池电量严重不足，关闭系统");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub,"DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-						}
+						mavlink_log_critical(&mavlink_log_pub,125,"DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
 						usleep(200000);
 						int ret_val = px4_shutdown_request(false, false);
 						if (ret_val) {
-							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+							mavlink_log_critical(&mavlink_log_pub,126, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
 						} else {
 							while(1) { usleep(1); }
 						}
@@ -2476,26 +2350,14 @@ int commander_thread_main(int argc, char *argv[])
 						if (low_bat_action == 2 || low_bat_action == 3) {
 							if (TRANSITION_CHANGED == main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_LAND, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
-									if (sys_language == 0) {
-										mavlink_log_emergency(&mavlink_log_pub,"电池电量严重不足，开始降落");
-									} else {
-										mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
-									}
+								mavlink_log_emergency(&mavlink_log_pub,1125,"DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
 
 							} else {
-								if (sys_language == 0) {
-									mavlink_log_emergency(&mavlink_log_pub, "电池电量严重不足，降落失败");
-								} else {
-									mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
-								}
+								mavlink_log_emergency(&mavlink_log_pub,1126,"DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
 							}
 
 						} else {
-							if (sys_language == 0) {
-								mavlink_log_emergency(&mavlink_log_pub, "电池电量严重不足，建议降落！");
-							} else {
-								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
-							}
+								mavlink_log_emergency(&mavlink_log_pub,1127, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
 						}
 					}
 
@@ -2599,11 +2461,7 @@ int commander_thread_main(int argc, char *argv[])
 			//Check if GPS receiver is too noisy while we are disarmed
 			if (!armed.armed && gpsIsNoisy) {
 				if (!status_flags.gps_failure) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub,"GPS信号嘈杂");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"GPS signal noisy");
-					}
+					mavlink_log_critical(&mavlink_log_pub,127,"GPS signal noisy");
 					set_tune_override(TONE_GPS_WARNING_TUNE);
 
 					//GPS suffers from signal jamming or excessive noise, disable GPS-aided flight
@@ -2619,22 +2477,14 @@ int commander_thread_main(int argc, char *argv[])
 					status_flags.gps_failure = false;
 					status_changed = true;
 					if (status_flags.condition_home_position_valid) {
-						if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub,"GPS 重新定位");
-							} else {
-								mavlink_log_critical(&mavlink_log_pub, "GPS fix regained");
-							}
+					mavlink_log_critical(&mavlink_log_pub,128, "GPS fix regained");
 					}
 				}
 
 			} else if (!status_flags.gps_failure) {
 				status_flags.gps_failure = true;
 				status_changed = true;
-				if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub,"GPS 定位丢失");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"GPS fix lost");
-					}
+				mavlink_log_critical(&mavlink_log_pub,129,"GPS fix lost");
 			}
 
 		}
@@ -2652,11 +2502,7 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				if (status.mission_failure) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub,"任务无法完成");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"mission cannot be completed");
-					}
+				mavlink_log_critical(&mavlink_log_pub,130,"mission cannot be completed");
 				}
 			}
 		}
@@ -2705,11 +2551,7 @@ int commander_thread_main(int argc, char *argv[])
 						}
 						case (geofence_result_s::GF_ACTION_TERMINATE) : {
 							warnx("Flight termination because of geofence");
-							if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub,"地理围栏违规：飞行终止");
-							} else {
-								mavlink_log_critical(&mavlink_log_pub,"Geofence violation: flight termination");
-							}
+							mavlink_log_critical(&mavlink_log_pub,131,"Geofence violation: flight termination");
 							armed.force_failsafe = true;
 							status_changed = true;
 							break;
@@ -2752,7 +2594,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				// revert to position control in any case
 //				main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
-//				mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
+//				mavlink_log_critical(&mavlink_log_pub,140,"Autopilot off, returned control to pilot");
 			}
 		}
 
@@ -2772,7 +2614,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				// revert to position control in any case
 		//		main_state_transition(&status, commander_state_s::MAIN_STATE_POSCTL, main_state_prev, &status_flags, &internal_state);
-		//		mavlink_log_critical(&mavlink_log_pub, "Autopilot off, returned control to pilot");
+		//		mavlink_log_critical(&mavlink_log_pub,141, "Autopilot off, returned control to pilot");
 			}
 		}
 
@@ -2786,20 +2628,12 @@ int commander_thread_main(int argc, char *argv[])
 			static bool flight_termination_printed = false;
 
 			if (!flight_termination_printed) {
-				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub,"地理围栏违规：飞行终止");
-				} else {
-					mavlink_log_critical(&mavlink_log_pub, "Geofence violation: flight termination");
-				}
+				mavlink_log_critical(&mavlink_log_pub,132, "Geofence violation: flight termination");
 				flight_termination_printed = true;
 			}
 
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub,"飞行终止");
-				} else {
-					mavlink_log_critical(&mavlink_log_pub, "Flight termination active");
-				}
+				mavlink_log_critical(&mavlink_log_pub,133, "Flight termination active");
 			}
 		}
 
@@ -2871,11 +2705,7 @@ int commander_thread_main(int argc, char *argv[])
 						internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_ALTCTL &&
 						!land_detector.landed) {
-					if (sys_language == 0) {
-						print_reject_arm("未加锁:不在手动模式或地面上");
-					} else {
-						print_reject_arm("NOT DISARMING: Not in manual mode or landed yet.");
-					}
+						print_reject_arm(201,"NOT DISARMING: Not in manual mode or landed yet.");
 
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
 					/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
@@ -2929,19 +2759,10 @@ int commander_thread_main(int argc, char *argv[])
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_POSCTL)
 						&& (internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE)
 						) {
-						if (sys_language == 0) {
-							print_reject_arm("未解锁：请先切换到手动模式");
-						} else {
-							print_reject_arm("NOT ARMING: Switch to a manual mode first.");
-						}
+						print_reject_arm(202,"NOT ARMING: Switch to a manual mode first.");
 					} else if (!status_flags.condition_home_position_valid &&
 								geofence_action == geofence_result_s::GF_ACTION_RTL) {
-						if (sys_language == 0) {
-							print_reject_arm("未解锁：围栏返航需要有效的返航home点");
-						} else {
-							print_reject_arm("NOT ARMING: Geofence RTL requires valid home");
-						}
-
+						print_reject_arm(203,"NOT ARMING: Geofence RTL requires valid home");
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status,
 										     &battery,
@@ -2960,11 +2781,7 @@ int commander_thread_main(int argc, char *argv[])
 							arming_state_changed = true;
 						} else {
 							usleep(100000);
-							if (sys_language == 0) {
-								print_reject_arm("未解锁：预备飞行检查失败");
-							} else {
-								print_reject_arm("NOT ARMING: Preflight checks failed");
-							}
+							print_reject_arm(204,"NOT ARMING: Preflight checks failed");
 						}
 					}
 				}
@@ -2979,7 +2796,6 @@ int commander_thread_main(int argc, char *argv[])
 			if (arming_ret == TRANSITION_CHANGED) {
 				if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 					mavlink_log_info(&mavlink_log_pub, "ARMED by RC");
-
 				} else {
 					mavlink_log_info(&mavlink_log_pub, "DISARMED by RC");
 				}
@@ -3010,43 +2826,26 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else if (main_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
-				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub, "拒绝状态转换");
-				} else {
-					mavlink_log_critical(&mavlink_log_pub,"main state transition denied");
-				}
+					mavlink_log_critical(&mavlink_log_pub,134,"main state transition denied");
 			}
 
 			/* check throttle kill switch */
 			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* set lockdown flag */
 				if (!armed.manual_lockdown) {
-					if (sys_language == 0) {
-						mavlink_log_emergency(&mavlink_log_pub, "手动结束开关");
-					} else {
-						mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH ENGAGED");
-					}
+						mavlink_log_emergency(&mavlink_log_pub,1128, "MANUAL KILL SWITCH ENGAGED");
 				}
 				armed.manual_lockdown = true;
 			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 				if (armed.manual_lockdown) {
-					if (sys_language == 0) {
-						mavlink_log_emergency(&mavlink_log_pub, "手动结束开关关闭");
-					} else {
-						mavlink_log_emergency(&mavlink_log_pub,
-								"MANUAL KILL SWITCH OFF");
-					}
+						mavlink_log_emergency(&mavlink_log_pub,1129,"MANUAL KILL SWITCH OFF");
 				}
 				armed.manual_lockdown = false;
 			}
 			/* no else case: do not change lockdown flag in unconfigured case */
 		} else {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
-				if (sys_language == 0) {
-					mavlink_log_critical(&mavlink_log_pub,"手动操作丢失");//,hrt_absolute_time() / 1000);
-				} else {
-					mavlink_log_critical(&mavlink_log_pub,"MANUAL CONTROL LOST ");//(at t=%llums)",hrt_absolute_time() / 1000);
-				}
+				mavlink_log_critical(&mavlink_log_pub,135,"MANUAL CONTROL LOST ");//(at t=%llums)",hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
 				status_changed = true;
@@ -3107,11 +2906,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else {
 			if (!status.data_link_lost) {
 				if (armed.armed) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub,"失去所有数据链接");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"ALL DATA LINKS LOST");
-					}
+					mavlink_log_critical(&mavlink_log_pub,136,"ALL DATA LINKS LOST");
 				}
 				status.data_link_lost = true;
 				status.data_link_lost_counter++;
@@ -3143,11 +2938,7 @@ int commander_thread_main(int argc, char *argv[])
 				    !status.engine_failure) {
 					status.engine_failure = true;
 					status_changed = true;
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub,"引擎失败");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "Engine Failure");
-					}
+					mavlink_log_critical(&mavlink_log_pub,137, "Engine Failure");
 				}
 
 			} else {
@@ -3218,20 +3009,12 @@ int commander_thread_main(int argc, char *argv[])
 				static bool flight_termination_printed = false;
 
 				if (!flight_termination_printed) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub,"数据链和GPS丢失：飞行终止");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"DL and GPS lost: flight termination");
-					}
+					mavlink_log_critical(&mavlink_log_pub,138,"DL and GPS lost: flight termination");
 					flight_termination_printed = true;
 				}
 
 				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "数据链和GPS丢失：飞行终止");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub,"DL and GPS lost: flight termination");
-					}
+					mavlink_log_critical(&mavlink_log_pub,139,"DL and GPS lost: flight termination");
 				}
 			}
 
@@ -3256,11 +3039,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-					if (sys_language == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "遥控和GPS丢失：飞行终止");
-					} else {
-						mavlink_log_critical(&mavlink_log_pub, "RC and GPS lost: flight termination");
-					}
+					mavlink_log_critical(&mavlink_log_pub,140, "RC and GPS lost: flight termination");
 				}
 			}
 		}
@@ -3675,7 +3454,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_OFFBOARD, main_state_prev, &status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode(status_local, "OFFBOARD");
+			print_reject_mode(status_local,181, "OFFBOARD");
 			/* mode rejected, continue to evaluate the main system mode */
 
 		} else {
@@ -3690,7 +3469,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode(status_local, "AUTO RTL");
+			print_reject_mode(status_local, 182,"AUTO RTL");
 
 			/* fallback to LOITER if home position not set */
 			res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
@@ -3709,7 +3488,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
-			print_reject_mode(status_local, "AUTO HOLD");
+			print_reject_mode(status_local,183, "AUTO HOLD");
 
 		} else {
 			return res;
@@ -3746,7 +3525,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to loiter */
 					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-					print_reject_mode(status_local, "AUTO MISSION");
+					print_reject_mode(status_local,184, "AUTO MISSION");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3758,7 +3537,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-					print_reject_mode(status_local, "AUTO RTL");
+					print_reject_mode(status_local,185, "AUTO RTL");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3770,7 +3549,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-					print_reject_mode(status_local, "AUTO LAND");
+					print_reject_mode(status_local,186, "AUTO LAND");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3782,7 +3561,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-					print_reject_mode(status_local, "AUTO TAKEOFF");
+					print_reject_mode(status_local,187, "AUTO TAKEOFF");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3794,7 +3573,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_AUTO_LOITER;
-					print_reject_mode(status_local, "AUTO FOLLOW");
+					print_reject_mode(status_local,188, "AUTO FOLLOW");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3806,7 +3585,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to position control */
 					new_mode = commander_state_s::MAIN_STATE_POSCTL;
-					print_reject_mode(status_local, "AUTO HOLD");
+					print_reject_mode(status_local,189, "AUTO HOLD");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3818,7 +3597,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to altitude control */
 					new_mode = commander_state_s::MAIN_STATE_ALTCTL;
-					print_reject_mode(status_local, "POSITION CONTROL");
+					print_reject_mode(status_local,190, "POSITION CONTROL");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3830,7 +3609,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to stabilized */
 					new_mode = commander_state_s::MAIN_STATE_STAB;
-					print_reject_mode(status_local, "ALTITUDE CONTROL");
+					print_reject_mode(status_local,191, "ALTITUDE CONTROL");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3842,7 +3621,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 					/* fall back to manual */
 					new_mode = commander_state_s::MAIN_STATE_MANUAL;
-					print_reject_mode(status_local, "STABILIZED");
+					print_reject_mode(status_local,192, "STABILIZED");
 					res = main_state_transition(status_local, new_mode, main_state_prev, &status_flags, &internal_state);
 
 					if (res != TRANSITION_DENIED) {
@@ -3934,7 +3713,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 				break;	// changed successfully or already in this state
 			}
 
-			print_reject_mode(status_local, "POSITION CONTROL");
+			print_reject_mode(status_local,193, "POSITION CONTROL");
 		}
 
 		// fallback to ALTCTL
@@ -3945,7 +3724,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 		}
 
 		if (sp_man.posctl_switch != manual_control_setpoint_s::SWITCH_POS_ON) {
-			print_reject_mode(status_local, "ALTITUDE CONTROL");
+			print_reject_mode(status_local,194, "ALTITUDE CONTROL");
 		}
 
 		// fallback to MANUAL
@@ -3960,7 +3739,7 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 			break;	// changed successfully or already in this state
 		}
 
-		print_reject_mode(status_local, "AUTO MISSION");
+		print_reject_mode(status_local,195, "AUTO MISSION");
 
 		// fallback to LOITER if home position not set
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_LOITER, main_state_prev, &status_flags, &internal_state);
@@ -4286,18 +4065,13 @@ stabilization_required()
 }
 
 void
-print_reject_mode(struct vehicle_status_s *status_local, const char *msg)
+print_reject_mode(struct vehicle_status_s *status_local,uint16_t msgid, const char *msg)
 {
 	hrt_abstime t = hrt_absolute_time();
 
 	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
-		if (sys_language == 0) {
-			mavlink_log_critical(&mavlink_log_pub, "拒绝模式");
-		} else {
-			mavlink_log_critical(&mavlink_log_pub, "REJECT %s", msg);
-		}
-
+		mavlink_log_critical(&mavlink_log_pub,msgid,"REJECT %s", msg);
 		/* only buzz if armed, because else we're driving people nuts indoors
 		they really need to look at the leds as well. */
 		tune_negative(armed.armed);
@@ -4305,13 +4079,13 @@ print_reject_mode(struct vehicle_status_s *status_local, const char *msg)
 }
 
 void
-print_reject_arm(const char *msg)
+print_reject_arm( uint16_t msgid,const char *msg)
 {
 	hrt_abstime t = hrt_absolute_time();
 
 	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
-		mavlink_log_critical(&mavlink_log_pub, msg);
+		mavlink_log_critical(&mavlink_log_pub,msgid, msg);
 		tune_negative(true);
 	}
 }
@@ -4581,11 +4355,7 @@ void *commander_low_prio_loop(void *arg)
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 
 						} else {
-						if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub,"设置加载错误");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub,"settings load ERROR");
-						}
+							mavlink_log_critical(&mavlink_log_pub,141,"settings load ERROR");
 
 							/* convenience as many parts of NuttX use negative errno */
 							if (ret < 0) {
@@ -4593,11 +4363,7 @@ void *commander_low_prio_loop(void *arg)
 							}
 
 						if (ret < 1000) {
-							if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub, "错误: %s",strerror(ret));
-							} else {
-								mavlink_log_critical(&mavlink_log_pub,"ERROR: %s", strerror(ret));
-							}
+							mavlink_log_critical(&mavlink_log_pub,142,"ERROR: %s", strerror(ret));
 						}
 
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub, command_ack);
@@ -4618,11 +4384,7 @@ void *commander_low_prio_loop(void *arg)
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 
 						} else {
-						if (sys_language == 0) {
-							mavlink_log_critical(&mavlink_log_pub, "设置保存错误");
-						} else {
-							mavlink_log_critical(&mavlink_log_pub,"settings save error");
-						}
+							mavlink_log_critical(&mavlink_log_pub,143,"settings save error");
 
 							/* convenience as many parts of NuttX use negative errno */
 							if (ret < 0) {
@@ -4630,11 +4392,7 @@ void *commander_low_prio_loop(void *arg)
 							}
 
 							if (ret < 1000) {
-							if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub,"错误: %s",strerror(ret));
-							} else {
-								mavlink_log_critical(&mavlink_log_pub,"ERROR: %s", strerror(ret));
-							}
+								mavlink_log_critical(&mavlink_log_pub,144,"ERROR: %s", strerror(ret));
 							}
 
 							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED, command_ack_pub, command_ack);
@@ -4645,11 +4403,7 @@ void *commander_low_prio_loop(void *arg)
 						param_reset_all();
 
 						/* do not spam MAVLink, but provide the answer / green led mechanism */
-						if (sys_language == 0) {
-								mavlink_log_critical(&mavlink_log_pub,"参数复位");
-							} else {
-								mavlink_log_critical(&mavlink_log_pub, "onboard parameters reset");
-							}
+						mavlink_log_critical(&mavlink_log_pub,145, "onboard parameters reset");
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
 					}
 

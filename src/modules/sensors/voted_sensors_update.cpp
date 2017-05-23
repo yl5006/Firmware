@@ -927,7 +927,7 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 			}
 
 		} else {
-			mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
+			mavlink_log_emergency(&_mavlink_log_pub,1300, "%s #%i fail: %s%s%s%s%s!",
 					      sensor_name,
 					      sensor.voter.failover_index(),
 					      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
@@ -958,7 +958,7 @@ bool VotedSensorsUpdate::check_vibration()
 
 		} else if (hrt_elapsed_time(&_vibration_warning_timestamp) > 10000 * 1000) {
 			_vibration_warning = true;
-			mavlink_log_critical(&_mavlink_log_pub, "HIGH VIBRATION! g: %d a: %d m: %d",
+			mavlink_log_critical(&_mavlink_log_pub,800, "HIGH VIBRATION! g: %d a: %d m: %d",
 					     (int)(100 * _gyro.voter.get_vibration_factor(cur_time)),
 					     (int)(100 * _accel.voter.get_vibration_factor(cur_time)),
 					     (int)(100 * _mag.voter.get_vibration_factor(cur_time)));

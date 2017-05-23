@@ -203,7 +203,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->abort_front_transition("Minimum altitude breached");
+				_attc->abort_front_transition(831,"Minimum altitude breached");
 			}
 		}
 
@@ -211,7 +211,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_pitch > 0) {
 
 			if (fabsf(euler.theta()) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
-				_attc->abort_front_transition("Maximum pitch angle exceeded");
+				_attc->abort_front_transition(832,"Maximum pitch angle exceeded");
 			}
 		}
 
@@ -219,7 +219,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_roll > 0) {
 
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
-				_attc->abort_front_transition("Maximum roll angle exceeded");
+				_attc->abort_front_transition(833,"Maximum roll angle exceeded");
 			}
 		}
 	}

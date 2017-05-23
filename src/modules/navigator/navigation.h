@@ -50,12 +50,10 @@
 #elif defined(__PX4_POSIX)
 #  define NUM_MISSIONS_SUPPORTED (UINT16_MAX-1) // This is allocated as needed.
 #else
-#  define NUM_MISSIONS_SUPPORTED 2000 // This allocates a file of around 181 kB on the SD card.
+#  define NUM_MISSIONS_SUPPORTED 1000 // This allocates a file of around 181 kB on the SD card.
 #endif
 
 #define NAV_EPSILON_POSITION	0.01f	/**< Anything smaller than this is considered zero */
-
-extern int sys_language;
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {

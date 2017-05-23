@@ -1264,13 +1264,13 @@ Mavlink::send_statustext_info(const char *string)
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	mavlink_log_info(&_mavlink_log_pub, string);//critical
+	mavlink_log_info(&_mavlink_log_pub, string);   //critical to info
 }
 
 void
-Mavlink::send_statustext_emergency(const char *string)
+Mavlink::send_statustext_emergency(uint16_t msgid,const char *string)
 {
-	mavlink_log_emergency(&_mavlink_log_pub, string);
+	mavlink_log_emergency(&_mavlink_log_pub,msgid, string);
 }
 
 void Mavlink::send_autopilot_capabilites()
@@ -1314,7 +1314,7 @@ void Mavlink::send_autopilot_capabilites()
 		board_get_uuid32(uid);
 		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
 
-		char uid_fmt_buffer[24];
+		char uid_fmt_buffer[27];
 		board_get_uuid32_formated(uid_fmt_buffer, sizeof(uid_fmt_buffer), "%X", "");
 		memcpy(&msg.flight_custom_version, uid_fmt_buffer, 24);
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);

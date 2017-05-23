@@ -237,7 +237,7 @@ Navigator::task_main()
 
 	} else {
 		if (_geofence.clearDm() != OK) {
-			mavlink_log_critical(&_mavlink_log_pub, "failed clearing geofence");
+			mavlink_log_critical(&_mavlink_log_pub,720, "failed clearing geofence");
 		}
 	}
 
@@ -546,11 +546,7 @@ Navigator::task_main()
 
 				/* Issue a warning about the geofence violation once */
 				if (false) {//!_geofence_violation_warning_sent
-					if (sys_language == 0) {
-						mavlink_log_critical(&_mavlink_log_pub, "地理围栏违规");
-					} else {
-						mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
-					}
+					mavlink_log_critical(&_mavlink_log_pub,721, "Geofence violation");
 					_geofence_violation_warning_sent = true;
 				}
 
@@ -972,11 +968,11 @@ Navigator::publish_vehicle_cmd(const struct vehicle_command_s &vcmd)
 }
 
 void
-Navigator::set_mission_failure(const char *reason)
+Navigator::set_mission_failure(uint16_t msgid,const char *reason)
 {
 	if (!_mission_result.failure) {
 		_mission_result.failure = true;
 		set_mission_result_updated();
-		mavlink_log_critical(&_mavlink_log_pub, "%s", reason);
+		mavlink_log_critical(&_mavlink_log_pub,msgid, "%s", reason);
 	}
 }

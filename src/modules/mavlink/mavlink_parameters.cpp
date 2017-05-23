@@ -161,7 +161,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						uint32_t val = *(uint32_t *)&set.param_value;
 
 						if (val == 0) { //INAV
-							mavlink_log_critical(_mavlink->get_mavlink_log_pub(),
+							mavlink_log_info(_mavlink->get_mavlink_log_pub(),
 									     "INAV is deprecated. Using LPE after reboot");
 						}
 					}

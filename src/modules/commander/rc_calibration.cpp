@@ -51,7 +51,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
-extern int sys_language;
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -61,11 +60,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	orb_check(sub_man, &changed);
 
 	if (!changed) {
-		if (sys_language == 0) {
-			mavlink_log_critical(mavlink_log_pub, "无信号输入");
-		} else {
-			mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
-		}
+		mavlink_log_critical(mavlink_log_pub,351, "no inputs, aborting");
 		return PX4_ERROR;
 	}
 
@@ -102,11 +97,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
 	if (p1r != 0 || p2r != 0 || p3r != 0) {
-		if (sys_language == 0) {
-			mavlink_log_critical(mavlink_log_pub, "中立值设置失败");
-		} else {
-			mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
-		}
+		mavlink_log_critical(mavlink_log_pub,352, "TRIM: PARAM SET FAIL");
 		px4_close(sub_man);
 		return PX4_ERROR;
 	}

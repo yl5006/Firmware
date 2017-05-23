@@ -113,13 +113,8 @@ Takeoff::set_takeoff_position()
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
 			abs_altitude = min_abs_altitude;
-			if (sys_language == 0) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						"使用最小起飞高度：％.2f m", (double)_param_min_alt.get());
-			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),760,
 						"Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
-			}
 		}
 
 	} else {
@@ -133,13 +128,8 @@ Takeoff::set_takeoff_position()
 	if (abs_altitude < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
 		abs_altitude = _navigator->get_global_position()->alt;
-		if (sys_language == 0) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					"已经高于起飞高度");
-		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),761,
 					"Already higher than takeoff altitude");
-		}
 	}
 
 	// set current mission item to takeoff

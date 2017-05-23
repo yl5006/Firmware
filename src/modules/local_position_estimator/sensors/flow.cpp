@@ -208,7 +208,7 @@ void BlockLocalPositionEstimator::flowCheckTimeout()
 		if (!(_sensorTimeout & SENSOR_FLOW)) {
 			_sensorTimeout |= SENSOR_FLOW;
 			_flowQStats.reset();
-			mavlink_log_critical(&mavlink_log_pub, "[lpe] flow timeout ");
+			mavlink_log_info(&mavlink_log_pub, "[lpe] flow timeout ");
 		}
 	}
 }

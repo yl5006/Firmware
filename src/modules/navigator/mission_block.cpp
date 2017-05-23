@@ -342,7 +342,7 @@ MissionBlock::is_mission_item_reached()
 			    (_param_yaw_timeout.get() >= FLT_EPSILON) &&
 			    (now - _time_wp_reached >= (hrt_abstime)_param_yaw_timeout.get() * 1e6f)) {
 
-				_navigator->set_mission_failure("unable to reach heading within timeout");
+				_navigator->set_mission_failure(725,"unable to reach heading within timeout");
 			}
 
 		} else {

@@ -816,7 +816,7 @@ static void calibrate_answer_command(orb_advert_t *mavlink_log_pub, struct vehic
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
+		mavlink_log_critical(mavlink_log_pub,101,"command denied during calibration: %u", cmd.command);
 		tune_negative(true);
 		break;
 

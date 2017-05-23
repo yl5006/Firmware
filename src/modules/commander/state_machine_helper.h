@@ -129,7 +129,7 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub, struct vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub);
 
 void enable_failsafe(struct vehicle_status_s *status, bool old_failsafe,
-		     orb_advert_t *mavlink_log_pub, const char *reason);
+		     orb_advert_t *mavlink_log_pub, uint16_t msgid, const char *reason);
 
 bool set_nav_state(struct vehicle_status_s *status,
 		   struct actuator_armed_s *armed,

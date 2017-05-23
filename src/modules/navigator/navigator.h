@@ -217,7 +217,7 @@ public:
 
 	void		increment_mission_instance_count() { _mission_instance_count++; }
 
-	void 		set_mission_failure(const char *reason);
+	void 		set_mission_failure(uint16_t msgid,const char *reason);
 
 	bool		is_planned_mission() { return _navigation_mode == &_mission; }
 
