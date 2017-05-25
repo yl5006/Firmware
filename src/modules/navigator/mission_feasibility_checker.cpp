@@ -277,13 +277,13 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 		    missionitem.nav_cmd != NAV_CMD_DELAY &&
 		    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 		    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
-			missionitem.nav_cmd != MAV_CMD_COMPONENT_ARM_DISARM &&
+			missionitem.nav_cmd != NAV_CMD_COMPONENT_ARM_DISARM &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 		    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
 		    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 		    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
-		    missionitem.nav_cmd != MAV_CMD_DO_CAM &&
-		    missionitem.nav_cmd != MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
+		    missionitem.nav_cmd != NAV_CMD_DO_CAM &&
+		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 		    missionitem.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
 		    missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
 		    missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
