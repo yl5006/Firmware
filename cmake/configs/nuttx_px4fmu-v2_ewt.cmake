@@ -45,7 +45,7 @@ set(config_module_list
 	#drivers/mkblctrl
 	#drivers/px4flow
 	#drivers/oreoled
-	#drivers/vmount
+	drivers/vmount
 	drivers/pwm_input
 	drivers/camera_trigger
 	drivers/bst
@@ -100,6 +100,7 @@ set(config_module_list
 	#modules/gpio_led
 	#modules/uavcan
 	modules/land_detector
+	modules/camera_feedback
 
 	#
 	# Estimation modules
