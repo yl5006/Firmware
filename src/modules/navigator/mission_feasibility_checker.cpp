@@ -280,6 +280,7 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 			missionitem.nav_cmd != MAV_CMD_COMPONENT_ARM_DISARM &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 		    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
+		    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 		    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
 		    missionitem.nav_cmd != MAV_CMD_DO_CAM &&
 		    missionitem.nav_cmd != MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
@@ -292,6 +293,8 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
 		    missionitem.nav_cmd != NAV_CMD_ROI &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
+		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
+		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
 		    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(),660, "Rejecting mission item %i: unsupported cmd: %d", (int)(i+1), (int)missionitem.nav_cmd);
 			return false;

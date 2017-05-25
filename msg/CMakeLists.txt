@@ -42,6 +42,7 @@ set(msg_file_names
 	battery_status.msg
 	camera_trigger.msg
 	cammer_rc.msg
+	camera_capture.msg
 	collision_report.msg
 	commander_state.msg
 	control_state.msg

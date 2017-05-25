@@ -165,9 +165,12 @@ then
 	else
 		# FMUv2
 		if mpu6000 start
-#		if max1168 -X start
 		then
-		fi
+		else
+			if max1168 -X start
+			then
+			fi
+		fi		
 
 		if mpu9250 start
 		then
@@ -353,6 +356,11 @@ then
 	if mpu6000 -R 2 -T 20608 start
 	then
 	fi
+	
+	# Internal SPI bus ICM-20602
+	if mpu6000 -R 2 -T 20602 start
+	then
+	fi	
 
 	# Internal SPI bus mpu9250
 	if mpu9250 -R 2 start

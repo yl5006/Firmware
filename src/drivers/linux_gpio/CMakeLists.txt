@@ -31,12 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__navio_gpio
-	MAIN navio_gpio
+	MODULE drivers__linux_gpio
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		navio_gpio.cpp
+		linux_gpio.cpp
 	DEPENDS
 		platforms__common
 	)
