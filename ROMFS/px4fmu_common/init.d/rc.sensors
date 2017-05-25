@@ -165,9 +165,12 @@ then
 	else
 		# FMUv2
 		if mpu6000 start
-#		if max1168 -X start
 		then
-		fi
+		else
+			if max1168 -X start
+			then
+			fi
+		fi		
 
 		if mpu9250 start
 		then
