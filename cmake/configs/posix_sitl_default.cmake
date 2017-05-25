@@ -71,11 +71,11 @@ set(config_module_list
 	#
 	# Estimation modules
 	#
-	modules/attitude_estimator_q
+	#modules/attitude_estimator_q
 	modules/ekf2
-	modules/ekf2_replay
-	modules/local_position_estimator
-	modules/position_estimator_inav
+	#modules/ekf2_replay
+	#modules/local_position_estimator
+	#modules/position_estimator_inav
 
 	#
 	# Vehicle Control
@@ -131,17 +131,17 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	modules/bottle_drop
+	#modules/bottle_drop
 
 	#
 	# Rover apps
 	#
-	examples/rover_steering_control
+	#examples/rover_steering_control
 
 	#
 	# Segway
 	#
-	examples/segway
+	#examples/segway
 
 	#
 	# Demo apps
@@ -149,25 +149,25 @@ set(config_module_list
 
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	examples/px4_simple_app
+	#examples/px4_simple_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	examples/px4_daemon_app
+	#examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	examples/px4_mavlink_debug
+	#examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	examples/fixedwing_control
+	#examples/fixedwing_control
 
 	# Hardware test
 	#examples/hwtest
 
 	# EKF
-	examples/ekf_att_pos_estimator
+	#examples/ekf_att_pos_estimator
 )
 
 set(config_extra_builtin_cmds
