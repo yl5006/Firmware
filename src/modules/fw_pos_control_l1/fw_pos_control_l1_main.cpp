@@ -262,6 +262,7 @@ private:
 		float max_sink_rate;
 		float max_climb_rate;
 		float climbout_diff;
+		float climbout_time;
 		float heightrate_p;
 		float heightrate_ff;
 		float speedrate_p;
@@ -322,6 +323,7 @@ private:
 		param_t max_sink_rate;
 		param_t max_climb_rate;
 		param_t climbout_diff;
+		param_t climbout_time;
 		param_t heightrate_p;
 		param_t heightrate_ff;
 		param_t speedrate_p;
@@ -526,6 +528,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
 	_parameter_handles.max_climb_rate =			param_find("FW_T_CLMB_MAX");
 	_parameter_handles.climbout_diff =			param_find("FW_CLMBOUT_DIFF");
+	_parameter_handles.climbout_time =			param_find("FW_CLMBOUT_TIME");
 	_parameter_handles.throttle_damp = 			param_find("FW_T_THR_DAMP");
 	_parameter_handles.integrator_gain =			param_find("FW_T_INTEG_GAIN");
 	_parameter_handles.vertical_accel_limit =		param_find("FW_T_VERT_ACC");
@@ -617,6 +620,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
 	param_get(_parameter_handles.climbout_diff, &(_parameters.climbout_diff));
+	param_get(_parameter_handles.climbout_time, &(_parameters.climbout_time));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
 	param_get(_parameter_handles.heightrate_ff, &(_parameters.heightrate_ff));
@@ -1056,9 +1060,9 @@ bool
 FixedwingPositionControl::in_takeoff_situation()
 {
 	// in air for < 10s
-	const hrt_abstime delta_takeoff = 10000000;
+	//const hrt_abstime delta_takeoff = 10000000;
 
-	if (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff
+	if (hrt_elapsed_time(&_time_went_in_air) < _parameters.climbout_time * 1000000
 	    && _global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff) {
 
 		return true;
