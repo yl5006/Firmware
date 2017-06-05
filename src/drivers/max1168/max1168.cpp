@@ -1089,7 +1089,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				float xraw_f = (float)report.accel_x/65536*ADVOLT_REF;
 				float yraw_f = (float)report.accel_y/65536*ADVOLT_REF;
 				float zraw_f = (float)report.accel_z/65536*ADVOLT_REF;
-				printf("ax=%.3f,ay=%.3f,az=%.3f\n",(double)xraw_f,(double)yraw_f,(double)zraw_f);
+				//printf("ax=%.3f,ay=%.3f,az=%.3f\n",(double)xraw_f,(double)yraw_f,(double)zraw_f);
 
 				// apply user specified rotation
 				rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
