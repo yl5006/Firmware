@@ -1077,7 +1077,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
-		*pitch_limit_min = radians(10.0f);
+		*pitch_limit_min = radians(25);
 
 	} else {
 		*pitch_limit_min = _parameters.pitch_limit_min;
@@ -1570,7 +1570,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &curr_pos, cons
 							   _parameters.throttle_max, // XXX should we also set runway_takeoff_throttle here?
 							   _parameters.throttle_cruise,
 							   _runway_takeoff.climbout(),
-							   radians(_runway_takeoff.getMinPitch(pos_sp_curr.pitch_min, 10.0f, _parameters.pitch_limit_min)),
+							   radians(_runway_takeoff.getMinPitch(pos_sp_curr.pitch_min, 25.0f, _parameters.pitch_limit_min)),
 							   tecs_status_s::TECS_MODE_TAKEOFF);
 
 				// assign values
