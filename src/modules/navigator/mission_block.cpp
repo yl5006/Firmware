@@ -239,7 +239,6 @@ MissionBlock::is_mission_item_reached()
 
 			if (fabsf(curr_sp->alt - altitude_amsl) >= FLT_EPSILON) {
 				// check if the initial loiter has been accepted
-				dist = -1.0f;
 				dist_xy = -1.0f;
 				dist_z = -1.0f;
 
@@ -510,29 +509,23 @@ MissionBlock::get_time_inside(const struct mission_item_s &item)
 bool
 MissionBlock::item_contains_position(const struct mission_item_s *item)
 {
-	if (item->nav_cmd == NAV_CMD_DO_JUMP ||
-	    item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
-	    item->nav_cmd == NAV_CMD_COMPONENT_ARM_DISARM ||
-	    item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
-	    item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-	    item->nav_cmd == NAV_CMD_DO_CAM ||
-	    item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
-	    item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
-	    item->nav_cmd == NAV_CMD_WAYPOINT ||
-	    item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	    item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	    item->nav_cmd == NAV_CMD_LAND ||
-	    item->nav_cmd == NAV_CMD_TAKEOFF ||
-	    item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	    item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	    item->nav_cmd == NAV_CMD_VTOL_LAND) {
-
-		return true;
-
-	}
-
-	return false;
+	return item->nav_cmd == NAV_CMD_DO_JUMP ||
+	       item->nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+	       item->nav_cmd == NAV_CMD_COMPONENT_ARM_DISARM ||
+	       item->nav_cmd == NAV_CMD_DO_SET_SERVO ||
+	       item->nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+	       item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+	       item->nav_cmd == NAV_CMD_DO_CAM ||
+	       item->nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
+	       item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
+	       item->nav_cmd == NAV_CMD_WAYPOINT ||
+	       item->nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+	       item->nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	       item->nav_cmd == NAV_CMD_LAND ||
+	       item->nav_cmd == NAV_CMD_TAKEOFF ||
+	       item->nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+	       item->nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
+	       item->nav_cmd == NAV_CMD_VTOL_LAND;
 }
 
 bool
@@ -566,6 +559,7 @@ MissionBlock::mission_item_to_position_setpoint(const struct mission_item_s *ite
 	sp->lon = item->lon;
 	sp->alt = item->altitude_is_relative ? item->altitude + _navigator->get_home_position()->alt : item->altitude;
 	sp->yaw = item->yaw;
+	sp->yaw_valid = PX4_ISFINITE(item->yaw);
 	sp->loiter_radius = (fabsf(item->loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item->loiter_radius) :
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction = (item->loiter_radius > 0) ? 1 : -1;

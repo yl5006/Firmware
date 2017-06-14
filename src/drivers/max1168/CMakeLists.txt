@@ -43,7 +43,7 @@ endif()
 px4_add_module(
 	MODULE drivers__max1168
 	MAIN max1168
-	STACK 1200
+	STACK 1400
 	COMPILE_FLAGS
 	SRCS ${srcs}
 	DEPENDS
