@@ -1077,7 +1077,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
-		*pitch_limit_min = radians(25);
+		*pitch_limit_min = radians(25.0);
 
 	} else {
 		*pitch_limit_min = _parameters.pitch_limit_min;
