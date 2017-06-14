@@ -158,7 +158,7 @@ public:
 
 private:
 	DevHandle 	_h_adc;				/**< ADC driver handle */
-	int		_adc;				/**< ADC driver fd */
+	int			_adc;				/**< ADC driver fd */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
 	volatile bool 	_task_should_exit;		/**< if true, sensor task should exit */
@@ -249,7 +249,7 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors(bool hil_enabled) :
-	adc(-1),
+	_adc(-1),
 	_last_adc(0),
 
 	_task_should_exit(true),
