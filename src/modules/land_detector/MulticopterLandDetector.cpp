@@ -189,10 +189,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return manual_control_idle_or_auto && _has_minimal_thrust() && (!verticalMovement || !_has_altitude_lock());
-#if 0
+	if(manual_control_idle_or_auto && _has_minimal_thrust() && (!verticalMovement || !_has_altitude_lock()))
+	{
+		return true;
+	}
+//	return manual_control_idle_or_auto && _has_minimal_thrust() && (!verticalMovement || !_has_altitude_lock());
 	// Check if we are moving vertically - here only check in Position control mode or Alt mode
-	if(_manual.z >= _params.hoverThrottle *0.4f )
+	if(_manual.z >= _params.hoverThrottle *0.5f )
 	{
 		return false;
 	}
@@ -205,7 +208,6 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 	return false;
-#endif
 }
 
 bool MulticopterLandDetector::_get_landed_state()
