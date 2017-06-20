@@ -148,7 +148,6 @@ private:
 
 	control::BlockParamFloat _manual_thr_min; /**< minimal throttle output when flying in manual mode */
 	control::BlockParamFloat _manual_thr_max; /**< maximal throttle output when flying in manual mode */
-	control::BlockParamFloat _manual_land_alt; /**< altitude where landing is likely flying with sticks but in pos mode */
 	control::BlockParamFloat _xy_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _z_vel_man_expo; /**< ratio of exponential curve for stick input in xy direction pos mode */
 	control::BlockParamFloat _hold_dz; /**< deadzone around the center for the sticks when flying in position mode */
@@ -248,6 +247,7 @@ private:
 	bool _alt_hold_engaged;
 	bool _run_pos_control;
 	bool _run_alt_control;
+	bool _pos_first_nonfinite;
 
 	bool _reset_int_z = true;
 	bool _reset_int_xy = true;
@@ -430,7 +430,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_home_pos{},
 	_manual_thr_min(this, "MANTHR_MIN"),
 	_manual_thr_max(this, "MANTHR_MAX"),
-	_manual_land_alt(this, "MIS_LTRMIN_ALT", false),
 	_xy_vel_man_expo(this, "XY_MAN_EXPO"),
 	_z_vel_man_expo(this, "Z_MAN_EXPO"),
 	_hold_dz(this, "HOLD_DZ"),
@@ -453,6 +452,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_alt_hold_engaged(false),
 	_run_pos_control(true),
 	_run_alt_control(true),
+	_pos_first_nonfinite(true),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
 	_in_landing(false),
@@ -1463,6 +1463,14 @@ void MulticopterPositionControl::control_auto(float dt)
 					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
 					       &_curr_pos_sp.data[0], &_curr_pos_sp.data[1]);
 
+			_pos_first_nonfinite = true;
+
+		} else { // use current position if NAN -> e.g. land
+			if (_pos_first_nonfinite) {
+				_curr_pos_sp.data[0] = _pos(0);
+				_curr_pos_sp.data[1] = _pos(1);
+				_pos_first_nonfinite = false;
+			}
 		}
 
 		//only project setpoints if they are finite, else use current position
@@ -1639,7 +1647,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		}
 
 		// Handle the landing gear based on the manual landing alt
-		const bool high_enough_for_landing_gear = (_pos(2) < _manual_land_alt.get() * 2.0f);
+		const bool high_enough_for_landing_gear = (-_pos(2) + _home_pos.z > 2.0f);
 
 		// During a mission or in loiter it's safe to retract the landing gear.
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||

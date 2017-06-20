@@ -926,7 +926,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 				transition_result_t arming_res = arm_disarm(cmd_arms, &mavlink_log_pub, "arm/disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
-					mavlink_log_critical(&mavlink_log_pub,109, "REJECTING component arm cmd");
+					mavlink_log_critical(&mavlink_log_pub,109, "Arming not possible in this state");
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				} else {
@@ -2184,6 +2184,7 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(land_detector_sub, &updated);
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
+
 			if (was_landed != land_detector.landed) {
 				if (land_detector.landed) {
 					mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
@@ -2206,6 +2207,7 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
 				}
 			}
+
 
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
@@ -2800,7 +2802,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else if (main_res == TRANSITION_DENIED) {
 				/* DENIED here indicates bug in the commander */
-					mavlink_log_critical(&mavlink_log_pub,134,"main state transition denied");
+				mavlink_log_critical(&mavlink_log_pub,134, "Switching to this mode is currently not possible");
 			}
 
 			/* check throttle kill switch */
@@ -3439,7 +3441,6 @@ set_main_state_rc(struct vehicle_status_s *status_local, vehicle_global_position
 
 	/* RTL switch overrides main switch */
 	if (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		warnx("RTL switch changed and ON!");
 		res = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state);
 
 		if (res == TRANSITION_DENIED) {
