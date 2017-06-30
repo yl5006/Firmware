@@ -87,7 +87,7 @@
 #define MAX_DEVICE_PATH_GYRO_EXT	"/dev/max1168_gyro_ext"
 // MPU 6000 registers
 #define ADVOLT_REF 4.096f
-#define ACCEL_REF 3.333f
+#define ACCEL_REF 3.3f
 #define GYRO_REF ADVOLT_REF//4.096f
 
 #ifndef MAX1168_CONF8_CHANNEL
@@ -1097,8 +1097,8 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				float x_in_new = (((xraw_f-ACCEL_REF/2) * _accel_range_scale) - _accel_scale.x_offset)  * _accel_scale.x_scale;
 				float y_in_new = -(((yraw_f-ACCEL_REF/2) * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 				float z_in_new = -(((zraw_f-ACCEL_REF/2) * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-		//		if(i%20==0)
-				//{printf("ax=%.3f,ay=%.3f,az=%.3f\n",(double)x_in_new,(double)y_in_new,(double)z_in_new);}
+//				if(i%20==0)
+//				{printf("ax=%.3f,ay=%.3f,az=%.3f\n",(double)x_in_new,(double)y_in_new,(double)z_in_new);}
 				arb.x = _accel_filter_x.apply(x_in_new);
 				arb.y = _accel_filter_y.apply(y_in_new);
 				arb.z = _accel_filter_z.apply(z_in_new);
@@ -1118,6 +1118,9 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 
 				arb.temperature_raw = report.temp;
 				arb.temperature = _last_temperature;
+
+				/* return device ID */
+				arb.device_id = _device_id.devid;
 
 				grb.x_raw = report.gyro_x;
 				grb.y_raw = report.gyro_y;
@@ -1154,6 +1157,8 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				grb.temperature_raw = report.temp;
 				grb.temperature = _last_temperature;
 
+				/* return device ID */
+				grb.device_id = _gyro->_device_id.devid;
 				_accel_reports->force(&arb);
 				_gyro_reports->force(&grb);
 
@@ -1201,11 +1206,11 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 			}
 
 			MAX1168_gyro::MAX1168_gyro(MAX1168 *parent, const char *path) :
-																																	CDev("MAX1168_gyro", path),
-																																	_parent(parent),
-																																	_gyro_topic(nullptr),
-																																	_gyro_orb_class_instance(-1),
-																																	_gyro_class_instance(-1)
+			CDev("MAX1168_gyro", path),
+			_parent(parent),
+			_gyro_topic(nullptr),
+			_gyro_orb_class_instance(-1),
+			_gyro_class_instance(-1)
 			{
 			}
 
@@ -1305,7 +1310,8 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 #endif
 
 				} else {
-					*g_dev_ptr = new MAX1168(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_MPU, rotation);
+					warnx("init already stopped.");
+					*g_dev_ptr = new MAX1168(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_GYRO, rotation);
 				}
 
 				if (*g_dev_ptr == nullptr) {
@@ -1399,9 +1405,12 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
 				warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
 				warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-				warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
-				warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
-				warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+				uint16_t x_raw=a_report.x_raw;
+				uint16_t y_raw=a_report.y_raw;
+				uint16_t z_raw=a_report.z_raw;
+				warnx("acc  x:  \t%8.4fv\traw 0x%0x", (double)((float)x_raw/65536*ADVOLT_REF), (unsigned short)a_report.x_raw);
+				warnx("acc  y:  \t%8.4fv\traw 0x%0x", (double)((float)y_raw/65536*ADVOLT_REF), (unsigned short)a_report.y_raw);
+				warnx("acc  z:  \t%8.4fv\traw 0x%0x", (double)((float)z_raw/65536*ADVOLT_REF), (unsigned short)a_report.z_raw);
 				warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 						(double)(a_report.range_m_s2 / MAX1168_ONE_G));
 
@@ -1416,9 +1425,12 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
 				warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
 				warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
-				warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
-				warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
-				warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
+				x_raw=g_report.x_raw;
+				y_raw=g_report.y_raw;
+				z_raw=g_report.z_raw;
+				warnx("gyro  x:  \t%8.4fv\traw %d", (double)((float)(x_raw)/65536*ADVOLT_REF), x_raw);
+				warnx("gyro  y:  \t%8.4fv\traw %d", (double)((float)(y_raw)/65536*ADVOLT_REF), y_raw);
+				warnx("gyro  z:  \t%8.4fv\traw %d", (double)((float)(z_raw)/65536*ADVOLT_REF), z_raw);
 				warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 						(int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
