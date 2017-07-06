@@ -107,7 +107,6 @@ Mission::on_inactive()
 			update_offboard_mission();
 			_navigator->reset_cruising_speed();
 			_havejump=false;
-			_finishjump=false;
 		}
 
 	} else {
@@ -236,7 +235,7 @@ Mission::on_active()
 			_havejump=true;
 		}else  //do real RTL
 		{
-			_finishjump=true;
+			set_mission_finished();
 		}
 	}
 	/* lets check if we reached the current mission item */

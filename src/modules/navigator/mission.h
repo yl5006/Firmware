@@ -258,7 +258,6 @@ private:
 
 	bool _inited{false};
 	bool _havejump{false};
-	bool _finishjump{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
 
