@@ -569,7 +569,7 @@ Navigator::task_main()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
-			if(!_mission._finishjump)
+			if(!_mission_result.finished)
 			{
 				_navigation_mode = &_mission;
 			}else
