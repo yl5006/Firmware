@@ -241,7 +241,6 @@ private:
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
-    	control::BlockParamInt _param_mission_rtljump;  /**< jump to nearest misstion RTL */
 	control::BlockParamFloat _param_fw_climbout_diff;
 
 	struct mission_s _onboard_mission {};
@@ -258,6 +257,8 @@ private:
 	} _mission_type{MISSION_TYPE_NONE};
 
 	bool _inited{false};
+	bool _havejump{false};
+	bool _finishjump{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
 

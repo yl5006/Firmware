@@ -100,7 +100,6 @@ Navigator::Navigator() :
 	_param_acceptance_radius(this, "ACC_RAD"),
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
 	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD")
-//	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -570,7 +569,13 @@ Navigator::task_main()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
-			_navigation_mode = &_rtl;
+			if(!_mission._finishjump)
+			{
+				_navigation_mode = &_mission;
+			}else
+			{
+				_navigation_mode = &_rtl;
+			}
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
