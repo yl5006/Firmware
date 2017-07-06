@@ -66,7 +66,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
-	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
 	_missionFeasibilityChecker(navigator)
 {
@@ -107,6 +106,8 @@ Mission::on_inactive()
 			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
 			_navigator->reset_cruising_speed();
+			_havejump=false;
+			_finishjump=false;
 		}
 
 	} else {
@@ -180,7 +181,64 @@ Mission::on_active()
 	if (onboard_updated || offboard_updated) {
 		set_mission_items();
 	}
-
+	/* if it's not a DO_JUMP, then we were successful */
+//  do it and test later
+	if((_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)&&!_havejump)
+	{
+		struct mission_s *mission = (_mission_type == MISSION_TYPE_ONBOARD) ? &_onboard_mission : &_offboard_mission;
+		int current_index = (_mission_type == MISSION_TYPE_ONBOARD) ? _current_onboard_mission_index : _current_offboard_mission_index;
+		int index_to_read = current_index;
+		int next=-1;
+		struct mission_item_s mission_item_tmp;
+		float d_current=99999999,d_tmp=0;
+		int nearestmission=0;
+		int *mission_ptr;
+		dm_item_t dm_item;
+		const ssize_t len = sizeof(struct mission_item_s);
+		if (_mission_type==MISSION_TYPE_ONBOARD) {
+			mission_ptr = &_current_onboard_mission_index ;
+			dm_item = DM_KEY_WAYPOINTS_ONBOARD;
+		} else {
+			/* offboard mission */
+			mission_ptr =  &_current_offboard_mission_index;
+			dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+		}
+		while((index_to_read+next)<(int)mission->count){
+			if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				mavlink_log_info(_navigator->get_mavlink_log_pub(),"ERROR waypoint could not be read");
+			}
+			if(mission_item_tmp.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)
+			{
+				break;
+			}
+			next++;
+		}
+		if((index_to_read+next)<(int)mission->count)
+		{
+			while((index_to_read+next)<(int)mission->count){
+				if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
+					/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
+				}
+				d_tmp=get_distance_to_next_waypoint(mission_item_tmp.lat, mission_item_tmp.lon,_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+				if(d_current>d_tmp)
+				{
+					d_current=d_tmp;
+					nearestmission=index_to_read+next;
+				}
+				next++;
+			}
+			*mission_ptr = nearestmission;
+			set_mission_items();
+			report_do_jump_mission_changed(nearestmission,1);
+			mavlink_log_info(_navigator->get_mavlink_log_pub(),"RTL JUMP waypoint %d",nearestmission);
+			_havejump=true;
+		}else  //do real RTL
+		{
+			_finishjump=true;
+		}
+	}
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 
@@ -189,7 +247,6 @@ Mission::on_active()
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
 			set_mission_item_reached();
 		}
-
 		if(position_contains_command(&_mission_item))   //add by yaoling
 		{
 			issue_command(&_mission_item);
@@ -1367,50 +1424,8 @@ Mission::read_mission_item(bool onboard, int offset, struct mission_item_s *miss
 
 		} else {
 			/* if it's not a DO_JUMP, then we were successful */
-//  		do it and test later
-//			if((_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL||
-//			   _navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER||
-//			   _navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS )&&
-//			   _param_mission_rtljump.get() == 1 &&
-//			   offset==0)
-//				{
-//					int 	next=-1;
-//					float d_current=99999999,d_tmp=0;
-//					int nearestmission=0;
-//					while((index_to_read+next)<(int)mission->count){
-//							if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
-//								/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-//								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
-//								return false;
-//							}
-//							if(mission_item_tmp.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)
-//							{
-//								break;
-//							}
-//							next++;
-//					}
-//				    while((index_to_read+next)<(int)mission->count){
-//				    	  if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
-//				    		/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-//				    		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "ERROR waypoint could not be read");
-//				    		return false;
-//				    		}
-//							d_tmp=get_distance_to_next_waypoint(mission_item_tmp.lat, mission_item_tmp.lon,_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-//							if(d_current<d_tmp)
-//								{
-//								d_current=d_tmp;
-//								nearestmission=index_to_read+next;
-//								}
-//							next++;
-//							}
-//						report_do_jump_mission_changed(nearestmission,mission_item_tmp.do_jump_repeat_count);
-//						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL JUMP waypoint %d",nearestmission);
-//				}
-//				else
-//				{
-					memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
-					return true;
-//				}
+			memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
+			return true;
 		}
 //	}
 
