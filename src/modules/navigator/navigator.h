@@ -124,7 +124,6 @@ public:
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
 	void		set_mission_result_updated() { _mission_result_updated = true; }
-
 	/**
 	 * Getters
 	 */
@@ -295,6 +294,7 @@ private:
 	control::BlockParamFloat _param_acceptance_radius;	/**< acceptance for takeoff */
 	control::BlockParamFloat _param_fw_alt_acceptance_radius;	/**< acceptance radius for fixedwing altitude */
 	control::BlockParamFloat _param_mc_alt_acceptance_radius;	/**< acceptance radius for multicopter altitude */
+	control::BlockParamInt   _param_mission_rtljump;	/**< jump to nearest misstion RTL */
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};

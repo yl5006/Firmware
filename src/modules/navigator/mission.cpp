@@ -66,6 +66,7 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
+	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
 	_missionFeasibilityChecker(navigator)
 {
@@ -106,7 +107,6 @@ Mission::on_inactive()
 			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
 			_navigator->reset_cruising_speed();
-			_havejump=false;
 		}
 
 	} else {
@@ -146,6 +146,7 @@ void
 Mission::on_activation()
 {
 	set_mission_items();
+	_havejump=false;
 }
 
 void
@@ -182,8 +183,9 @@ Mission::on_active()
 	}
 	/* if it's not a DO_JUMP, then we were successful */
 //  do it and test later
-	if((_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)&&!_havejump)
+	if(_param_mission_rtljump.get() == 1 && (_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)&&!_havejump&&!_navigator->get_land_detected()->landed)
 	{
+
 		struct mission_s *mission = (_mission_type == MISSION_TYPE_ONBOARD) ? &_onboard_mission : &_offboard_mission;
 		int current_index = (_mission_type == MISSION_TYPE_ONBOARD) ? _current_onboard_mission_index : _current_offboard_mission_index;
 		int index_to_read = current_index;
@@ -207,11 +209,12 @@ Mission::on_active()
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 				mavlink_log_info(_navigator->get_mavlink_log_pub(),"ERROR waypoint could not be read");
 			}
+			next++;
 			if(mission_item_tmp.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH)
 			{
 				break;
+
 			}
-			next++;
 		}
 		if((index_to_read+next)<(int)mission->count)
 		{
@@ -230,7 +233,7 @@ Mission::on_active()
 			}
 			*mission_ptr = nearestmission;
 			set_mission_items();
-			report_do_jump_mission_changed(nearestmission,1);
+			report_do_jump_mission_changed(nearestmission,0);
 			mavlink_log_info(_navigator->get_mavlink_log_pub(),"RTL JUMP waypoint %d",nearestmission);
 			_havejump=true;
 		}else  //do real RTL

@@ -241,6 +241,7 @@ private:
 	control::BlockParamInt _param_altmode;
 	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
+	control::BlockParamInt _param_mission_rtljump;  		/**< jump to nearest misstion RTL */
 	control::BlockParamFloat _param_fw_climbout_diff;
 
 	struct mission_s _onboard_mission {};
