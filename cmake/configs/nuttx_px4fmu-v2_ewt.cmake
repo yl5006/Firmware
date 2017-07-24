@@ -115,8 +115,8 @@ set(config_module_list
 	#
 	modules/fw_att_control
 	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+#	modules/gnd_att_control
+#	modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
@@ -124,7 +124,7 @@ set(config_module_list
 	#
 	# Logging
 	#
-	#modules/logger
+	modules/logger
 	modules/sdlog2
 
 	#
