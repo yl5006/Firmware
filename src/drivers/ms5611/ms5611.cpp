@@ -1349,7 +1349,8 @@ ms5611_main(int argc, char *argv[])
 				}
 			}
 
-		//no break
+		/* FALLTHROUGH */
+
 		default:
 			ms5611::usage();
 			exit(0);

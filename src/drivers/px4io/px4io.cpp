@@ -821,6 +821,7 @@ PX4IO::init()
 		cmd.param5 = 0;
 		cmd.param6 = 0;
 		cmd.param7 = 0;
+		cmd.timestamp = hrt_absolute_time();
 		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* ask to confirm command */
@@ -922,7 +923,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1400,
+				   1500,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
@@ -1797,7 +1798,9 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
 	current_a += _battery_amp_bias;
 
-	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, _armed, &battery_status);
+	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, true, true, 0,
+				     _last_throttle,
+				     _armed, &battery_status);
 
 	/* the announced battery status would conflict with the simulated battery status in HIL */
 	if (!(_pub_blocked)) {

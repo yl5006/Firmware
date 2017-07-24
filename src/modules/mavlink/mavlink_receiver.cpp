@@ -88,6 +88,7 @@
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+#include "mavlink_command_sender.h"
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
@@ -187,6 +188,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			handle_message_command_int(msg);
 		}
 
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_ACK:
+		handle_message_command_ack(msg);
 		break;
 
 	case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD:
@@ -452,6 +457,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 
 		memset(&vcmd, 0, sizeof(vcmd));
 
+		vcmd.timestamp = hrt_absolute_time();
+
 		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = cmd_mavlink.param1;
 
@@ -559,6 +566,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 		memset(&vcmd, 0, sizeof(vcmd));
 
+		vcmd.timestamp = hrt_absolute_time();
+
 		/* Copy the content of mavlink_command_int_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = cmd_mavlink.param1;
 
@@ -613,6 +622,21 @@ out:
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
+{
+	mavlink_command_ack_t ack;
+	mavlink_msg_command_ack_decode(msg, &ack);
+
+	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid);
+
+	if (ack.result != MAV_RESULT_ACCEPTED && ack.result != MAV_RESULT_IN_PROGRESS) {
+		if (msg->compid == MAV_COMP_ID_CAMERA) {
+			PX4_WARN("Got unsuccessful result %d from camera", ack.result);
 		}
 	}
 }
@@ -754,6 +778,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.source_system = msg->sysid;
 	vcmd.source_component = msg->compid;
 	vcmd.confirmation = 1;
+	vcmd.timestamp = hrt_absolute_time();
 
 	if (_cmd_pub == nullptr) {
 		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -2119,7 +2144,7 @@ void MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	//warnx("code: %d callsign: %s, vel: %8.4f", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity);
 
 	if (_transponder_report_pub == nullptr) {
-		_transponder_report_pub = orb_advertise(ORB_ID(transponder_report), &t);
+		_transponder_report_pub = orb_advertise_queue(ORB_ID(transponder_report), &t, transponder_report_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(transponder_report), _transponder_report_pub, &t);

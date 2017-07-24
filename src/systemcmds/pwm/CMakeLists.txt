@@ -32,7 +32,7 @@
 ############################################################################
 if(${OS} STREQUAL "nuttx")
 	list(APPEND srcs
-		pwm.c
+		pwm.cpp
 		)
 else()
 	list(APPEND srcs
