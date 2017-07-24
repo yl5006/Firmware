@@ -45,6 +45,10 @@ else
 		then
 		fi
 
+#		if ms5611 -X start
+#		then
+#		fi
+
 		# Blacksheep telemetry
 		if bst start
 		then
@@ -157,7 +161,7 @@ then
 		if mpu6000 start
 		then
 		else
-			if max1168 -X start
+			if max1168 start
 			then
 			fi
 		fi		
