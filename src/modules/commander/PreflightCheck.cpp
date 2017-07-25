@@ -379,7 +379,7 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, bool optional, bool rep
 	if ((ret = orb_copy(ORB_ID(differential_pressure), fd_diffpres, &differential_pressure)) ||
 	    (hrt_elapsed_time(&differential_pressure.timestamp) > (500 * 1000))) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
+			mavlink_log_critical(mavlink_log_pub,313, "PREFLIGHT FAIL: AIRSPEED SENSOR MISSING");
 		}
 		success = false;
 		goto out;

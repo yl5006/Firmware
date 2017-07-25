@@ -1985,7 +1985,7 @@ int commander_thread_main(int argc, char *argv[])
 
 					// Provide feedback on mission state
 					if (!_mission_result.valid && hotplug_timeout && _home.timestamp > 0) {
-						mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+						mavlink_log_critical(&mavlink_log_pub,146, "Planned mission fails check. Please upload again.");
 					}
 				}
 

@@ -30,7 +30,7 @@ set(config_module_list
 	#drivers/srf02    #range finder
 	#drivers/sf0x
 	#drivers/ll40ls
-	drivers/trone
+	#drivers/trone
 	drivers/gps
 	#drivers/pwm_out_sim
 	#drivers/hott
@@ -39,7 +39,9 @@ set(config_module_list
 	#drivers/blinkm
 	drivers/airspeed
 	#drivers/ets_airspeed
-	drivers/meas_airspeed
+	drivers/ms4525_airspeed
+	drivers/ms5525_airspeed
+	#drivers/sdp3x_airspeed
 	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
