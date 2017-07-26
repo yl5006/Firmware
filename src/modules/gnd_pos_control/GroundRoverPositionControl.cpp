@@ -303,7 +303,14 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust = 0.0f;
+			float dis=get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),curr_wp(1));
+			if(dis<3.0f)
+			{
+				_att_sp.thrust = 0.0f;
+			}else
+			{
+				_att_sp.thrust = mission_throttle;
+			}
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
