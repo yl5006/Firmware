@@ -220,7 +220,7 @@ HDistance::cycle() {
 
 
 	if (!_initialized) {
-		_dis_fd = cm12jl_init("/dev/ttyS2");
+		_dis_fd = cm12jl_init("/dev/ttyS6");
 		_initialized = true;
 		warnx("cm12jl_init%d",_dis_fd);
 	}
@@ -254,7 +254,7 @@ HDistance::cycle() {
 		/* TODO: set proper ID */
 		report.id = 0;
 		//		warnx("###cm12jl_input values %d %.4f",values[1],(double)report.current_distance[0]);
-#if 0
+#if 1
 		warnx("###cm12jl_input values %.4f %.4f %.4f %.4f %.4f ",(double)report.current_distance[0],
 		      (double)report.current_distance[1],
 		      (double)report.current_distance[2],

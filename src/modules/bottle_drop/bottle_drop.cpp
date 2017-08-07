@@ -633,8 +633,8 @@ BottleDrop::task_main()
 
 					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 								   flight_vector_e.lon);
-					mavlink_log_critical(&_mavlink_log_pub, "position set, approach heading: %u", (unsigned)distance_real,
-							     (unsigned)math::degrees(approach_direction + M_PI_F));
+					mavlink_log_info(&_mavlink_log_pub, "position set, approach heading: %u", (unsigned)distance_real,
+							     (unsigned)math::degrees(approach_direction + M_PI_F));//critical to info
 
 					_drop_state = DROP_STATE_TARGET_SET;
 				}
@@ -746,32 +746,32 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		if (cmd->param1 > 0.5f && cmd->param2 > 0.5f) {
 			open_bay();
 			drop();
-			mavlink_log_critical(&_mavlink_log_pub, "drop bottle");
+			mavlink_log_critical(&_mavlink_log_pub,20, "drop bottle");
 
 		} else if (cmd->param1 > 0.5f) {
 			open_bay();
-			mavlink_log_critical(&_mavlink_log_pub, "opening bay");
+			mavlink_log_critical(&_mavlink_log_pub,21, "opening bay");
 
 		} else {
 			lock_release();
 			close_bay();
-			mavlink_log_critical(&_mavlink_log_pub, "closing bay");
+			mavlink_log_critical(&_mavlink_log_pub,22, "closing bay");
 		}
 
 		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
-
+//critical to info
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
 
 		switch ((int)(cmd->param1 + 0.5f)) {
 		case 0:
 			_drop_approval = false;
-			mavlink_log_critical(&_mavlink_log_pub, "got drop position, no approval");
+			mavlink_log_info(&_mavlink_log_pub, "got drop position, no approval");
 			break;
 
 		case 1:
 			_drop_approval = true;
-			mavlink_log_critical(&_mavlink_log_pub, "got drop position and approval");
+			mavlink_log_info(&_mavlink_log_pub, "got drop position and approval");
 			break;
 
 		default:
@@ -832,7 +832,7 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 		break;
 	}
 }
-
+//critical to info
 void
 BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 {
@@ -841,19 +841,19 @@ BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(&_mavlink_log_pub, "command denied: %u", cmd->command);
+		mavlink_log_info(&_mavlink_log_pub, "command denied: %u", cmd->command);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_FAILED:
-		mavlink_log_critical(&_mavlink_log_pub, "command failed: %u", cmd->command);
+		mavlink_log_info(&_mavlink_log_pub, "command failed: %u", cmd->command);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		mavlink_log_critical(&_mavlink_log_pub, "command temporarily rejected: %u", cmd->command);
+		mavlink_log_info(&_mavlink_log_pub, "command temporarily rejected: %u", cmd->command);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
-		mavlink_log_critical(&_mavlink_log_pub, "command unsupported: %u", cmd->command);
+		mavlink_log_info(&_mavlink_log_pub, "command unsupported: %u", cmd->command);
 		break;
 
 	default:
