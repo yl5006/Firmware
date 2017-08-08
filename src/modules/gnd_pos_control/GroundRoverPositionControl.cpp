@@ -259,7 +259,11 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			    _pos_sp_triplet.current.cruising_speed > 0.1f) {
 				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
 			}
-
+			float dis=get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),curr_wp(1));
+			if(dis<10)
+			{
+				mission_target_speed = dis / 10 * mission_target_speed;
+			}
 			//Compute airspeed control out and just scale it as a constant
 			mission_throttle = _parameters.throttle_speed_scaler
 					   * pid_calculate(&_speed_ctrl, mission_target_speed, _ctrl_state.x_vel, _ctrl_state.x_acc, dt);
@@ -280,7 +284,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust = 0.5f;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
@@ -306,7 +310,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			float dis=get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),curr_wp(1));
 			if(dis<3.0f)
 			{
-				_att_sp.thrust = 0.0f;
+				_att_sp.thrust = 0.5f;
 			}else
 			{
 				_att_sp.thrust = mission_throttle;
@@ -325,7 +329,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = 0.0f;
 		_att_sp.fw_control_yaw = true;
-		_att_sp.thrust = 0.0f;
+		_att_sp.thrust = 0.5f;
 
 		/* do not publish the setpoint */
 		setpoint = false;
