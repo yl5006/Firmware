@@ -51,6 +51,9 @@
 #define AIRSPEED_BASE_DEVICE_PATH "/dev/airspeed"
 #define AIRSPEED0_DEVICE_PATH	"/dev/airspeed0"
 
+#include <uORB/topics/differential_pressure.h>
+#define diffpressure_report  differential_pressure_s
+
 /*
  * ioctl() definitions
  *

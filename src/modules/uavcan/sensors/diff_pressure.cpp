@@ -43,9 +43,10 @@
 const char *const UavcanDiffPressureBridge::NAME = "diff_pressure";
 
 UavcanDiffPressureBridge::UavcanDiffPressureBridge(uavcan::INode &node) :
-	UavcanCDevSensorBridgeBase("uavcan_diff_pressure", "/dev/uavcan/diff_pressure", DIFFPRESSURE_BASE_DEVICE_PATH, ORB_ID(differential_pressure)),
+	UavcanCDevSensorBridgeBase("uavcan_diff_pressure", "/dev/uavcan/diff_pressure", AIRSPEED_BASE_DEVICE_PATH, ORB_ID(differential_pressure)),
 	_sub_diffpressure(node)
 {
+	_scale.scale = 1.0F;
 }
 
 int UavcanDiffPressureBridge::init()
@@ -94,48 +95,34 @@ ssize_t UavcanDiffPressureBridge::read(struct file *filp, char *buffer, size_t b
 
 int UavcanDiffPressureBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-//	switch (cmd) {
-//	case SENSORIOCSQUEUEDEPTH: {
-//			return OK;			// Pretend that this stuff is supported to keep APM happy
-//		}
-//
-//	case MAGIOCSSCALE: {
-//			std::memcpy(&_scale, reinterpret_cast<const void *>(arg), sizeof(_scale));
-//			return 0;
-//		}
-//
-//	case MAGIOCGSCALE: {
-//			std::memcpy(reinterpret_cast<void *>(arg), &_scale, sizeof(_scale));
-//			return 0;
-//		}
-//
-//	case MAGIOCSELFTEST: {
-//			return 0;           // Nothing to do
-//		}
-//
-//	case MAGIOCGEXTERNAL: {
-//			return 1;           // declare it external rise it's priority and to allow for correct orientation compensation
-//		}
-//
-//	case MAGIOCSSAMPLERATE: {
-//			return 0;           // Pretend that this stuff is supported to keep the sensor app happy
-//		}
-//
-//	case MAGIOCCALIBRATE:
-//	case MAGIOCGSAMPLERATE:
-//	case MAGIOCSRANGE:
-//	case MAGIOCGRANGE:
-//	case MAGIOCSLOWPASS:
-//	case MAGIOCEXSTRAP:
-//	case MAGIOCGLOWPASS: {
-//			return -EINVAL;
-//		}
-//
-//	default: {
-//			return CDev::ioctl(filp, cmd, arg);
-//		}
-//	}
-	return 0;
+
+	switch (cmd) {
+		case SENSORIOCSQUEUEDEPTH: {
+				return OK;			// Pretend that this stuff is supported to keep APM happy
+			}
+
+		case AIRSPEEDIOCSSCALE: {
+				std::memcpy(&_scale, reinterpret_cast<const void *>(arg), sizeof(_scale));
+				warnx("AIRSPEEDIOCSSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
+						static_cast<double>(_scale.offset_pa),
+						static_cast<double>(_scale.scale)
+					  );
+				return 0;
+			}
+
+		case AIRSPEEDIOCGSCALE: {
+				std::memcpy(reinterpret_cast<void *>(arg), &_scale, sizeof(_scale));
+				warnx("AIRSPEEDIOCGSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
+						static_cast<double>(_scale.offset_pa),
+						static_cast<double>(_scale.scale)
+					  );
+				return 0;
+			}
+
+		default: {
+				return CDev::ioctl(filp, cmd, arg);
+			}
+		}
 }
 
 void UavcanDiffPressureBridge::diffpressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ewatt::DifferentialPressure>
@@ -160,8 +147,8 @@ void UavcanDiffPressureBridge::diffpressure_sub_cb(const uavcan::ReceivedDataStr
 	 */
 	_report.timestamp = hrt_absolute_time();
 	_report.error_count = 0;
-	_report.differential_pressure_raw_pa = msg.differential_pressure_raw_pa;
-	_report.differential_pressure_filtered_pa = msg.differential_pressure_filtered_pa;
+	_report.differential_pressure_raw_pa = msg.differential_pressure_raw_pa - _scale.offset_pa;
+	_report.differential_pressure_filtered_pa = msg.differential_pressure_filtered_pa - _scale.offset_pa;
 	//_report.max_differential_pressure_pa = msg.max_differential_pressure_pa;
 	_report.temperature = msg.temperature;
 

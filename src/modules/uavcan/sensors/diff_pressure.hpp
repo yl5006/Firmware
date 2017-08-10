@@ -38,7 +38,7 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-#include <drivers/drv_diffpressure.h>
+#include <drivers/drv_airspeed.h>
 
 #include <uavcan/equipment/ewatt/DifferentialPressure.hpp>
 
@@ -66,6 +66,6 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::ewatt::DifferentialPressure, DiffPressureCbBinder> _sub_diffpressure;
 
-
+	struct airspeed_scale _scale = {};
 	diffpressure_report  _report =  {};
 };
