@@ -46,7 +46,13 @@ UavcanDiffPressureBridge::UavcanDiffPressureBridge(uavcan::INode &node) :
 	UavcanCDevSensorBridgeBase("uavcan_diff_pressure", "/dev/uavcan/diff_pressure", AIRSPEED_BASE_DEVICE_PATH, ORB_ID(differential_pressure)),
 	_sub_diffpressure(node)
 {
+	param_get(param_find("SENS_DPRES_OFF"), &(_scale.offset_pa));		//get param "SENS_DPRES_OFF"
 	_scale.scale = 1.0F;
+
+//	warnx("UavcanDiffPressureBridge  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
+//						static_cast<double>(_scale.offset_pa),
+//						static_cast<double>(_scale.scale)
+//					  );
 }
 
 int UavcanDiffPressureBridge::init()
@@ -103,19 +109,19 @@ int UavcanDiffPressureBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 
 		case AIRSPEEDIOCSSCALE: {
 				std::memcpy(&_scale, reinterpret_cast<const void *>(arg), sizeof(_scale));
-				warnx("AIRSPEEDIOCSSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
-						static_cast<double>(_scale.offset_pa),
-						static_cast<double>(_scale.scale)
-					  );
+//				warnx("AIRSPEEDIOCSSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
+//						static_cast<double>(_scale.offset_pa),
+//						static_cast<double>(_scale.scale)
+//					  );
 				return 0;
 			}
 
 		case AIRSPEEDIOCGSCALE: {
 				std::memcpy(reinterpret_cast<void *>(arg), &_scale, sizeof(_scale));
-				warnx("AIRSPEEDIOCGSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
-						static_cast<double>(_scale.offset_pa),
-						static_cast<double>(_scale.scale)
-					  );
+//				warnx("AIRSPEEDIOCGSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
+//						static_cast<double>(_scale.offset_pa),
+//						static_cast<double>(_scale.scale)
+//					  );
 				return 0;
 			}
 
