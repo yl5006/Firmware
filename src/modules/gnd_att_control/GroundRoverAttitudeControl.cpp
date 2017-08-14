@@ -289,7 +289,7 @@ GroundRoverAttitudeControl::task_main()
 					math::constrain(yaw_u, -1.0f, 1.0f);
 
 					if (PX4_ISFINITE(yaw_u)) {
-						if(att_sp.fw_control_yaw)
+						if(_att_sp.fw_control_yaw)
 						_actuators.control[actuator_controls_s::INDEX_YAW] = yaw_u + _parameters.trim_yaw;
 						else{
 							_actuators.control[actuator_controls_s::INDEX_YAW] = _parameters.trim_yaw;
