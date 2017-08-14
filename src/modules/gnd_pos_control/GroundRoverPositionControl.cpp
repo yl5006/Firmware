@@ -85,6 +85,8 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
 
 	/* fetch initial parameter values */
+	navstate=NAVSTATE::NAVGATION;
+	newstate=NAVSTATE::NAVGATION;
 	parameters_update();
 }
 
@@ -212,6 +214,16 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 	}
 }
 
+void GroundRoverPositionControl::horizontal_dis_poll()
+{
+	bool horizontal_dis_updated;
+	orb_check(_horizontal_distance_sub, &horizontal_dis_updated);
+
+	if (horizontal_dis_updated) {
+		orb_copy(ORB_ID(horizontal_distance), _horizontal_distance_sub, &_horizontal_dis);
+	}
+}
+
 bool
 GroundRoverPositionControl::control_position(const math::Vector<2> &current_position,
 		const math::Vector<3> &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
@@ -279,6 +291,32 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 				mission_throttle = _pos_sp_triplet.current.cruising_throttle;
 			}
 		}
+// Avoidance state  For Rover byy yaoling
+		if(_horizontal_dis.type == horizontal_distance_s::MAV_DISTANCE_SENSOR_INFRARED){
+			if(_horizontal_dis.current_distance[0]<1.0)
+			{
+				newstate=NAVSTATE::GOBACK;
+			}else if(_horizontal_dis.current_distance[0]<5.0)
+			{
+				newstate=NAVSTATE::GORIGHT;
+			}else
+			{
+				newstate=NAVSTATE::NAVGATION;
+			}
+
+			if(navstate ==NAVSTATE::NAVGATION && newstate ==NAVSTATE::GORIGHT )
+			{
+				navstate = newstate;
+			}else if (navstate!=newstate)
+			{
+				t1=t1+dt;
+				if(t1>1.0)
+				{
+					navstate=newstate;
+					t1=0;
+				}
+			}
+		}
 
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.roll_body = 0.0f;
@@ -288,15 +326,33 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
-
-			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
-			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			_att_sp.roll_body = _gnd_control.nav_roll();
-			_att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = _gnd_control.nav_bearing();
-			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust = mission_throttle;
-
+			switch(navstate)
+			{
+			   case  NAVSTATE::NAVGATION:
+				   	   	    _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				   			_att_sp.roll_body = _gnd_control.nav_roll();
+				   			_att_sp.pitch_body = 0.0f;
+				   			_att_sp.yaw_body = _gnd_control.nav_bearing();
+				   			_att_sp.fw_control_yaw = true;
+				   			_att_sp.thrust = mission_throttle;
+				   			break;
+			   case  NAVSTATE::GORIGHT:
+				             _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				   	   	   	 Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));_
+				  			_att_sp.roll_body = _gnd_control.nav_roll();
+				  			_att_sp.pitch_body = 0.0f;
+				  			_att_sp.yaw_body = euler_angles.psi()+M_PI/4;
+				  			_att_sp.fw_control_yaw = true;
+				  			_att_sp.thrust = mission_throttle;
+				  			break;
+			   case  NAVSTATE::GOBACK:
+				   	   	    _att_sp.roll_body = _gnd_control.nav_roll();
+				   			_att_sp.pitch_body = 0.0f;
+				   			_att_sp.yaw_body = euler_angles.psi();
+				   			_att_sp.fw_control_yaw = false;
+				   			_att_sp.thrust = 0.45;
+				   			break;
+			}
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint so we want to stop*/
@@ -347,6 +403,7 @@ GroundRoverPositionControl::task_main()
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_horizontal_distance_sub = orb_subscribe(ORB_ID(horizontal_distance));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -423,6 +480,7 @@ GroundRoverPositionControl::task_main()
 			control_state_poll();
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
+			horizontal_dis_poll();
 
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
