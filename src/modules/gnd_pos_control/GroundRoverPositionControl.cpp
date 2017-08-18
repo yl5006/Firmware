@@ -258,7 +258,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		}
 
 		math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
-
+		 Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
 		float mission_throttle = _parameters.throttle_cruise;
 
 		/* Just control the throttle */
@@ -293,10 +293,10 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		}
 // Avoidance state  For Rover byy yaoling
 		if(_horizontal_dis.type == horizontal_distance_s::MAV_DISTANCE_SENSOR_INFRARED){
-			if(_horizontal_dis.current_distance[0]<1.0)
+			if(_horizontal_dis.current_distance[0]<1.0f)
 			{
 				newstate=NAVSTATE::GOBACK;
-			}else if(_horizontal_dis.current_distance[0]<5.0)
+			}else if(_horizontal_dis.current_distance[0]<5.0f)
 			{
 				newstate=NAVSTATE::GORIGHT;
 			}else
@@ -310,7 +310,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			}else if (navstate!=newstate)
 			{
 				t1=t1+dt;
-				if(t1>1.0)
+				if(t1>1.0f)
 				{
 					navstate=newstate;
 					t1=0;
@@ -338,17 +338,17 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 				   			break;
 			   case  NAVSTATE::GORIGHT:
 				             _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-				   	   	   	 Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
 				  			_att_sp.roll_body = _gnd_control.nav_roll();
 				  			_att_sp.pitch_body = 0.0f;
-				  			_att_sp.yaw_body = euler_angles.psi()+M_PI/4;
+				  			_att_sp.yaw_body = euler_angles.psi()+(float)M_PI/4;
 				  			_att_sp.fw_control_yaw = true;
 				  			_att_sp.thrust = mission_throttle;
 				  			break;
 			   case  NAVSTATE::GOBACK:
+				   	   	    _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 				   	   	    _att_sp.roll_body = _gnd_control.nav_roll();
 				   			_att_sp.pitch_body = 0.0f;
-				   			_att_sp.yaw_body = euler_angles.psi();
+				   			_att_sp.yaw_body = _gnd_control.nav_bearing();
 				   			_att_sp.fw_control_yaw = false;
 				   			_att_sp.thrust = 0.45;
 				   			break;
