@@ -215,6 +215,7 @@ mixer_tick(void)
 					/* and there is valid input via or mixer */         && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK));
 
 	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
+		           && /* zhouhouxian-Lock the ESC by controlling the safety switch status */(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
 				   && (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
 				   && (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 

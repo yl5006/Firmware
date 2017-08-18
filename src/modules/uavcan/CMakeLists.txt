@@ -75,7 +75,8 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/baro.cpp
-
+        sensors/diff_pressure.cpp
+        
 	DEPENDS
 		platforms__common
 		uavcan

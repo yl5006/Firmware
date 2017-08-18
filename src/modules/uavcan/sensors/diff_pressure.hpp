@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,40 @@
  ****************************************************************************/
 
 /**
- * @file drv_airspeed.h
- *
- * Airspeed driver interface.
- *
- * @author Simon Wilks
+ * @author zhouping <zhpg_0803@163.com>
  */
 
-#ifndef _DRV_AIRSPEED_H
-#define _DRV_AIRSPEED_H
+#pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "sensor_bridge.hpp"
+#include <drivers/drv_airspeed.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+#include <uavcan/equipment/ewatt/DifferentialPressure.hpp>
 
-#define AIRSPEED_BASE_DEVICE_PATH "/dev/airspeed"
-#define AIRSPEED0_DEVICE_PATH	"/dev/airspeed0"
+class UavcanDiffPressureBridge : public UavcanCDevSensorBridgeBase
+{
+public:
+	static const char *const NAME;
 
-#include <uORB/topics/differential_pressure.h>
-#define diffpressure_report  differential_pressure_s
+	UavcanDiffPressureBridge(uavcan::INode &node);
 
-/*
- * ioctl() definitions
- *
- * Airspeed drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
- */
+	const char *get_name() const override { return NAME; }
 
-#define _AIRSPEEDIOCBASE		(0x7700)
-#define __AIRSPEEDIOC(_n)		(_PX4_IOC(_AIRSPEEDIOCBASE, _n))
+	int init() override;
 
-#define AIRSPEEDIOCSSCALE		__AIRSPEEDIOC(0)
-#define AIRSPEEDIOCGSCALE		__AIRSPEEDIOC(1)
+private:
+	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
+	void diffpressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ewatt::DifferentialPressure> &msg);
 
-/** airspeed scaling factors; out = (in * Vscale) + offset */
-struct airspeed_scale {
-	float	offset_pa;
-	float	scale;
+	typedef uavcan::MethodBinder < UavcanDiffPressureBridge *,
+		void (UavcanDiffPressureBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::ewatt::DifferentialPressure> &) >
+		DiffPressureCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::ewatt::DifferentialPressure, DiffPressureCbBinder> _sub_diffpressure;
+
+	struct airspeed_scale _scale = {};
+	diffpressure_report  _report =  {};
 };
-
-#endif /* _DRV_AIRSPEED_H */
