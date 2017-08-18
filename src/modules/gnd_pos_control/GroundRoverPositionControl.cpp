@@ -338,7 +338,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 				   			break;
 			   case  NAVSTATE::GORIGHT:
 				             _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-				   	   	   	 Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));_
+				   	   	   	 Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
 				  			_att_sp.roll_body = _gnd_control.nav_roll();
 				  			_att_sp.pitch_body = 0.0f;
 				  			_att_sp.yaw_body = euler_angles.psi()+M_PI/4;

@@ -1093,7 +1093,7 @@ MulticopterPositionControl::control_manual(float dt)
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust = manual_arminit(dt);// _params.thr_min;//0.0f;
+		_att_sp.thrust =  _params.thr_min;//0.0f;
 
 		_att_sp.timestamp = hrt_absolute_time();
 
