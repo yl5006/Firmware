@@ -228,8 +228,8 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 
 /* Table of the len of each item type */
 static const unsigned g_per_item_size[DM_KEY_NUM_KEYS] = {
-	sizeof(struct home_position_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct fence_vertex_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_save_point_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
@@ -242,7 +242,8 @@ static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
 /* Item type lock mutexes */
 static px4_sem_t *g_item_locks[DM_KEY_NUM_KEYS];
-static px4_sem_t g_sys_state_mutex;
+static px4_sem_t g_sys_state_mutex_mission;
+static px4_sem_t g_sys_state_mutex_fence;
 
 /* The data manager store file handle and file name */
 #if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
@@ -636,7 +637,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 	/* Check for read error */
 	if (len < 0) {
-		return -1;
+		return -errno;
 	}
 
 	/* A zero length entry is a empty entry */
@@ -1154,22 +1155,48 @@ dm_clear(dm_item_t item)
 	return enqueue_work_item_and_wait_for_result(work);
 }
 
-/** Lock a data Item */
-__EXPORT void
+__EXPORT int
 dm_lock(dm_item_t item)
 {
 	/* Make sure data manager has been started and is not shutting down */
 	if (!is_running() || g_task_should_exit) {
-		return;
+		errno = EINVAL;
+		return -1;
 	}
 
 	if (item >= DM_KEY_NUM_KEYS) {
-		return;
+		errno = EINVAL;
+		return -1;
 	}
 
 	if (g_item_locks[item]) {
-		px4_sem_wait(g_item_locks[item]);
+		return px4_sem_wait(g_item_locks[item]);
 	}
+
+	errno = EINVAL;
+	return -1;
+}
+
+__EXPORT int
+dm_trylock(dm_item_t item)
+{
+	/* Make sure data manager has been started and is not shutting down */
+	if (!is_running() || g_task_should_exit) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (item >= DM_KEY_NUM_KEYS) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (g_item_locks[item]) {
+		return px4_sem_trywait(g_item_locks[item]);
+	}
+
+	errno = EINVAL;
+	return -1;
 }
 
 /** Unlock a data Item */
@@ -1263,14 +1290,16 @@ task_main(int argc, char *argv[])
 		g_func_counts[i] = 0;
 	}
 
-	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE supports locking */
-	px4_sem_init(&g_sys_state_mutex, 1, 1); /* Initially unlocked */
+	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE & DM_KEY_FENCE_POINTS supports locking */
+	px4_sem_init(&g_sys_state_mutex_mission, 1, 1); /* Initially unlocked */
+	px4_sem_init(&g_sys_state_mutex_fence, 1, 1); /* Initially unlocked */
 
 	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++) {
 		g_item_locks[i] = nullptr;
 	}
 
-	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex;
+	g_item_locks[DM_KEY_MISSION_STATE] = &g_sys_state_mutex_mission;
+	g_item_locks[DM_KEY_FENCE_POINTS] = &g_sys_state_mutex_fence;
 
 	g_task_should_exit = false;
 
@@ -1406,7 +1435,8 @@ end:
 	destroy_q(&g_work_q);
 	destroy_q(&g_free_q);
 	px4_sem_destroy(&g_work_queued_sema);
-	px4_sem_destroy(&g_sys_state_mutex);
+	px4_sem_destroy(&g_sys_state_mutex_mission);
+	px4_sem_destroy(&g_sys_state_mutex_fence);
 
 	return 0;
 }

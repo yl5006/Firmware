@@ -45,6 +45,7 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_config.h>
+#include <px4_shutdown.h>
 #include <string.h>
 #include <stdbool.h>
 #include <float.h>
@@ -946,6 +947,10 @@ param_save_default(void)
 	while (res != OK && attempts > 0) {
 		res = param_export(fd, false);
 		attempts--;
+
+		if (res != OK) {
+			lseek(fd, 0, SEEK_SET); // jump back to the beginning of the file
+		}
 	}
 
 	if (res != OK) {
@@ -1002,6 +1007,12 @@ param_export(int fd, bool only_unsaved)
 	struct param_wbuf_s *s = NULL;
 	struct bson_encoder_s encoder;
 	int	result = -1;
+
+	int shutdown_lock_ret = px4_shutdown_lock();
+
+	if (shutdown_lock_ret) {
+		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+	}
 
 	param_lock_writer();
 
@@ -1089,6 +1100,12 @@ param_export(int fd, bool only_unsaved)
 
 out:
 	param_unlock_writer();
+
+	fsync(fd); // make sure the data is flushed before releasing the shutdown lock
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
+	}
 
 	if (result == 0) {
 		result = bson_encoder_fini(&encoder);

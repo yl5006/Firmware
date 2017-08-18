@@ -192,7 +192,7 @@ int Logger::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 10,
+				      SCHED_PRIORITY_LOG_CAPTURE,
 				      3600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
@@ -1674,6 +1674,7 @@ void Logger::write_version()
 		write_info("sys_mcu", mcu_ver);
 	}
 
+#ifndef BOARD_HAS_NO_UUID
 	/* write the UUID if enabled */
 	param_t write_uuid_param = param_find("SDLOG_UUID");
 
@@ -1687,6 +1688,7 @@ void Logger::write_version()
 			write_info("sys_uuid", uuid_string);
 		}
 	}
+#endif /* BOARD_HAS_NO_UUID */
 
 	int32_t utc_offset = 0;
 
@@ -1999,10 +2001,11 @@ int Logger::remove_directory(const char *dir)
 
 void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, uint16_t command, uint32_t result)
 {
-	vehicle_command_ack_s vehicle_command_ack;
-	vehicle_command_ack.timestamp = hrt_absolute_time();
-	vehicle_command_ack.command = command;
-	vehicle_command_ack.result = result;
+	vehicle_command_ack_s vehicle_command_ack = {
+		.timestamp = hrt_absolute_time(),
+		.command = command,
+		.result = (uint8_t)result
+	};
 
 	if (vehicle_command_ack_pub == nullptr) {
 		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,

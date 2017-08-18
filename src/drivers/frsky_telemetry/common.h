@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,33 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_i2c.c
+ * @file common.h
  *
- * Crazyflie I2C configuration
+ * common declarations
+ *
  */
+#pragma once
 
-#include <px4_config.h>
+#include <stdint.h>
+
+/* FrSky sensor hub data IDs */
+#define FRSKY_ID_GPS_ALT_BP     0x01
+#define FRSKY_ID_TEMP1          0x02
+#define FRSKY_ID_RPM            0x03
+#define FRSKY_ID_FUEL           0x04
+#define FRSKY_ID_TEMP2          0x05
+#define FRSKY_ID_VOLTS          0x06
+#define FRSKY_ID_GPS_ALT_AP     0x09
+#define FRSKY_ID_BARO_ALT_BP    0x10
+#define FRSKY_ID_GPS_SPEED_BP   0x11
+#define FRSKY_ID_GPS_LONG_BP    0x12
+#define FRSKY_ID_GPS_LAT_BP     0x13
+#define FRSKY_ID_GPS_COURS_BP   0x14
+#define FRSKY_ID_GPS_DAY_MONTH  0x15
+#define FRSKY_ID_GPS_YEAR       0x16
+#define FRSKY_ID_GPS_HOUR_MIN   0x17
+#define FRSKY_ID_GPS_SEC        0x18
+#define FRSKY_ID_GPS_SPEED_AP   0x19
+#define FRSKY_ID_GPS_LONG_AP    0x1A
+#define FRSKY_ID_GPS_LAT_AP     0x1B
+#define FRSKY_ID_GPS_COURS_AP   0x1C
+#define FRSKY_ID_BARO_ALT_AP    0x21
+#define FRSKY_ID_GPS_LONG_EW    0x22
+#define FRSKY_ID_GPS_LAT_NS     0x23
+#define FRSKY_ID_ACCEL_X        0x24
+#define FRSKY_ID_ACCEL_Y        0x25
+#define FRSKY_ID_ACCEL_Z        0x26
+#define FRSKY_ID_CURRENT        0x28
+#define FRSKY_ID_VARIO          0x30
+#define FRSKY_ID_VFAS           0x39
+#define FRSKY_ID_VOLTS_BP       0x3A
+#define FRSKY_ID_VOLTS_AP       0x3B
 
 
-#include "board_config.h"
-#include <arch/board/board.h>
-#include <drivers/device/i2c.h>
-/****************************************************************************
- * Name: board_i2c_initialize
- *
- * Description:
- *   Called to set I2C bus frequncies.
- *
- ****************************************************************************/
-
-int board_i2c_initialize(void)
-{
-
-	int ret = device::I2C::set_bus_clock(PX4_I2C_BUS_ONBOARD, PX4_I2C_BUS_ONBOARD_HZ);
-
-	if (ret == OK) {
-		ret = device::I2C::set_bus_clock(PX4_I2C_BUS_EXPANSION, PX4_I2C_BUS_EXPANSION_HZ);
-	}
-
-	return ret;
-}
+/**
+ * Map the PX4 flight mode (vehicle_status_s::nav_state) to the telemetry flight mode
+ */
+uint16_t get_telemetry_flight_mode(int px4_flight_mode);

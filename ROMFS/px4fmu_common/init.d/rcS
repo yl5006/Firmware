@@ -204,6 +204,12 @@ then
 		set FMU_ARGS "-t"
 	fi
 
+	if param compare SYS_HITL 1
+	then
+		# Enable HITL mode
+		set HIL yes
+	fi
+
 	#
 	# Set USE_IO flag
 	#
@@ -290,11 +296,13 @@ then
 	if ver hwcmp PX4FMU_V4
 	then
 		set MIXER_AUX none
+		param set SYS_FMU_TASK 1
 	fi
 
 	if ver hwcmp PX4FMU_V5
 	then
 		set MIXER_AUX none
+		param set SYS_FMU_TASK 1
 	fi
 
 	if ver hwcmp AEROFC_V1
@@ -464,7 +472,7 @@ then
 	# Needs to be this early for in-air-restarts
 	if [ $OUTPUT_MODE == hil ]
 	then
-	    commander start -hil
+	    commander start --hil
 	else
 	    commander start
 	fi
@@ -643,7 +651,7 @@ then
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
-			set MAVLINK_F "-r 1200"
+			set MAVLINK_F "-r 1200 -f"
 			# Avoid using ttyS1 for MAVLink on FMUv4
 			if ver hwcmp PX4FMU_V4
 			then
@@ -654,7 +662,7 @@ then
 
 			if ver hwcmp AEROFC_V1
 			then
-				set MAVLINK_F "-r 1200 -d /dev/ttyS4"
+				set MAVLINK_F "-r 1200 -d /dev/ttyS3"
 			fi
 		fi
 
@@ -691,15 +699,15 @@ then
 		fi
 		if param compare SYS_COMPANION 921600
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 		fi
 		if param compare SYS_COMPANION 57600
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
 		fi
 		if param compare SYS_COMPANION 460800
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
 		fi
 		if param compare SYS_COMPANION 157600
 		then
@@ -707,7 +715,7 @@ then
 		fi
 		if param compare SYS_COMPANION 257600
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x -f
 		fi
 		if param compare SYS_COMPANION 319200
 		then
@@ -736,7 +744,7 @@ then
 		fi
 		if param compare SYS_COMPANION 1500000
 		then
-			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x
+			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x -f
 		fi
 	fi
 
@@ -749,7 +757,7 @@ then
 	then
 		if uavcan start
 		then
-			set LOGGER_BUF 7
+			set LOGGER_BUF 6
 			uavcan start fw
 		else
 			tone_alarm ${TUNE_ERR}

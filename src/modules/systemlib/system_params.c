@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,6 +65,19 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 
 /**
+ * Enable HITL mode on next boot
+ *
+ * While enabled the system will boot in HITL mode and not enable all sensors and checks.
+ * When disabled the same vehicle can be normally flown outdoors.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_HITL, 0);
+
+/**
  * Set usage of IO board
  *
  * Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
@@ -76,22 +89,6 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_USE_IO, 1);
-
-/**
- * Run the FMU as a task to reduce latency
- *
- * If true, the FMU will run in a separate task instead of on the work queue.
- * Set this if low latency is required, for example for racing.
- *
- * This is a trade-off between RAM usage and latency: running as a task, it
- * requires a separate stack and directly polls on the control topics, whereas
- * running on the work queue, it runs at a fixed update rate.
- *
- * @boolean
- * @reboot_required true
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_FMU_TASK, 0);
 
 /**
  * Set restart type
