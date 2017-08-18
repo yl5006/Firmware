@@ -3466,7 +3466,7 @@ protected:
 		_dist_sensor_time(0)
 	{}
 
-	void send(const hrt_abstime t)
+	bool send(const hrt_abstime t)
 	{
 		struct horizontal_distance_s dist_sensor;
 
@@ -3509,7 +3509,11 @@ protected:
 			msg.current_distance[3] = dist_sensor.current_distance[3] * 100.0f; /* m to cm */
 			msg.covariance = dist_sensor.covariance;
 			mavlink_msg_horizontal_distance_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
 		}
+
+		return false;
 	}
 };
 

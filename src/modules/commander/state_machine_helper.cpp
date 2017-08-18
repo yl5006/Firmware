@@ -505,7 +505,7 @@ transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t sta
 				}
 
 			} else {
-				mavlink_log_critical(mavlink_log_pub, "Not switching to HITL when armed.");
+				mavlink_log_critical(mavlink_log_pub, 392,"Not switching to HITL when armed.");
 				ret = TRANSITION_DENIED;
 			}
 

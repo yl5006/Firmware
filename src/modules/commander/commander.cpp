@@ -4195,9 +4195,9 @@ void *commander_low_prio_loop(void *arg)
 			case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:{
 				if (1) {
 					do_commander_motor_test(cmd,&mavlink_log_pub);
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub, command_ack);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 				} else {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub, command_ack);
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 				}
 				
 				break;

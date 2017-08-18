@@ -93,7 +93,6 @@ MulticopterLandDetector::MulticopterLandDetector() :
 	_control_mode{},
 	_battery{},
 	_min_trust_start(0),
-	_min_manual_start(0),
 	_landed_time(0)
 {
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
@@ -212,9 +211,9 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 			  && (_vehicleLocalPositionSetpoint.vz >= 0.9f * math::max(_params.landSpeed, 0.1f));
 	bool hit_ground = in_descend && !verticalMovement;
 
-	// Check if we are moving horizontally.
-	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
-					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
+	// Check if we are moving horizontally. used not in ground_contact but in land by yaoling
+//	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
+//					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
 
 	// If pilots commands down or in auto mode and we are already below minimal thrust and we do not move down we assume ground contact
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
