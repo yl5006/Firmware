@@ -2,10 +2,9 @@
 set -eu
 
 # Check for the latest astyle version
-ASTYLE_VER_REQUIRED_1="Artistic Style Version 2.05.1"
-ASTYLE_VER_REQUIRED_2="Artistic Style Version 2.06"
-ASTYLE_VER_REQUIRED_3="Artistic Style Version 3.0"
-ASTYLE_VER_REQUIRED_4="Artistic Style Version 3.0.1"
+ASTYLE_VER_REQUIRED_1="Artistic Style Version 2.06"
+ASTYLE_VER_REQUIRED_2="Artistic Style Version 3.0"
+ASTYLE_VER_REQUIRED_3="Artistic Style Version 3.0.1"
 
 astyle_ver() {
 	echo "PX4 requires at least ${ASTYLE_VER_REQUIRED_1}"
@@ -24,11 +23,10 @@ else
 
 	if [ "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_1" -a \
 	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_2" -a \
-	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_3" -a \
-	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_4" ];
+	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_3" ];
 	then
 	    echo "Error: you're using ${ASTYLE_VER}"
-	    echo "but should be using ${ASTYLE_VER_REQUIRED} instead"
+	    echo "but should be using ${ASTYLE_VER_REQUIRED_1}, ${ASTYLE_VER_REQUIRED_2}, or ${ASTYLE_VER_REQUIRED_3} instead"
 	    exit 1
 	fi
 fi
@@ -43,15 +41,15 @@ fi
 
 
 # install git pre-commit hook
-HOOK_FILE="$DIR/../.git/hooks/pre-commit"
+HOOK_FILE="$DIR/../../.git/hooks/pre-commit"
 if [ ! -f $HOOK_FILE ] && [ "$CI" != "true" ]; then
 	echo ""
 	echo -e "\033[31mNinja tip: add a git pre-commit hook to automatically check code style\033[0m"
-	echo -e "Would you like to install one now? (\033[94mcp ./Tools/pre-commit .git/hooks/pre-commit\033[0m): [y/\033[1mN\033[0m]"
+	echo -e "Would you like to install one now? (\033[94mcp ./Tools/astyle/pre-commit .git/hooks/pre-commit\033[0m): [y/\033[1mN\033[0m]"
 
 	read user_cmd
 	if [ "$user_cmd" == "y" ]; then
-		echo -e "copying ./Tools/pre-commit -> .git/hooks/pre-commit"
+		echo -e "copying ./Tools/astyle/pre-commit -> .git/hooks/pre-commit"
 		mkdir -p $DIR/../.git/hooks
 		cp $DIR/pre-commit $HOOK_FILE
 		echo -e "\033[94mGreat, hook installed!\033[0m (checking style now)"

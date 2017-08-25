@@ -1978,16 +1978,14 @@ int commander_thread_main(int argc, char *argv[])
 
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 
-			if (telemetry_subs[i] < 0 && (OK == orb_exists(ORB_ID(telemetry_status), i))) {
+			if (telemetry_subs[i] < 0) {
 				telemetry_subs[i] = orb_subscribe_multi(ORB_ID(telemetry_status), i);
 			}
 
 			orb_check(telemetry_subs[i], &updated);
 
 			if (updated) {
-				struct telemetry_status_s telemetry;
-				memset(&telemetry, 0, sizeof(telemetry));
-
+				telemetry_status_s telemetry = {};
 				orb_copy(ORB_ID(telemetry_status), telemetry_subs[i], &telemetry);
 
 				/* perform system checks when new telemetry link connected */
@@ -4136,8 +4134,13 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 	/* publish ACK */
 	vehicle_command_ack_s command_ack = {
 		.timestamp = 0,
+		.result_param2 = 0,
 		.command = cmd.command,
-		.result = (uint8_t)result
+		.result = (uint8_t)result,
+		.from_external = 0,
+		.result_param1 = 0,
+		.target_system = cmd.source_system,
+		.target_component = cmd.source_component
 	};
 
 	if (command_ack_pub != nullptr) {

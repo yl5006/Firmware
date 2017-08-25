@@ -84,7 +84,6 @@ set(config_module_list
 	modules/mc_pos_control/mc_pos_control_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
-	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -197,14 +196,6 @@ set(config_extra_builtin_cmds
 
 set(config_io_board
 	px4io-v2
-	)
-
-#set(config_extra_libs
-#	uavcan
-#	uavcan_stm32_driver
-#	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

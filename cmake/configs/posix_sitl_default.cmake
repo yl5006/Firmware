@@ -51,7 +51,6 @@ set(config_module_list
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/mc_pos_control/mc_pos_control_tests
-	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -143,6 +142,10 @@ set(config_module_list
 	# Rover apps
 	#
 	#examples/rover_steering_control
+
+	#
+	# HippoCampus example (AUV from TUHH)
+	examples/auv_hippocampus_example_app
 
 	#
 	# Segway

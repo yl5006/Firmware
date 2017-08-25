@@ -45,6 +45,7 @@
 #include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
 
@@ -356,7 +357,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			update_sensors(&imu);
 
 			// battery simulation
-			const float discharge_interval_us = 60 * 1000 * 1000;
+			const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
 
 			bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
@@ -626,6 +627,7 @@ void Simulator::send()
 
 		if (fds[0].revents & POLLIN) {
 			// got new data to read, update all topics
+			parameters_update(false);
 			poll_topics();
 			send_controls();
 		}

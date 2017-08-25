@@ -89,7 +89,6 @@ set(config_module_list
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/mc_pos_control/mc_pos_control_tests
-	modules/unit_test
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -224,14 +223,6 @@ set(config_rtps_receive_topics
 set(config_extra_builtin_cmds
 	serdis
 	sercon
-	)
-
-set(config_extra_libs
-	uavcan
-	uavcan_stm32_driver
-	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

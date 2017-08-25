@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__dummy
-	MAIN tone_alarm
+	MODULE drivers__linux_sbus
+	MAIN linux_sbus
 	COMPILE_FLAGS
 	SRCS
-		tone_alarm.c
+		linux_sbus.cpp
 	DEPENDS
 		platforms__common
 	)

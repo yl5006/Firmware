@@ -31,11 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__unit_test
-	COMPILE_FLAGS
+	MODULE examples__auv_hippocampus_example_app
+	MAIN auv_hippocampus_example_app
+	STACK_MAIN 2000
 	SRCS
-		unit_test.cpp
+		auv_hippocampus_example_app.cpp
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

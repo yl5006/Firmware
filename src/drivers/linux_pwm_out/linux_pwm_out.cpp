@@ -43,6 +43,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/rc_channels.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
@@ -211,7 +212,7 @@ void task_main(int argc, char *argv[])
 		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
 		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
 
-	} else { // navio
+	} else { /* navio */
 		PX4_INFO("Starting PWM output in Navio mode");
 		pwm_out = new NavioSysfsPWMOut(_device, _max_num_outputs);
 	}
@@ -494,7 +495,7 @@ int linux_pwm_out_main(int argc, char *argv[])
 		}
 	}
 
-	// gets the parameters for the esc's pwm
+	/** gets the parameters for the esc's pwm */
 	param_get(param_find("PWM_DISARMED"), &linux_pwm_out::_pwm_disarmed);
 	param_get(param_find("PWM_MIN"), &linux_pwm_out::_pwm_min);
 	param_get(param_find("PWM_MAX"), &linux_pwm_out::_pwm_max);

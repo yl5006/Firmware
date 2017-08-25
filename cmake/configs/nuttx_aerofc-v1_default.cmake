@@ -24,8 +24,6 @@ set(config_module_list
 	drivers/ll40ls
 	drivers/aerofc_adc
 	modules/sensors
-	# dummy tone alarm
-	modules/dummy
 
 	#
 	# System commands
@@ -119,10 +117,4 @@ set(config_extra_builtin_cmds
 	)
 
 set(config_io_board
-	)
-
-set(config_extra_libs
-	)
-
-set(config_io_extra_libs
 	)
