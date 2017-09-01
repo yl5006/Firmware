@@ -76,7 +76,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_time_last_reached(0),
 	_action_timeout(MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT),
 	_retry_timeout(MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT),
-	_int_mode(false),
+	_int_mode(true),
 	_filesystem_errcount(0),
 	_my_dataman_id(0),
 	_transfer_dataman_id(0),
