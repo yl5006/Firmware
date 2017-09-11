@@ -366,16 +366,20 @@ MissionBlock::is_mission_item_reached()
 						next_sp1->lat, next_sp1->lon);
 				curr_sp1->yaw=_mission_item.yaw;
 				_navigator->set_position_setpoint_triplet_updated();
-			}
-			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
-					_navigator->get_global_position()->vel_e,
-					_navigator->get_global_position()->vel_n);
-			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
 
-			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
-			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
-			|| (_param_yaw_timeout.get() >= FLT_EPSILON )) {
+				float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
+						_navigator->get_global_position()->vel_e,
+						_navigator->get_global_position()->vel_n);
+				float yaw_err = _wrap_pi(_mission_item.yaw - cog);
 
+				/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
+				if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
+				|| (_param_yaw_timeout.get() >= FLT_EPSILON )) {
+
+					_secend_yaw_reached = true;
+				}
+			}else
+			{
 				_secend_yaw_reached = true;
 			}
 		}
