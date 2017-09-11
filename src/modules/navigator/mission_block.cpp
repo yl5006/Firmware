@@ -61,6 +61,7 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
 	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_vtol_wv_land(this, "VT_WV_LND_EN", false),
 	_param_vtol_wv_takeoff(this, "VT_WV_TKO_EN", false),
 	_param_vtol_wv_loiter(this, "VT_WV_LTR_EN", false),
@@ -351,10 +352,38 @@ MissionBlock::is_mission_item_reached()
 			_waypoint_yaw_reached = true;
 		}
 	}
+	//到达航点后先转机头
+	if (_waypoint_position_reached && _waypoint_yaw_reached && _navigator->get_vstatus()->is_rotary_wing && _param_yawmode.get()==MISSION_YAWMODE_TURN_BEFOR_WAYPOINT)
+	{
 
+		if(!_secend_yaw_reached)
+		{
+			struct position_setpoint_s *next_sp1=  &_navigator->get_position_setpoint_triplet()->next;
+			struct position_setpoint_s *curr_sp1 = &_navigator->get_position_setpoint_triplet()->current;
+			if (next_sp1->valid) {
+				_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+						_navigator->get_global_position()->lon,
+						next_sp1->lat, next_sp1->lon);
+				curr_sp1->yaw=_mission_item.yaw;
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
+					_navigator->get_global_position()->vel_e,
+					_navigator->get_global_position()->vel_n);
+			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
+
+			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
+			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
+			|| (_param_yaw_timeout.get() >= FLT_EPSILON )) {
+
+				_secend_yaw_reached = true;
+			}
+		}
+	}
 	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
-	if (_waypoint_position_reached && _waypoint_yaw_reached) {
-
+	if (_waypoint_position_reached && _waypoint_yaw_reached &&
+		(_secend_yaw_reached || !_navigator->get_vstatus()->is_rotary_wing || _param_yawmode.get()!= MISSION_YAWMODE_TURN_BEFOR_WAYPOINT))
+	{
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
 		}
@@ -401,7 +430,7 @@ MissionBlock::is_mission_item_reached()
 
 	// all acceptance criteria must be met in the same iteration
 	_waypoint_position_reached = false;
-	_waypoint_yaw_reached = false;
+//	_waypoint_yaw_reached = false;
 	return false;
 }
 
@@ -410,6 +439,7 @@ MissionBlock::reset_mission_item_reached()
 {
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
+	_secend_yaw_reached= false;
 	_time_first_inside_orbit = 0;
 	_time_wp_reached = 0;
 }

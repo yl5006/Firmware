@@ -71,6 +71,15 @@ public:
 	/* TODO: move this to a helper class in navigator */
 	static bool position_contains_command(const struct mission_item_s *item);
 
+	enum mission_yaw_mode {
+		MISSION_YAWMODE_NONE = 0,
+		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
+		MISSION_YAWMODE_FRONT_TO_HOME = 2,
+		MISSION_YAWMODE_BACK_TO_HOME = 3,
+		MISSION_YAWMODE_TURN_BEFOR_WAYPOINT = 4,
+		MISSION_YAWMODE_MAX = 5
+	};
+
 protected:
 	/**
 	 * Check if mission item has been reached
@@ -136,6 +145,7 @@ protected:
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _secend_yaw_reached{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
@@ -147,6 +157,7 @@ protected:
 	control::BlockParamFloat _param_loiter_min_alt;
 	control::BlockParamFloat _param_yaw_timeout;
 	control::BlockParamFloat _param_yaw_err;
+	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_vtol_wv_land;
 	control::BlockParamInt _param_vtol_wv_takeoff;
 	control::BlockParamInt _param_vtol_wv_loiter;

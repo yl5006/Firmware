@@ -64,7 +64,6 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_takeoff_alt(this, "MIS_TAKEOFF_ALT", false),
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
 	_param_force_vtol(this, "NAV_FORCE_VT", false),
 	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
 	_param_fw_climbout_diff(this, "FW_CLMBOUT_DIFF", false),
@@ -204,6 +203,10 @@ Mission::on_active()
 	}
 	/* if it's not a DO_JUMP, then we were successful */
 //  do it and test later
+	/* 返航航线功能
+	 * 添加一个参数使能
+	 * 在返航模式下继续执行航线功能
+	*/
 	if(_param_mission_rtljump.get() == 1 && (_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)&&!_havejump&&!_navigator->get_land_detected()->landed)
 	{
 
@@ -225,6 +228,7 @@ Mission::on_active()
 			mission_ptr =  &_current_offboard_mission_index;
 			dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 		}
+		//用返航航点作为返航航线区分临界点
 		while((index_to_read+next)<(int)mission->count){
 			if (dm_read(dm_item, index_to_read+next, &mission_item_tmp, len) != len) {
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
@@ -237,6 +241,7 @@ Mission::on_active()
 
 			}
 		}
+		//查找返航航点后续点离飞机最近点一个航点
 		if((index_to_read+next)<(int)mission->count)
 		{
 			while((index_to_read+next)<(int)mission->count){
@@ -252,6 +257,7 @@ Mission::on_active()
 				}
 				next++;
 			}
+			//跳转至该航点，更新消息
 			*mission_ptr = nearestmission;
 			set_mission_items();
 			report_do_jump_mission_changed(nearestmission,0);
@@ -274,7 +280,7 @@ Mission::on_active()
 		{
 			issue_command(&_mission_item);
 		}
-
+        //跳转航线在此执行
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
 			/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
@@ -936,7 +942,7 @@ Mission::set_mission_items()
 		set_current_offboard_mission_item();
 	}
 
-	if (_mission_item.autocontinue && get_time_inside(_mission_item) < FLT_EPSILON) {
+	if (_mission_item.autocontinue /*&& get_time_inside(_mission_item) < FLT_EPSILON*/) {
 		/* try to process next mission item */
 		if (has_next_position_item) {
 			/* got next mission item, update setpoint triplet */
@@ -1104,7 +1110,7 @@ Mission::heading_sp_update()
 	}
 
 	/* set yaw angle for the waypoint if a loiter time has been specified */
-	if (_waypoint_position_reached && get_time_inside(_mission_item) > FLT_EPSILON) {
+	if (_waypoint_yaw_reached/*_waypoint_position_reached && get_time_inside(_mission_item) > FLT_EPSILONz*/) {
 		// XXX: should actually be param4 from mission item
 		// at the moment it will just keep the heading it has
 		//_mission_item.yaw = _on_arrival_yaw;

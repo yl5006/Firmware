@@ -81,13 +81,6 @@ public:
 		MISSION_ALTMODE_FOH = 1
 	};
 
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_MAX = 4
-	};
 
 	bool set_current_offboard_mission_index(unsigned index);
 
@@ -240,7 +233,6 @@ private:
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
 	control::BlockParamInt _param_altmode;
-	control::BlockParamInt _param_yawmode;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamInt _param_mission_rtljump;  		/**< jump to nearest misstion RTL */
 	control::BlockParamFloat _param_fw_climbout_diff;

@@ -1477,8 +1477,8 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	/* set velocity limit if close to current setpoint and no next setpoint available */
 	math::Vector<3> dist = _curr_pos_sp - _pos;
-	_limit_vel_xy = (!next_setpoint_valid || (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
-			&& (sqrtf(dist(0) * dist(0) + dist(1) * dist(1)) <= _target_threshold_xy.get());
+	_limit_vel_xy = (/*!next_setpoint_valid ||*/ (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
+			|| (sqrtf(dist(0) * dist(0) + dist(1) * dist(1)) <= _target_threshold_xy.get());
 
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
