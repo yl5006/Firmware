@@ -118,12 +118,8 @@
 enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
-	PORT_FULL_SERIAL,
 	PORT_FULL_PWM,
 	PORT_RC_IN,
-	PORT_GPIO_AND_SERIAL,
-	PORT_PWM_AND_SERIAL,
-	PORT_PWM_AND_GPIO,
 	PORT_PWM4,
 	PORT_PWM3,
 	PORT_PWM2,
@@ -191,8 +187,6 @@ public:
 	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	virtual int	init();
-
-	void dsm_bind_ioctl();
 
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
@@ -346,7 +340,7 @@ private:
 			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
-	void dsm_bind_ioctl(int dsmMode);
+
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 	void rc_io_invert();
 	void rc_io_invert(bool invert);
@@ -1511,9 +1505,27 @@ PX4FMU::cycle()
 
 			// Check for a DSM pairing command
 			if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
-				dsm_bind_ioctl((int)cmd.param2);
-			}
+				if (!_armed.armed) {
+					int dsm_bind_mode = (int)cmd.param2;
 
+					int dsm_bind_pulses = 0;
+
+					if (dsm_bind_mode == 0) {
+						dsm_bind_pulses = DSM2_BIND_PULSES;
+
+					} else if (dsm_bind_mode == 1) {
+						dsm_bind_pulses = DSMX_BIND_PULSES;
+
+					} else {
+						dsm_bind_pulses = DSMX8_BIND_PULSES;
+					}
+
+					ioctl(nullptr, DSM_BIND_START, dsm_bind_pulses);
+
+				} else {
+					PX4_WARN("system armed, bind request rejected");
+				}
+			}
 		}
 
 #endif
@@ -1826,17 +1838,7 @@ void PX4FMU::update_params()
 	update_pwm_rev_mask();
 	update_pwm_trims();
 
-	int32_t dsm_bind_val;
 	param_t param_handle;
-
-	/* see if bind parameter has been set, and reset it to -1 */
-	param_get(param_handle = param_find("RC_DSM_BIND"), &dsm_bind_val);
-
-	if (dsm_bind_val > -1) {
-		dsm_bind_ioctl(dsm_bind_val);
-		dsm_bind_val = -1;
-		param_set(param_handle, &dsm_bind_val);
-	}
 
 	// maximum motor slew rate parameter
 	param_handle = param_find("MOT_SLEW_MAX");
@@ -2386,9 +2388,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			/* change the number of outputs that are enabled for
 			 * PWM. This is used to change the split between GPIO
 			 * and PWM under control of the flight config
-			 * parameters. Note that this does not allow for
-			 * changing a set of pins to be used for serial on
-			 * FMUv1
+			 * parameters.
 			 */
 			switch (arg) {
 			case 0:
@@ -2494,7 +2494,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case DSM_BIND_START:
 		/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
-		PX4_INFO("pwm_ioctl: DSM_BIND_START, arg: %lu", arg);
+		PX4_INFO("DSM_BIND_START: DSM%s RX", (arg == 0) ? "2" : ((arg == 1) ? "-X" : "-X8"));
 
 		if (arg == DSM2_BIND_PULSES ||
 		    arg == DSMX_BIND_PULSES ||
@@ -2518,6 +2518,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			ret = OK;
 
 		} else {
+			PX4_ERR("DSM bind failed");
 			ret = -EINVAL;
 		}
 
@@ -2686,24 +2687,6 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 #if !defined(BOARD_HAS_FMU_GPIO)
 	return -EINVAL;
 #else
-#  if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
-
-	/*
-	 * GPIOs 0 and 1 must have the same direction as they are buffered
-	 * by a shared 2-port driver.  Any attempt to set either sets both.
-	 */
-	if ((gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
-		gpios |= BOARD_GPIO_SHARED_BUFFERED_BITS;
-
-		/* flip the buffer to output mode if required */
-		if (GPIO_SET_OUTPUT == function ||
-		    GPIO_SET_OUTPUT_LOW == function ||
-		    GPIO_SET_OUTPUT_HIGH == function) {
-			px4_arch_gpiowrite(GPIO_GPIO_DIR, 1);
-		}
-	}
-
-#  endif
 
 	/* configure selected GPIOs as required */
 	for (unsigned i = 0; i < _ngpio; i++) {
@@ -2747,14 +2730,6 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
-#  if defined(BOARD_GPIO_SHARED_BUFFERED_BITS) && defined(GPIO_GPIO_DIR)
-
-	/* flip buffer to input mode if required */
-	if ((GPIO_SET_INPUT == function) && (gpios & BOARD_GPIO_SHARED_BUFFERED_BITS)) {
-		px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
-	}
-
-#  endif
 	return OK;
 #endif // !defined(BOARD_HAS_FMU_GPIO)
 
@@ -2987,26 +2962,6 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-void
-PX4FMU::dsm_bind_ioctl(int dsmMode)
-{
-	if (!_armed.armed) {
-//      mavlink_log_info(&_mavlink_log_pub, "[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		PX4_INFO("[FMU] binding DSM%s RX", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "-X" : "-X8"));
-		int ret = ioctl(nullptr, DSM_BIND_START,
-				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
-
-		if (ret) {
-//            mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
-			PX4_ERR("binding failed.");
-		}
-
-	} else {
-//        mavlink_log_info(&_mavlink_log_pub, "[FMU] system armed, bind request rejected");
-		PX4_WARN("[FMU] system armed, bind request rejected");
-	}
-}
-
 int
 PX4FMU::fmu_new_mode(PortMode new_mode)
 {
@@ -3014,11 +2969,9 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
-	uint32_t gpio_bits;
 	PX4FMU::Mode servo_mode;
 	bool mode_with_input = false;
 
-	gpio_bits = 0;
 	servo_mode = PX4FMU::MODE_NONE;
 
 	switch (new_mode) {
@@ -3079,36 +3032,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		break;
 #endif
 
-		/* mixed modes supported on v1 board only */
-#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
-
-	case PORT_FULL_SERIAL:
-		/* set all multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
-		mode_with_input = true;
-		break;
-
-	case PORT_GPIO_AND_SERIAL:
-		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		mode_with_input = true;
-		break;
-
-	case PORT_PWM_AND_SERIAL:
-		/* select 2-pin PWM mode */
-		servo_mode = PX4FMU::MODE_2PWM;
-		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		mode_with_input = true;
-		break;
-
-	case PORT_PWM_AND_GPIO:
-		/* select 2-pin PWM mode */
-		servo_mode = PX4FMU::MODE_2PWM;
-		mode_with_input = true;
-		break;
-#endif
-
 	default:
 		return -1;
 	}
@@ -3120,11 +3043,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		/* reset to all-inputs */
 		if (mode_with_input) {
 			object->ioctl(0, GPIO_RESET, 0);
-
-			/* adjust GPIO config for serial mode(s) */
-			if (gpio_bits != 0) {
-				object->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
-			}
 		}
 
 		/* (re)set the PWM output mode */
@@ -3141,24 +3059,17 @@ namespace
 void
 bind_spektrum()
 {
-	int	 fd;
-
-	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
+	int fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
 		PX4_ERR("open fail");
 		return;
 	}
 
-	PX4_INFO("bind_Spektrum RX");
-
 	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
-	if (ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES)) {
-		PX4_ERR("binding failed.");
-	}
+	ioctl(fd, DSM_BIND_START, DSMX8_BIND_PULSES);
 
 	close(fd);
-
 }
 
 int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
@@ -3510,20 +3421,6 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
 #endif
-#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
-
-	} else if (!strcmp(verb, "mode_serial")) {
-		new_mode = PORT_FULL_SERIAL;
-
-	} else if (!strcmp(verb, "mode_gpio_serial")) {
-		new_mode = PORT_GPIO_AND_SERIAL;
-
-	} else if (!strcmp(verb, "mode_pwm_serial")) {
-		new_mode = PORT_PWM_AND_SERIAL;
-
-	} else if (!strcmp(verb, "mode_pwm_gpio")) {
-		new_mode = PORT_PWM_AND_GPIO;
-#endif
 	}
 
 	/* was a new mode set? */
@@ -3609,12 +3506,6 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
-#endif
-#if defined(BOARD_HAS_MULTI_PURPOSE_GPIO) // only used by px4fmu-v1 HW
-	PRINT_MODULE_USAGE_COMMAND("mode_serial");
-	PRINT_MODULE_USAGE_COMMAND("mode_gpio_serial");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm_serial");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm_gpio");
 #endif
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a DSM bind command (module must be running)");

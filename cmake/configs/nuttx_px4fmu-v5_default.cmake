@@ -28,6 +28,7 @@ set(config_module_list
 	drivers/hott/hott_sensors
 	drivers/hott/hott_telemetry
 	drivers/iridiumsbd
+	drivers/ist8310
 	drivers/led
 	drivers/lis3mdl
 	drivers/ll40ls
@@ -43,6 +44,7 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rgbled
 	drivers/rgbled_pwm
 	drivers/sdp3x_airspeed
 	drivers/sf0x

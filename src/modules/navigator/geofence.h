@@ -231,7 +231,7 @@ private:
 	typedef struct
 	{
 		latlon center;
-		unsigned int  radius;   //   半径（米），单位：米。
+		int  radius;   //   半径（米），单位：米。
 	}circle;
 	typedef struct
 	{

@@ -55,7 +55,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public VDev
+class __EXPORT I2C : public CDev
 {
 
 public:
@@ -84,15 +84,12 @@ protected:
 	 * @param devname	Device node name
 	 * @param bus		I2C bus on which the device lives
 	 * @param address	I2C bus address, or zero if set_address will be used
- 	 * @param frequency	I2C bus frequency for the device (currently not used)
-	 * @param irq		Interrupt assigned to the device (or zero if none)
 	 */
 	I2C(const char *name,
 	    const char *devname,
 	    int bus,
 	    uint16_t address,
-            uint32_t frequency,
-	    int irq = 0);                //add by yaoling                             
+	    uint32_t frequency = 0);
 	virtual ~I2C();
 
 	virtual int	init();
@@ -132,7 +129,7 @@ protected:
 	 * Change the bus address.
 	 *
 	 * Most often useful during probe() when the driver is testing
-	 * several possible bus addresses.  /////////add yaoling
+	 * several possible bus addresses.
 	 *
 	 * @param address	The new bus address to set.
 	 */
@@ -145,7 +142,8 @@ protected:
 private:
 	uint16_t		_address;
 	int 			_fd;
-	char 			_devname[20];
+	std::string		_dname;
+
 	I2C(const device::I2C &);
 	I2C operator=(const device::I2C &);
 };

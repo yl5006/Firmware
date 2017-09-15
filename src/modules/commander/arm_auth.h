@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017  Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,18 @@
  *
  ****************************************************************************/
 
-/**
- * nsh_romfsetc.h
- *
- * This file is a stub for 'make export' purposes; the actual ROMFS
- * must be supplied by the library client.
- */
+#include <stdint.h>
 
-extern unsigned char romfs_img[];
-extern unsigned int romfs_img_len;
+#include <drivers/drv_hrt.h>
+#include <uORB/uORB.h>
+
+enum arm_auth_methods {
+	ARM_AUTH_METHOD_ARM_REQ = 0,
+	ARM_AUTH_METHOD_TWO_ARM_REQ,
+	ARM_AUTH_METHOD_LAST
+};
+
+void arm_auth_init(orb_advert_t *mav_log_pub, uint32_t *system_id);
+void arm_auth_update(hrt_abstime now);
+uint8_t arm_auth_check();
+enum arm_auth_methods arm_auth_method_get();

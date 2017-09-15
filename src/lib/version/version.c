@@ -209,7 +209,7 @@ static uint32_t version_tag_to_middleware(const char *tag)
 	uint32_t ver = 0;
 	unsigned len = strlen(tag);
 
-	for (int i = 0; i <  len; i++) {
+	for (uint32_t i = 0; i <  len; i++) {
 		if (tag[i] == '-') {
                if(i<len-5)
                {

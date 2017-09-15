@@ -76,8 +76,9 @@ public:
 		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
 		MISSION_YAWMODE_FRONT_TO_HOME = 2,
 		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_TURN_BEFOR_WAYPOINT = 4,
-		MISSION_YAWMODE_MAX = 5
+		MISSION_YAWMODE_TO_ROI = 4,
+		MISSION_YAWMODE_TURN_BEFOR_WAYPOINT = 5,
+		MISSION_YAWMODE_MAX = 6
 	};
 
 protected:
@@ -163,6 +164,7 @@ protected:
 	control::BlockParamInt _param_vtol_wv_loiter;
 	control::BlockParamInt _param_force_vtol;
 	control::BlockParamFloat _param_back_trans_dec_mss;
+	control::BlockParamFloat _param_reverse_delay;
 };
 
 #endif

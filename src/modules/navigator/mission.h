@@ -61,6 +61,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/uORB.h>
 
 class Navigator;
@@ -80,7 +81,6 @@ public:
 		MISSION_ALTMODE_ZOH = 0,
 		MISSION_ALTMODE_FOH = 1
 	};
-
 
 	bool set_current_offboard_mission_index(unsigned index);
 
