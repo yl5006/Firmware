@@ -54,8 +54,8 @@ else()
 		vfile.cpp
 		vdev_posix.cpp
 		i2c_posix.cpp
-	    pwm_posix.cpp
-	    gpio_posix.cpp
+#	    pwm_posix.cpp
+#	    gpio_posix.cpp
 		sim.cpp
 	)
 endif()

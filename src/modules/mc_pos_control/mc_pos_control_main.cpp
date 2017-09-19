@@ -1707,7 +1707,7 @@ void MulticopterPositionControl::control_auto(float dt)
 				float vel_sp_along_track_prev = matrix::Vector2f(_vel_sp(0), _vel_sp(1)) * unit_prev_to_current;
 
 				/* distance to target when brake should occur */
-				float target_threshold_xy = 1.5f * get_cruising_speed_xy();
+				float target_threshold_xy = 4.0f * get_cruising_speed_xy();
 
 				bool close_to_current = vec_pos_to_current.length() < target_threshold_xy;
 				bool close_to_prev = (vec_prev_to_pos.length() < target_threshold_xy) &&
@@ -1807,8 +1807,8 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* check if altidue is within acceptance radius */
 					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
 
-					if (reached_altitude && next_setpoint_valid
-					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+					if (reached_altitude && /*next_setpoint_valid
+					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)*/false) {
 						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
 
 						/* get velocity close to current that depends on angle between prev-current and current-next line */
@@ -1925,9 +1925,17 @@ void MulticopterPositionControl::control_auto(float dt)
 			_pos_sp = pos_sp;
 
 		} else {
-			/* just go to the target point */;
-			_pos_sp = _curr_pos_sp;
+			if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
+			{
+				//可在此添加精准降落，
+			//	math::Vector<3> _sp_err={1.0,1.0,0};		/**< derivative of current velocity */
 
+			/* just go to the target point */;
+				_pos_sp = _curr_pos_sp;//+_sp_err;
+			}else
+			{
+				_pos_sp = _curr_pos_sp;
+			}
 			/* set max velocity to cruise */
 			_vel_max_xy = get_cruising_speed_xy();
 		}
