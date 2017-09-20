@@ -189,6 +189,7 @@ private:
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
+	control::BlockParamInt   _slow_speed; /**< _slow speed when close to setpoint */
 
 	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
@@ -466,6 +467,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_slow_speed(this, "SLOW_EN"),
 	_manual_direction_change_hysteresis(false),
 	_filter_manual_pitch(50.0f, 10.0f),
 	_filter_manual_roll(50.0f, 10.0f),
@@ -2164,8 +2166,8 @@ void MulticopterPositionControl::control_auto(float dt)
 					/* check if altidue is within acceptance radius */
 					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
 
-					if (reached_altitude && /*next_setpoint_valid
-					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)*/false) {
+					if (reached_altitude && next_setpoint_valid
+					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)&&_slow_speed.get()==0) {
 						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
 
 						/* get velocity close to current that depends on angle between prev-current and current-next line */

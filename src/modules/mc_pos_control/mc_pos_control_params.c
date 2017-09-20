@@ -313,7 +313,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 35.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 10.0f);
 
 /**
  * Landing descend rate
@@ -501,6 +501,17 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
+
+/**
+ * slow  speed  when reach curr
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Disable
+ * @value 1 enable
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_SLOW_EN, 1);
 
 /**
  * Safe distance
