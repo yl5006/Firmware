@@ -146,6 +146,9 @@ struct Parameters {
 
 	float vibration_warning_threshold;
 
+	int32_t air_pmodel;
+	float air_tube_length;
+
 };
 
 struct ParameterHandles {
@@ -226,6 +229,9 @@ struct ParameterHandles {
 	param_t baro_qnh;
 
 	param_t vibe_thresh; /**< vibration threshold */
+
+	param_t air_pmodel;
+	param_t air_tube_length;
 
 };
 

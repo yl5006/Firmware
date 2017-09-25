@@ -56,11 +56,11 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/hysteresis/hysteresis.h>
 
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -144,7 +144,7 @@ private:
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int		_ctrl_state_sub;		/**< control state subscription */
+	int		_vehicle_attitude_sub;		/**< control state subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_manual_sub;			/**< notification of manual control updates */
@@ -159,7 +159,7 @@ private:
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
-	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
+	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
@@ -263,11 +263,10 @@ private:
 		float vel_max_down;
 		float slow_land_alt1;
 		float slow_land_alt2;
-		uint32_t alt_mode;
+		int32_t alt_mode;
 		float safe_dis;
 		int   safe_en;
-
-		int opt_recover;
+		int32_t opt_recover;
 		float rc_flt_smp_rate;
 		float rc_flt_cutoff;
 
@@ -292,14 +291,16 @@ private:
 	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
-	matrix::Vector2f _stick_input_xy_prev; /*for manual controlled mode to detect direction change */
+	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
 	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
+	float _man_yaw_offset; /**< current yaw offset in manual mode */
+
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
-	float _acceleration_state_dependent_xy; /* acceleration limit applied in manual mode */
-	float _acceleration_state_dependent_z; /* acceleration limit applied in manual mode in z */
+	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
+	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
@@ -423,7 +424,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
-	_ctrl_state_sub(-1),
+	_vehicle_attitude_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
@@ -438,7 +439,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
-	_ctrl_state{},
+	_att{},
 	_att_sp{},
 	_manual{},
 	_control_mode{},
@@ -478,6 +479,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_last_warn(0),
 	_yaw(0.0f),
 	_yaw_takeoff(0.0f),
+	_man_yaw_offset(0.0f),
 	_vel_max_xy(0.0f),
 	_acceleration_state_dependent_xy(0.0f),
 	_acceleration_state_dependent_z(0.0f),
@@ -491,7 +493,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_heading_reset_counter(0)
 {
 	// Make the quaternion valid for control state
-	_ctrl_state.q[0] = 1.0f;
+	_att.q[0] = 1.0f;
 
 	_ref_pos = {};
 
@@ -622,7 +624,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_params.tilt_max_land = math::radians(_params.tilt_max_land);
 
 		float v;
-		uint32_t v_i;
+		int32_t v_i;
 		param_get(_params_handles.xy_p, &v);
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
@@ -677,9 +679,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.alt_mode, &v_i);
 		_params.alt_mode = v_i;
 
-		int i;
-		param_get(_params_handles.opt_recover, &i);
-		_params.opt_recover = i;
+		param_get(_params_handles.opt_recover, &_params.opt_recover);
 
 		param_get(_params_handles.safe_dis, &v);
 		_params.safe_dis = v;
@@ -755,23 +755,23 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 
-	orb_check(_ctrl_state_sub, &updated);
+	orb_check(_vehicle_attitude_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
-		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
+		math::Quaternion q_att(_att.q[0], _att.q[1], _att.q[2], _att.q[3]);
 		_R = q_att.to_dcm();
 		math::Vector<3> euler_angles;
 		euler_angles = _R.to_euler();
 		_yaw = euler_angles(2);
 
 		if (_control_mode.flag_control_manual_enabled) {
-			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
-				_heading_reset_counter = _ctrl_state.quat_reset_counter;
-				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
-							 _ctrl_state.delta_q_reset[3]);
+			if (_heading_reset_counter != _att.quat_reset_counter) {
+				_heading_reset_counter = _att.quat_reset_counter;
+				math::Quaternion delta_q(_att.delta_q_reset[0], _att.delta_q_reset[1], _att.delta_q_reset[2],
+							 _att.delta_q_reset[3]);
 
 				// we only extract the heading change from the delta quaternion
 				math::Vector<3> delta_euler = delta_q.to_euler();
@@ -894,7 +894,11 @@ MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterPositionControl::update_ref()
 {
-	if (_local_pos.ref_timestamp != _ref_timestamp) {
+	// The reference point is only allowed to change when the vehicle is in standby state which is the
+	// normal state when the estimator origin is set. Changing reference point in flight causes large controller
+	// setpoint changes. Changing reference point in other arming states is untested and shoud not be performed.
+	if ((_local_pos.ref_timestamp != _ref_timestamp)
+	    && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
 		double lat_sp, lon_sp;
 		float alt_sp = 0.0f;
 
@@ -920,6 +924,7 @@ MulticopterPositionControl::update_ref()
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
+
 	}
 }
 
@@ -1815,6 +1820,8 @@ void MulticopterPositionControl::control_auto(float dt)
 	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
 		if (!_mode_auto) {
 			_mode_auto = true;
+			//set _triplet_lat_lon_finite true once switch to AUTO(e.g. LAND)
+			_triplet_lat_lon_finite = true;
 		}
 
 		_reset_pos_sp = true;
@@ -3034,6 +3041,10 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 void
 MulticopterPositionControl::generate_attitude_setpoint(float dt)
 {
+	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
+	_att_sp.yaw_body -= _man_yaw_offset;
+	_man_yaw_offset = 0.f;
+
 	/* reset yaw setpoint to current position if needed */
 	if (_reset_yaw_sp) {
 		_reset_yaw_sp = false;
@@ -3075,8 +3086,55 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 	/* control roll and pitch directly if no aiding velocity controller is active */
 	if (!_control_mode.flag_control_velocity_enabled) {
-		_att_sp.roll_body = _manual.y * _params.man_tilt_max;
-		_att_sp.pitch_body = -_manual.x * _params.man_tilt_max;
+
+		/*
+		 * Input mapping for roll & pitch setpoints
+		 * ----------------------------------------
+		 * This simplest thing to do is map the y & x inputs directly to roll and pitch, and scale according to the max
+		 * tilt angle.
+		 * But this has several issues:
+		 * - The maximum tilt angle cannot easily be restricted. By limiting the roll and pitch separately,
+		 *   it would be possible to get to a higher tilt angle by combining roll and pitch (the difference is
+		 *   around 15 degrees maximum, so quite noticeable). Limiting this angle is not simple in roll-pitch-space,
+		 *   it requires to limit the tilt angle = acos(cos(roll) * cos(pitch)) in a meaningful way (eg. scaling both
+		 *   roll and pitch).
+		 * - Moving the stick diagonally, such that |x| = |y|, does not move the vehicle towards a 45 degrees angle.
+		 *   The direction angle towards the max tilt in the XY-plane is atan(1/cos(x)). Which means it even depends
+		 *   on the tilt angle (for a tilt angle of 35 degrees, it's off by about 5 degrees).
+		 *
+		 * So instead we control the following 2 angles:
+		 * - tilt angle, given by sqrt(x*x + y*y)
+		 * - the direction of the maximum tilt in the XY-plane, which also defines the direction of the motion
+		 *
+		 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
+		 * points to, and changes of the stick input are linear.
+		 */
+		const float x = _manual.x * _params.man_tilt_max;
+		const float y = _manual.y * _params.man_tilt_max;
+
+		// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
+		matrix::Vector2f v = matrix::Vector2f(y, -x);
+		float v_norm = v.norm(); // the norm of v defines the tilt angle
+
+		if (v_norm > _params.man_tilt_max) { // limit to the configured maximum tilt angle
+			v *= _params.man_tilt_max / v_norm;
+		}
+
+		matrix::Quatf q_sp_rpy = matrix::AxisAnglef(v(0), v(1), 0.f);
+		// The axis angle can change the yaw as well (but only at higher tilt angles. Note: we're talking
+		// about the world frame here, in terms of body frame the yaw rate will be unaffected).
+		// This the the formula by how much the yaw changes:
+		//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
+		//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
+		matrix::Eulerf euler_sp = q_sp_rpy;
+		// Since the yaw setpoint is integrated, we extract the offset here,
+		// so that we can remove it before the next iteration
+		_man_yaw_offset = euler_sp(2);
+
+		// update the setpoints
+		_att_sp.roll_body = euler_sp(0);
+		_att_sp.pitch_body = euler_sp(1);
+		_att_sp.yaw_body += euler_sp(2);
 
 		/* only if optimal recovery is not used, modify roll/pitch */
 		if (_params.opt_recover <= 0) {
@@ -3086,6 +3144,10 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 			// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
 			// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
 			// heading of the vehicle.
+			// The effect of that can be seen with:
+			// - roll/pitch into one direction, keep it fixed (at high angle)
+			// - apply a fast yaw rotation
+			// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
 
 			// calculate our current yaw error
 			float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
@@ -3143,7 +3205,7 @@ MulticopterPositionControl::task_main()
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));

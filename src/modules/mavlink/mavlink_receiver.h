@@ -77,7 +77,6 @@
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/gps_inject_data.h>
-#include <uORB/topics/control_state.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/cammer_rc.h>
 
@@ -117,6 +116,7 @@ public:
 
 private:
 
+	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret);
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
@@ -245,7 +245,6 @@ private:
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _transponder_report_pub;
 	orb_advert_t _collision_report_pub;
-	orb_advert_t _control_state_pub;
 	orb_advert_t _debug_key_value_pub;
 	orb_advert_t _debug_value_pub;
 	orb_advert_t _debug_vect_pub;

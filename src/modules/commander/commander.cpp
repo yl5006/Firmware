@@ -3376,7 +3376,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	last_overload = overload;
 
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4) || defined (CONFIG_ARCH_BOARD_CRAZYFLIE) || defined (CONFIG_ARCH_BOARD_AEROFC_V1) || defined (CONFIG_ARCH_BOARD_AEROCORE2)
+#if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
@@ -4226,6 +4226,12 @@ void *commander_low_prio_loop(void *arg)
 						usleep(100000);
 						/* reboot */
 						px4_shutdown_request(true, false);
+
+					} else if (((int)(cmd.param1)) == 2) {
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+						usleep(100000);
+						/* shutdown */
+						px4_shutdown_request(false, false);
 
 					} else if (((int)(cmd.param1)) == 3) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);

@@ -138,7 +138,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_follow_target_pub(nullptr),
 	_transponder_report_pub(nullptr),
 	_collision_report_pub(nullptr),
-	_control_state_pub(nullptr),
 	_debug_key_value_pub(nullptr),
 	_debug_value_pub(nullptr),
 	_debug_vect_pub(nullptr),
@@ -169,6 +168,28 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
+}
+
+void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret)
+{
+	vehicle_command_ack_s command_ack = {
+		.timestamp = hrt_absolute_time(),
+		.result_param2 = 0,
+		.command = command,
+		.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
+		.from_external = false,
+		.result_param1 = 0,
+		.target_system = sysid,
+		.target_component = compid
+	};
+
+	if (_command_ack_pub == nullptr) {
+		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+	}
 }
 
 void
@@ -436,14 +457,30 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
 	bool send_ack = true;
-	int ret = 0;
+	int ret = PX4_OK;
 
 	if (!target_ok) {
 		ret = PX4_ERROR;
-		goto out;
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
+		return;
 	}
 
-	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
+	//check for MAVLINK terminate command
+	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
+
+		int cmd_id = int(cmd_mavlink.param1);
+
+		if (cmd_id == 10) {
+			/* This is the link shutdown command, terminate mavlink */
+			PX4_WARN("terminated by remote");
+			fflush(stdout);
+			usleep(50000);
+
+			/* terminate other threads and this thread */
+			_mavlink->_task_should_exit = true;
+		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
@@ -455,8 +492,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f),
-					   cmd_mavlink.param2, cmd_mavlink.param3);
+		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		get_message_interval((int)cmd_mavlink.param1);
@@ -469,8 +505,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		send_ack = false;
 
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				 mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID", mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
@@ -513,27 +548,8 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		}
 	}
 
-out:
-
 	if (send_ack) {
-		vehicle_command_ack_s command_ack = {
-			.timestamp = 0,
-			.result_param2 = 0,
-			.command = cmd_mavlink.command,
-			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
-			.from_external = false,
-			.result_param1 = 0,
-			.target_system = msg->sysid,
-			.target_component = msg->compid
-		};
-
-		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-		}
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
 	}
 }
 
@@ -547,39 +563,68 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 
 	bool send_ack = true;
-	int ret = 0;
+	int ret = PX4_OK;
 
 	if (!target_ok) {
 		ret = PX4_ERROR;
-		goto out;
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
+		return;
 	}
 
 	//check for MAVLINK terminate command
-	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 10) {
-		/* This is the link shutdown command, terminate mavlink */
-		PX4_WARN("terminated by remote");
-		fflush(stdout);
-		usleep(50000);
+	if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
 
-		/* terminate other threads and this thread */
-		_mavlink->_task_should_exit = true;
+		int cmd_id = int(cmd_mavlink.param1);
+
+		if (cmd_id == 10) {
+			/* This is the link shutdown command, terminate mavlink */
+			PX4_WARN("terminated by remote");
+			fflush(stdout);
+			usleep(50000);
+
+			/* terminate other threads and this thread */
+			_mavlink->_task_should_exit = true;
+		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		/* send autopilot version message */
 		_mavlink->send_autopilot_capabilites();
 
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
+		/* send protocol version message */
+		_mavlink->send_protocol_version();
+
 	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 		_mavlink->configure_stream_threadsafe("HOME_POSITION", 0.5f);
 
+	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+		ret = set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3);
+
+	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+		get_message_interval((int)cmd_mavlink.param1);
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
+		send_flight_information();
+
 	} else {
 
+		send_ack = false;
+
 		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID",
-				 mavlink_system.sysid, mavlink_system.compid);
+			PX4_WARN("ignoring CMD with same SYS/COMP (%d/%d) ID", mavlink_system.sysid, mavlink_system.compid);
 			return;
 		}
 
-		send_ack = false;
+		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+			// we already instanciate the streaming object, because at this point we know on which
+			// mavlink channel streaming was requested. But in fact it's possible that the logger is
+			// not even running. The main mavlink thread takes care of this by waiting for an ack
+			// from the logger.
+			_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+
+		} else if (cmd_mavlink.command == MAV_CMD_LOGGING_STOP) {
+			_mavlink->request_stop_ulog_streaming();
+		}
 
 		struct vehicle_command_s vcmd = {
 			.timestamp = hrt_absolute_time(),
@@ -598,7 +643,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			.target_component = cmd_mavlink.target_component,
 			.source_system = msg->sysid,
 			.source_component = msg->compid,
-			.confirmation = 0,
+			.confirmation = false,
 			.from_external = true
 		};
 
@@ -610,27 +655,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		}
 	}
 
-out:
-
 	if (send_ack) {
-		vehicle_command_ack_s command_ack = {
-			.timestamp = 0,
-			.result_param2 = 0,
-			.command = cmd_mavlink.command,
-			.result = (ret == PX4_OK ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_FAILED),
-			.from_external = false,
-			.result_param1 = 0,
-			.target_system = msg->sysid,
-			.target_component = msg->compid
-		};
-
-		if (_command_ack_pub == nullptr) {
-			_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-							       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-		}
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, ret);
 	}
 }
 
@@ -1192,9 +1218,6 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 
 	vision_position.timestamp = sync_stamp(pos.time_usec);
 
-	// Use the estimator type to identify the external estimate
-	vision_position.estimator_type = pos.estimator_type;
-
 	vision_position.xy_valid = true;
 	vision_position.z_valid = true;
 	vision_position.v_xy_valid = true;
@@ -1207,10 +1230,6 @@ MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
 	vision_position.vx = pos.vx;
 	vision_position.vy = pos.vy;
 	vision_position.vz = pos.vz;
-
-	vision_position.ax = pos.ax;
-	vision_position.ay = pos.ay;
-	vision_position.az = pos.az;
 
 	// Low risk change for now. TODO : full covariance matrix
 	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
@@ -1235,9 +1254,6 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	mavlink_msg_vision_position_estimate_decode(msg, &pos);
 
 	struct vehicle_local_position_s vision_position = {};
-
-	// Use the estimator type to identify the simple vision estimate
-	vision_position.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 	vision_position.timestamp = sync_stamp(pos.usec);
 	vision_position.x = pos.x;
@@ -2277,7 +2293,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* global position */
 	{
 		struct vehicle_global_position_s hil_global_pos = {};
-		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
 
 		hil_global_pos.timestamp = timestamp;
 		hil_global_pos.lat = hil_state.lat / ((double)1e7);
@@ -2286,7 +2301,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_global_pos.vel_n = hil_state.vx / 100.0f;
 		hil_global_pos.vel_e = hil_state.vy / 100.0f;
 		hil_global_pos.vel_d = hil_state.vz / 100.0f;
-		hil_global_pos.yaw = euler.psi();
 		hil_global_pos.eph = 2.0f;
 		hil_global_pos.epv = 4.0f;
 
@@ -2394,66 +2408,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		} else {
 			orb_publish(ORB_ID(battery_status), _battery_pub, &hil_battery_status);
 		}
-	}
-
-	/* control state */
-	control_state_s ctrl_state = {};
-	matrix::Quatf q(hil_state.attitude_quaternion);
-	matrix::Dcmf R_to_body(q.inversed());
-
-	//Time
-	ctrl_state.timestamp = hrt_absolute_time();
-
-	//Roll Rates:
-	//ctrl_state: body angular rate (rad/s, x forward/y right/z down)
-	//hil_state : body frame angular speed (rad/s)
-	ctrl_state.roll_rate = hil_state.rollspeed;
-	ctrl_state.pitch_rate = hil_state.pitchspeed;
-	ctrl_state.yaw_rate = hil_state.yawspeed;
-
-	// Local Position NED:
-	//ctrl_state: position in local earth frame
-	//hil_state : Latitude/Longitude expressed as * 1E7
-	float x = 0.0f;
-	float y = 0.0f;
-	double lat = hil_state.lat * 1e-7;
-	double lon = hil_state.lon * 1e-7;
-	map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
-	ctrl_state.x_pos = x;
-	ctrl_state.y_pos = y;
-	ctrl_state.z_pos = hil_state.alt / 1000.0f;
-
-	// Attitude quaternion
-	q.copyTo(ctrl_state.q);
-
-	// Velocity
-	//ctrl_state: velocity in body frame (x forward/y right/z down)
-	//hil_state : Ground Speed in NED expressed as m/s * 100
-	matrix::Vector3f v_n(hil_state.vx, hil_state.vy, hil_state.vz);
-	matrix::Vector3f v_b = R_to_body * v_n;
-	ctrl_state.x_vel = v_b(0) / 100.0f;
-	ctrl_state.y_vel = v_b(1) / 100.0f;
-	ctrl_state.z_vel = v_b(2) / 100.0f;
-
-	// Acceleration
-	//ctrl_state: acceleration in body frame
-	//hil_state : acceleration in body frame
-	ctrl_state.x_acc = hil_state.xacc;
-	ctrl_state.y_acc = hil_state.yacc;
-	ctrl_state.z_acc = hil_state.zacc;
-
-	static float _acc_hor_filt = 0;
-	_acc_hor_filt = 0.95f * _acc_hor_filt + 0.05f * sqrtf(ctrl_state.x_acc * ctrl_state.x_acc + ctrl_state.y_acc *
-			ctrl_state.y_acc);
-	ctrl_state.horz_acc_mag = _acc_hor_filt;
-	ctrl_state.airspeed_valid = false;
-
-	// publish control state data
-	if (_control_state_pub == nullptr) {
-		_control_state_pub = orb_advertise(ORB_ID(control_state), &ctrl_state);
-
-	} else {
-		orb_publish(ORB_ID(control_state), _control_state_pub, &ctrl_state);
 	}
 }
 

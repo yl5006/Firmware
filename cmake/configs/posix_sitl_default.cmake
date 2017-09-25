@@ -79,9 +79,8 @@ set(config_module_list
 	#
 	#modules/attitude_estimator_q
 	modules/ekf2
-	#modules/ekf2_replay
-	#modules/local_position_estimator
-	#modules/position_estimator_inav
+#	modules/local_position_estimator
+#	modules/position_estimator_inav
 
 	#
 	# Vehicle Control
