@@ -4121,7 +4121,10 @@ void answer_command(struct vehicle_command_s &cmd, unsigned result,
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-		tune_positive(true);
+		if(cmd.command != vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST)
+		{
+			tune_positive(true);
+		}
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
@@ -4208,16 +4211,10 @@ void *commander_low_prio_loop(void *arg)
 
 			/* only handle low-priority commands here */
 			switch (cmd.command) {
-			case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:{
-				if (1) {
-					do_commander_motor_test(cmd,&mavlink_log_pub);
+			case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-				} else {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
-				}
-				
+					do_commander_motor_test(cmd,&mavlink_log_pub);
 				break;
-				}
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 				if (is_safe(&safety, &armed)) {
 

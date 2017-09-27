@@ -40,6 +40,7 @@
  *
 
  * @author Du Yong <duy1102002@gmail.com>
+ * @author yaoling <ylin5006@gmail.com>
  */
 
 
@@ -47,7 +48,8 @@
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
-#include "../../drivers/drv_pwm_output.h"
+#include "drivers/drv_pwm_output.h"
+#include <drivers/drv_gpio.h>
 
 #include <px4_posix.h>
 #include <px4_time.h>
@@ -103,49 +105,51 @@ uint32_t adapt_pwm_rate(uint32_t pwm_type,uint32_t pwm_rate) {
 }
 
 int do_commander_motor_test(struct vehicle_command_s cmd,orb_advert_t *mavlink_log_pub) {
-	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	uint32_t set_mask = 0;
+	int		fd;
+	unsigned	servo_count = 0;
+	int		ret;
 
-	unsigned single_ch = cmd.param1;
-	/* open for ioctl only */
-	int fd = px4_open(dev, 0);
-
-	int ret  = ioctl(fd, PWM_SERVO_ARM, 0);
-
-	if (ret != OK) {
-				err(1, "PWM_SERVO_ARM");
-			}
+	fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		calibration_log_info(mavlink_log_pub,"can't open %s", dev);
-		return ERROR;
+		PX4_ERR("failed to open device");
 	}
-	set_mask |= 1 << (single_ch - 1);
-	unsigned pwm_value = adapt_pwm_rate(cmd.param2,cmd.param3);
 
-	/* get the number of servo channels */
-	unsigned servo_count;
-	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count)) {
+		PX4_ERR("failed to get servo count");
+	}
+
+	/* tell IO that its ok to disable its safety with the switch */
+	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 
 	if (ret != OK) {
-		calibration_log_info(mavlink_log_pub, "PWM_SERVO_GET_COUNT");
-		px4_close(fd);
-		return ERROR;
+		PX4_ERR("PWM_SERVO_SET_ARM_OK");
 	}
-	for (unsigned i = 0; i < servo_count; i++) {
-		if (set_mask & 1 << i) {
-			ret = px4_ioctl(fd, PWM_SERVO_SET(i), pwm_value);
-//				calibration_log_info(mavlink_log_pub, "COUNT %d PWM_SERVO_SET(%d,%d)",servo_count,i,pwm_value);			
-			if (ret != OK) {
-				calibration_log_info(mavlink_log_pub, "PWM_SERVO_SET(%d,%d)",i,pwm_value);
-				px4_close(fd);
-				return ERROR;
 
-			}
-		}
+	if (ioctl(fd, PWM_SERVO_ARM, 0)) {
+		PX4_ERR("failed to arm servos");
 	}
-	px4_close(fd);
-	return OK;
+	/* sweep all servos between 1000..2000 */
+	servo_position_t servos[servo_count];
+
+	for (unsigned i = 0; i < servo_count; i++) {
+			servos[i] = PWM_MOTOR_OFF;
+	}
+	if(cmd.param3>10.0f)
+	{
+		servos[(int)cmd.param1-1] = adapt_pwm_rate((uint32_t)cmd.param2,(uint32_t)cmd.param3);
+	}
+	else
+	{
+		servos[(int)cmd.param1-1] = PWM_MOTOR_OFF;
+	}
+	ret = write(fd, servos, sizeof(servos));
+
+	if (ret != (int)sizeof(servos)) {
+		PX4_ERR("error writing PWM servo data, wrote %lu got %d", sizeof(servos), ret);
+	}
+    close(fd);
+	return 1;
 }
 
 
