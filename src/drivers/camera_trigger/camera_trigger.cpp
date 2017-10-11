@@ -534,18 +534,18 @@ CameraTrigger::cycle_trampoline(void *arg)
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
 
 			need_ack = true;
-
-			if (commandParamToInt(cmd.param7) == 1) {
+//          change param7 to param1  by yaoling
+			if (commandParamToInt(cmd.param1) == 1) {
 				// test shots are not logged or forwarded to GCS for geotagging
 				trig->_test_shot = true;
 
 			}
-
-			if (commandParamToInt((float)cmd.param5) == 1) {
+//  always  do  one shot not check param
+//			if (commandParamToInt((float)cmd.param5) == 1) {
 				// Schedule shot
 				trig->_one_shot = true;
 
-			}
+//			}
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
