@@ -107,6 +107,7 @@ private:
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 	int		_horizontal_distance_sub{-1};   //add by yaoling
+	int		_att_sub{-1};					/**< control state subscription */
     enum NAVSTATE
     {
         NAVGATION = 0,
@@ -121,6 +122,7 @@ private:
 	vehicle_control_mode_s			_control_mode{};			/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	horizontal_distance_s 			_horizontal_dis{};      //add by yaoling
+	vehicle_attitude_s				_att {};	/**< control state */
 	Subscription<vehicle_attitude_s>	_sub_attitude;
 	Subscription<sensor_bias_s>	_sub_sensors;
 

@@ -250,7 +250,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		}
 
 		math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
-		 Eulerf euler_angles(matrix::Quatf(_ctrl_state.q));
+		 Eulerf euler_angles(matrix::Quatf(_sub_attitude.get().q));
 		float mission_throttle = _parameters.throttle_cruise;
 
 		/* Just control the throttle */
