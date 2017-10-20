@@ -282,7 +282,7 @@ MavlinkLogHandler::_log_send_listing()
 	_pLogHandlerHelper->get_entry(_pLogHandlerHelper->next_entry, size, date ,type);
 	response.log_type	  = type;
 	response.size         = size;
-	response.time_utc     = date;,type
+	response.time_utc     = date;
 	response.id           = _pLogHandlerHelper->next_entry;
 	response.num_logs     = _pLogHandlerHelper->log_count;
 	response.last_log_num = _pLogHandlerHelper->last_entry;
@@ -376,18 +376,17 @@ LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date,  uint8_t &type
 			//-- Found our "index"
 			if (count++ == idx) {
 				char file[160];
-
+				char *t;
 				if (sscanf(line, "%u %u %s", &date, &size, file) == 3) {
-					char *f;
-					for (f = file; *f != '\0'; f++) {
+					for (t = file; *t != '\0'; t++) {
 								/* scan for space characters */
-								if (*f== '.') {
-									f++;
-									if(*f='u') 		//ulg
+								if (*t== '.') {
+									t++;
+									if(*t=='u') 		//ulg
 										type=0;
-									else if(*f='l') //log
+									else if(*t=='l') //log
 										type=1;
-									else if(*f='t') //txt
+									else if(*t=='t') //txt
 										type=2;
 								}
 					}
