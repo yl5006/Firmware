@@ -215,9 +215,9 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 		_pLogHandlerHelper->current_log_filename[0] = 0;
 		_pLogHandlerHelper->current_log_index = request.id;
 		uint32_t time_utc = 0;
-
+		uint8_t  type = 0;
 		if (!_pLogHandlerHelper->get_entry(_pLogHandlerHelper->current_log_index, _pLogHandlerHelper->current_log_size,
-						   time_utc,
+						   time_utc,type,
 						   _pLogHandlerHelper->current_log_filename, sizeof(_pLogHandlerHelper->current_log_filename))) {
 			PX4LOG_WARN("LogListHelper::get_entry failed.\n");
 			return;
@@ -278,9 +278,11 @@ MavlinkLogHandler::_log_send_listing()
 {
 	mavlink_log_entry_t response;
 	uint32_t size, date;
-	_pLogHandlerHelper->get_entry(_pLogHandlerHelper->next_entry, size, date);
+	uint8_t type;
+	_pLogHandlerHelper->get_entry(_pLogHandlerHelper->next_entry, size, date ,type);
+	response.log_type	  = type;
 	response.size         = size;
-	response.time_utc     = date;
+	response.time_utc     = date;,type
 	response.id           = _pLogHandlerHelper->next_entry;
 	response.num_logs     = _pLogHandlerHelper->log_count;
 	response.last_log_num = _pLogHandlerHelper->last_entry;
@@ -356,7 +358,7 @@ LogListHelper::~LogListHelper()
 
 //-------------------------------------------------------------------
 bool
-LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date, char *filename, int filename_len)
+LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date,  uint8_t &type, char *filename, int filename_len)
 {
 	//-- Find log file in log list file created during init()
 	size = 0;
@@ -376,6 +378,19 @@ LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date, char *filename
 				char file[160];
 
 				if (sscanf(line, "%u %u %s", &date, &size, file) == 3) {
+					char *f;
+					for (f = file; *f != '\0'; f++) {
+								/* scan for space characters */
+								if (*f== '.') {
+									f++;
+									if(*f='u') 		//ulg
+										type=0;
+									else if(*f='l') //log
+										type=1;
+									else if(*f='t') //txt
+										type=2;
+								}
+					}
 					if (filename && filename_len > 0) {
 						strncpy(filename, file, filename_len);
 						filename[filename_len - 1] = 0; // ensure null-termination
@@ -559,7 +574,7 @@ bool
 LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &date, uint32_t &size)
 {
 	if (file && file[0]) {
-		if (strstr(file, ".log") || strstr(file, ".ulg")) {
+		if (strstr(file, ".log") || strstr(file, ".ulg") || strstr(file, ".txt")) {
 			// Always try to get file time first
 			if (stat_file(path, &date, &size)) {
 				// Try to prevent taking date if it's around 1970 (use the logic below instead)
