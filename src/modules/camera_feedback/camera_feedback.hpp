@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <poll.h>
@@ -61,6 +62,10 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+using matrix::Eulerf;
+using matrix::Quatf;
 
 typedef enum : uint8_t {
 	CAMERA_FEEDBACK_MODE_NONE = 0,
@@ -92,7 +97,8 @@ public:
 	 * Stop the task.
 	 */
 	void		stop();
-
+	bool		get_log_time(struct tm *tt, bool boot_time);
+	int 		create_log_dir(tm *tt);
 private:
 
 	bool		_task_should_exit;		/**< if true, task should exit */
@@ -102,13 +108,17 @@ private:
 	int			_lpos_sub;
 	int			_gpos_sub;
 	int			_att_sub;
-
+	int32_t 	utc_offset{0};
 	orb_advert_t	_capture_pub;
 
 	param_t			_p_feedback;
-
+	param_t			_log_utc_offset{PARAM_INVALID};
 	camera_feedback_mode_t _camera_feedback_mode;
-
+	char 		_log_dir[256] {};
+	char 		time[100];
+	char    	line[300];
+	char    	camera_file[256];
+	time_t 		utc_time_sec;
 	void		task_main();
 
 	/**
