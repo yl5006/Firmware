@@ -43,6 +43,9 @@ mount -t procfs /proc
 #
 sercon
 
+# print full system version
+ver all
+
 #
 # Default to auto-start mode.
 #
@@ -233,6 +236,12 @@ then
 		param set SYS_AUTOSTART 4070
 	fi
 
+	if ver hwcmp NXPHLITE_V3
+	then
+		param set SYS_FMU_TASK 1
+		set MAVLINK_COMPANION_DEVICE /dev/ttyS4
+	fi
+
 	#
 	# Set USE_IO flag
 	#
@@ -402,7 +411,12 @@ then
 		sensors start -h
 		commander start --hil
 	else
-		gps start
+		if ver hwcmp PX4_SAME70XPLAINED_V1
+		then
+			gps start -d /dev/ttyS2
+		else
+			gps start
+		fi
 		sh /etc/init.d/rc.sensors
 		commander start
 	fi
@@ -545,7 +559,7 @@ then
 		then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
 			# Start MAVLink on Wifi (ESP8266 port)
-			mavlink start -r 20000 -m config -b 921600 -d /dev/ttyS0
+			mavlink start -r 20000 -b 921600 -d /dev/ttyS0
 		fi
 
 		if ver hwcmp AEROFC_V1
@@ -862,7 +876,7 @@ then
 		if [ $MIXER == none ]
 		then
 			# Set default mixer for UGV if not defined
-			set MIXER stampede
+			set MIXER ugv_generic
 		fi
 
 		if [ $MAV_TYPE == none ]
@@ -877,7 +891,7 @@ then
 		sh /etc/init.d/rc.interface
 
 		# Start standard UGV apps
-		sh /etc/init.d/rc.gnd_apps
+		sh /etc/init.d/rc.ugv_apps
 	fi
 
 	#

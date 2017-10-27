@@ -39,13 +39,15 @@ list(APPEND SRCS
 )
 
 if(${OS} STREQUAL "nuttx")
-	if (NOT ${BOARD} STREQUAL "sim")
-		list(APPEND SRCS
-			device_nuttx.cpp
-			cdev.cpp
-			i2c_nuttx.cpp
-			spi.cpp
-		)
+	list(APPEND SRCS
+		device_nuttx.cpp
+		cdev.cpp
+	)
+	if ("${CONFIG_I2C}" STREQUAL "y")
+		list(APPEND SRCS i2c_nuttx.cpp)
+	endif()
+	if ("${CONFIG_SPI}" STREQUAL "y")
+		list(APPEND SRCS spi.cpp)
 	endif()
 else()
 	list(APPEND SRCS
@@ -58,6 +60,7 @@ else()
 #	    gpio_posix.cpp
 		sim.cpp
 	)
+
 endif()
 
 px4_add_module(
@@ -66,4 +69,3 @@ px4_add_module(
 	DEPENDS
 		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

@@ -107,6 +107,8 @@ public:
 	int print_status() override;
 
 private:
+	int getRangeSubIndex(const int *subs); ///< get subscribtion index of first downward-facing range sensor
+
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
 	// time slip monitoring
@@ -295,6 +297,13 @@ private:
 	_mag_bias_saved_variance; ///< Assumed error variance of previously saved magnetometer bias estimates (mGauss**2)
 	BlockParamFloat _mag_bias_alpha;	///< maximum fraction of the learned magnetometer bias that is saved at each disarm
 
+	// EKF accel bias learning control
+	BlockParamExtFloat _acc_bias_lim;	///< Accelerometer bias learning limit (m/s**2)
+	BlockParamExtFloat _acc_bias_learn_acc_lim;	///< Maximum IMU accel magnitude that allows IMU bias learning (m/s**2)
+	BlockParamExtFloat
+	_acc_bias_learn_gyr_lim;	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
+	BlockParamExtFloat _acc_bias_learn_tc;	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
+
 	// Multi-rotor drag specific force fusion
 	BlockParamExtFloat _drag_noise;	///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	BlockParamExtFloat _bcoef_x;		///< ballistic coefficient along the X-axis (kg/m**2)
@@ -308,8 +317,8 @@ private:
 	BlockParamFloat _K_pstatic_coef_y;	///< static pressure position error coefficient along the Y body axis
 	BlockParamFloat _K_pstatic_coef_z;	///< static pressure position error coefficient along the Z body axis
 
-	// airspeed mode parameter
-	BlockParamInt _airspeed_disabled;
+	BlockParamInt _airspeed_disabled;	///< airspeed mode parameter
+
 };
 
 Ekf2::Ekf2():
@@ -408,6 +417,10 @@ Ekf2::Ekf2():
 	_mag_bias_id(this, "MAGBIAS_ID"),
 	_mag_bias_saved_variance(this, "MAGB_VREF"),
 	_mag_bias_alpha(this, "MAGB_K"),
+	_acc_bias_lim(this, "EKF2_ABL_LIM", false, _params->acc_bias_lim),
+	_acc_bias_learn_acc_lim(this, "EKF2_ABL_ACCLIM", false, _params->acc_bias_learn_acc_lim),
+	_acc_bias_learn_gyr_lim(this, "EKF2_ABL_GYRLIM", false, _params->acc_bias_learn_gyr_lim),
+	_acc_bias_learn_tc(this, "EKF2_ABL_TAU", false, _params->acc_bias_learn_tc),
 	_drag_noise(this, "DRAG_NOISE", true, _params->drag_noise),
 	_bcoef_x(this, "BCOEF_X", true, _params->bcoef_x),
 	_bcoef_y(this, "BCOEF_Y", true, _params->bcoef_y),
@@ -437,13 +450,20 @@ void Ekf2::run()
 	int airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
-	int range_finder_sub = orb_subscribe(ORB_ID(distance_sensor));
 	int ev_pos_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
 	int ev_att_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
 	int vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 	int sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+
+	// because we can have several distance sensor instances with different orientations
+	int range_finder_subs[ORB_MULTI_MAX_INSTANCES];
+	int range_finder_sub_index = -1; // index for downward-facing range finder subscription
+
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		range_finder_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
+	}
 
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = sensors_sub;
@@ -549,15 +569,27 @@ void Ekf2::run()
 			orb_copy(ORB_ID(optical_flow), optical_flow_sub, &optical_flow);
 		}
 
-		orb_check(range_finder_sub, &range_finder_updated);
+		if (range_finder_sub_index >= 0) {
+			orb_check(range_finder_subs[range_finder_sub_index], &range_finder_updated);
 
-		if (range_finder_updated) {
-			orb_copy(ORB_ID(distance_sensor), range_finder_sub, &range_finder);
+			if (range_finder_updated) {
+				orb_copy(ORB_ID(distance_sensor), range_finder_subs[range_finder_sub_index], &range_finder);
 
-			if (range_finder.min_distance >= range_finder.current_distance
-			    || range_finder.max_distance <= range_finder.current_distance) {
-				range_finder_updated = false;
+				// check if distance sensor is within working boundaries
+				if (range_finder.min_distance >= range_finder.current_distance ||
+				    range_finder.max_distance <= range_finder.current_distance) {
+					// use rng_gnd_clearance if on ground
+					if (_ekf.get_in_air_status()) {
+						range_finder_updated = false;
+
+					} else {
+						range_finder.current_distance = _rng_gnd_clearance.get();
+					}
+				}
 			}
+
+		} else {
+			range_finder_sub_index = getRangeSubIndex(range_finder_subs);
 		}
 
 		orb_check(ev_pos_sub, &vision_position_updated);
@@ -871,6 +903,13 @@ void Ekf2::run()
 			float pos_d_deriv;
 			_ekf.get_pos_d_deriv(&pos_d_deriv);
 			lpos.z_deriv = pos_d_deriv; // vertical position time derivative (m/s)
+
+			// Acceleration of body origin in local NED frame
+			float vel_deriv[3] = {};
+			_ekf.get_vel_deriv_ned(vel_deriv);
+			lpos.ax = vel_deriv[0];
+			lpos.ay = vel_deriv[1];
+			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
 			lpos.xy_valid = _ekf.local_position_is_valid() && !_vel_innov_preflt_fail;
@@ -1279,13 +1318,38 @@ void Ekf2::run()
 	orb_unsubscribe(airspeed_sub);
 	orb_unsubscribe(params_sub);
 	orb_unsubscribe(optical_flow_sub);
-	orb_unsubscribe(range_finder_sub);
 	orb_unsubscribe(ev_pos_sub);
 	orb_unsubscribe(ev_att_sub);
 	orb_unsubscribe(vehicle_land_detected_sub);
 	orb_unsubscribe(status_sub);
 	orb_unsubscribe(sensor_selection_sub);
 	orb_unsubscribe(sensor_baro_sub);
+
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		orb_unsubscribe(range_finder_subs[i]);
+		range_finder_subs[i] = -1;
+	}
+}
+
+int Ekf2::getRangeSubIndex(const int *subs)
+{
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		bool updated = false;
+		orb_check(subs[i], &updated);
+
+		if (updated) {
+			distance_sensor_s report = {};
+			orb_copy(ORB_ID(distance_sensor), subs[i], &report);
+
+			// only use the first instace which has the correct orientation
+			if (report.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
+				PX4_INFO("Found range finder with instance %d", i);
+				return i;
+			}
+		}
+	}
+
+	return -1;
 }
 
 Ekf2 *Ekf2::instantiate(int argc, char *argv[])
@@ -1337,7 +1401,7 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("ekf2",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ESTIMATOR,
-				      5700,
+				      5720,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

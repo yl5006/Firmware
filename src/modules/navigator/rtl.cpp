@@ -54,7 +54,6 @@ RTL::RTL(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_rtl_state(RTL_STATE_NONE),
 	_param_return_alt(this, "RTL_RETURN_ALT", false),
-	_param_min_loiter_alt(this, "MIS_LTRMIN_ALT", false),
 	_param_descend_alt(this, "RTL_DESCEND_ALT", false),
 	_param_land_delay(this, "RTL_LAND_DELAY", false),
 	_param_rtl_min_dist(this, "RTL_MIN_DIST", false)
@@ -84,7 +83,8 @@ RTL::on_activation()
 {
 	set_current_position_item(&_mission_item);
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	mission_apply_limitation(_mission_item);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
@@ -286,12 +286,13 @@ RTL::set_rtl_item()
 	reset_mission_item_reached();
 
 	/* execute command if set. This is required for commands like VTOL transition */
-	if (!item_contains_position(&_mission_item)) {
-		issue_command(&_mission_item);
+	if (!item_contains_position(_mission_item)) {
+		issue_command(_mission_item);
 	}
 
 	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	mission_apply_limitation(_mission_item);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();

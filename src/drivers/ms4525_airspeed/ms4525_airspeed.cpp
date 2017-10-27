@@ -49,12 +49,9 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
-
 #include <px4_config.h>
 
 #include <drivers/device/i2c.h>
-
-#include <board_config.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -238,11 +235,6 @@ MEASAirspeed::collect()
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
 
-	new_report(report);
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
-
 	ret = OK;
 
 	perf_end(_sample_perf);
@@ -382,11 +374,10 @@ namespace meas_airspeed
 
 MEASAirspeed	*g_dev = nullptr;
 
-void	start(int i2c_bus);
-void	stop();
-void	test();
-void	reset();
-void	info();
+int start(int i2c_bus);
+int stop();
+int test();
+int reset();
 
 /**
  * Start the driver.
@@ -394,13 +385,14 @@ void	info();
  * This function call only returns once the driver is up and running
  * or failed to detect the sensor.
  */
-void
+int
 start(int i2c_bus)
 {
 	int fd;
 
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
+		return PX4_ERROR;
 	}
 
 	/* create the driver, try the MS4525DO first */
@@ -411,9 +403,7 @@ start(int i2c_bus)
 		goto fail;
 	}
 
-	/* both versions failed if the init for the MS5525DSO fails, give up */
-	if (OK != g_dev->Airspeed::init()) {
-		PX4_ERR("init fail");
+	if (OK != g_dev->init()) {
 		goto fail;
 	}
 
@@ -428,7 +418,7 @@ start(int i2c_bus)
 		goto fail;
 	}
 
-	return;
+	return PX4_OK;
 
 fail:
 
@@ -437,13 +427,15 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("no MS4525 airspeed sensor connected");
+	PX4_WARN("not started on bus %d", i2c_bus);
+
+	return PX4_ERROR;
 }
 
 /**
  * Stop the driver
  */
-void
+int
 stop()
 {
 	if (g_dev != nullptr) {
@@ -452,7 +444,10 @@ stop()
 
 	} else {
 		PX4_ERR("driver not running");
+		return PX4_ERROR;
 	}
+
+	return PX4_OK;
 }
 
 /**
@@ -460,7 +455,7 @@ stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct differential_pressure_s report;
@@ -471,6 +466,7 @@ test()
 
 	if (fd < 0) {
 		PX4_ERR("%s open failed (try 'meas_airspeed start' if the driver is not running", PATH_MS4525);
+		return PX4_ERROR;
 	}
 
 	/* do a simple demand read */
@@ -478,6 +474,7 @@ test()
 
 	if (sz != sizeof(report)) {
 		PX4_ERR("immediate read failed");
+		return PX4_ERROR;
 	}
 
 	PX4_INFO("single read");
@@ -486,6 +483,7 @@ test()
 	/* start the sensor polling at 2Hz */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		PX4_ERR("failed to set 2Hz poll rate");
+		return PX4_ERROR;
 	}
 
 	/* read the sensor 5x and report each value */
@@ -498,7 +496,8 @@ test()
 		ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			PX4_ERR("timed out");
+			PX4_ERR("timed out waiting for sensor data");
+			return PX4_ERROR;
 		}
 
 		/* now go get it */
@@ -506,6 +505,7 @@ test()
 
 		if (sz != sizeof(report)) {
 			PX4_ERR("periodic read failed");
+			return PX4_ERROR;
 		}
 
 		PX4_INFO("periodic read %u", i);
@@ -516,42 +516,36 @@ test()
 	/* reset the sensor polling to its default rate */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		PX4_ERR("failed to set default rate");
+		return PX4_ERROR;
 	}
+
+	return PX4_OK;
 }
 
 /**
  * Reset the driver.
  */
-void
+int
 reset()
 {
 	int fd = px4_open(PATH_MS4525, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("failed ");
+		PX4_ERR("failed");
+		return PX4_ERROR;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
+		return PX4_ERROR;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
-	}
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
+		return PX4_ERROR;
 	}
 
-	PX4_INFO("state @ %p", g_dev);
-	g_dev->print_info();
+	return PX4_OK;
 }
 
 } // namespace
@@ -564,7 +558,7 @@ meas_airspeed_usage()
 	PX4_INFO("options:");
 	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|reset|test|info");
+	PX4_INFO("\tstart|stop|reset|test");
 }
 
 int
@@ -586,38 +580,31 @@ ms4525_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-		meas_airspeed::start(i2c_bus);
+		return meas_airspeed::start(i2c_bus);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop")) {
-		meas_airspeed::stop();
+		return meas_airspeed::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test")) {
-		meas_airspeed::test();
+		return meas_airspeed::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset")) {
-		meas_airspeed::reset();
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		meas_airspeed::info();
+		return meas_airspeed::reset();
 	}
 
 	meas_airspeed_usage();
 
-	return 0;
+	return PX4_OK;
 }

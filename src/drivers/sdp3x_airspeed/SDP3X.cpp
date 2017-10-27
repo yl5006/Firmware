@@ -66,7 +66,6 @@ SDP3X::init_sdp3x()
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
-		PX4_ERR("reset failed");
 		return false;
 	}
 
@@ -160,11 +159,6 @@ SDP3X::collect()
 	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
-
-	new_report(report);
-
-	// notify anyone waiting for data
-	poll_notify(POLLIN);
 
 	ret = OK;
 

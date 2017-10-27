@@ -61,15 +61,24 @@ namespace px4
 namespace logger
 {
 
-enum class SDLogProfile : int32_t {
-	DEFAULT = 0,
-	THERMAL_CALIBRATION,
-	SYSTEM_IDENTIFICATION,
-	N_PROFILES
+enum class SDLogProfileMask : int32_t {
+	DEFAULT =               1 << 0,
+	ESTIMATOR_REPLAY =      1 << 1,
+	THERMAL_CALIBRATION =   1 << 2,
+	SYSTEM_IDENTIFICATION = 1 << 3,
+	HIGH_RATE =             1 << 4,
+	DEBUG_TOPICS =          1 << 5,
+	SENSOR_COMPARISON =	1 << 6
 };
 
+inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
+{
+	return static_cast<int32_t>(a) & static_cast<int32_t>(b);
+}
+
 struct LoggerSubscription {
-	int fd[ORB_MULTI_MAX_INSTANCES];
+	int fd[ORB_MULTI_MAX_INSTANCES]; ///< uorb subscription. The first fd is also used to store the interval if
+	/// not subscribed yet (-interval - 1)
 	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
 	const orb_metadata *metadata = nullptr;
 
@@ -128,14 +137,17 @@ public:
 	 * (because it does not write an ADD_LOGGED_MSG message).
 	 * @param name topic name
 	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
-	 * @return -1 on error, file descriptor otherwise
+	 * @return true on success
 	 */
-	int add_topic(const char *name, unsigned interval);
+	bool add_topic(const char *name, unsigned interval = 0);
 
 	/**
-	 * add a logged topic (called by add_topic() above)
+	 * add a logged topic (called by add_topic() above).
+	 * In addition, it subscribes to the first instance of the topic, if it's advertised,
+	 * and sets the file descriptor of LoggerSubscription accordingly
+	 * @return the newly added subscription on success, nullptr otherwise
 	 */
-	int add_topic(const orb_metadata *topic);
+	LoggerSubscription *add_topic(const orb_metadata *topic);
 
 	/**
 	 * request the logger thread to stop (this method does not block).
@@ -245,6 +257,12 @@ private:
 	inline bool copy_if_updated_multi(LoggerSubscription &sub, int multi_instance, void *buffer, bool try_to_subscribe);
 
 	/**
+	 * Check if a topic instance exists and subscribe to it
+	 * @return true when topic exists and subscription successful
+	 */
+	bool try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance);
+
+	/**
 	 * Write exactly one ulog message to the logger and handle dropouts.
 	 * Must be called with _writer.lock() held.
 	 * @return true if data written, false otherwise (on overflow)
@@ -266,10 +284,13 @@ private:
 	 */
 	int add_topics_from_file(const char *fname);
 
-	void add_common_topics();
+	void add_default_topics();
 	void add_estimator_replay_topics();
 	void add_thermal_calibration_topics();
 	void add_system_identification_topics();
+	void add_high_rate_topics();
+	void add_debug_topics();
+	void add_sensor_comparison_topics();
 
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
 

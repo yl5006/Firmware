@@ -94,8 +94,6 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, 
 	_subscriber_count(0),
 	_publisher(0)
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 }
 
 uORB::DeviceNode::~DeviceNode()
@@ -170,6 +168,10 @@ uORB::DeviceNode::open(device::file_t *filp)
 		}
 
 		return ret;
+	}
+
+	if (FILE_FLAGS(filp) == 0) {
+		return CDev::open(filp);
 	}
 
 	/* can only be pub or sub, not both */
@@ -404,6 +406,11 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		} else {
 			*(unsigned *)arg = 0;
 		}
+
+		return OK;
+
+	case ORBIOCISPUBLISHED:
+		*(unsigned long *)arg = _published;
 
 		return OK;
 
@@ -833,8 +840,6 @@ uORB::DeviceMaster::DeviceMaster(Flavor f) :
 	     (f == PUBSUB) ? TOPIC_MASTER_DEVICE_PATH : PARAM_MASTER_DEVICE_PATH),
 	_flavor(f)
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 	_last_statistics_output = hrt_absolute_time();
 }
 

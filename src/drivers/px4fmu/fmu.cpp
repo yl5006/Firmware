@@ -82,6 +82,18 @@
 static constexpr uint8_t CYCLE_COUNT = 10; /* safety switch must be held for 1 second to activate */
 static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 
+#if defined(PX4_CPU_UUID_WORD32_FORMAT)
+#  define CPU_UUID_FORMAT PX4_CPU_UUID_WORD32_FORMAT
+#else
+#  define CPU_UUID_FORMAT "%0X"
+#endif
+
+#if defined(PX4_CPU_UUID_WORD32_SEPARATOR)
+#  define CPU_UUID_SEPARATOR PX4_CPU_UUID_WORD32_SEPARATOR
+#else
+#  define CPU_UUID_SEPARATOR " "
+#endif
+
 /*
  * Define the various LED flash sequences for each system state.
  */
@@ -97,6 +109,7 @@ enum PortMode {
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
 	PORT_RC_IN,
+	PORT_PWM6,
 	PORT_PWM4,
 	PORT_PWM3,
 	PORT_PWM2,
@@ -123,6 +136,7 @@ public:
 		MODE_4PWM,
 		MODE_6PWM,
 		MODE_8PWM,
+		MODE_14PWM,
 		MODE_4CAP,
 		MODE_5CAP,
 		MODE_6CAP,
@@ -401,6 +415,8 @@ PX4FMU::PX4FMU(bool run_as_task) :
 
 	// rc input, published to ORB
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+	// initialize it as RC lost
+	_rc_in.rc_lost = true;
 
 	// initialize raw_rc values and count
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
@@ -729,6 +745,21 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_mask = 0xff;
 		_pwm_initialized = false;
 		_num_outputs = 8;
+
+		break;
+#endif
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case MODE_14PWM:
+		DEVICE_DEBUG("MODE_14PWM");
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x3fff;
+		_pwm_initialized = false;
+		_num_outputs = 14;
 
 		break;
 #endif
@@ -1409,16 +1440,15 @@ PX4FMU::cycle()
 			 * We also need to arm throttle for the ESC calibration. */
 			_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) ||
 					  (_safety_off && _armed.in_esc_calibration_mode);
+		}
 
+		/* update PWM status if armed or if disarmed PWM values are set */
+		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
 
-			/* update PWM status if armed or if disarmed PWM values are set */
-			bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
+		if (_pwm_on != pwm_on) {
+			_pwm_on = pwm_on;
 
-			if (_pwm_on != pwm_on) {
-				_pwm_on = pwm_on;
-
-				update_pwm_out_state(pwm_on);
-			}
+			update_pwm_out_state(pwm_on);
 		}
 
 #ifdef RC_SERIAL_PORT
@@ -1429,24 +1459,27 @@ PX4FMU::cycle()
 			struct vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &cmd);
 
-			// Check for a DSM pairing command
-			if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
+			// Check for a pairing command
+			if ((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 				if (!_armed.armed) {
-					int dsm_bind_mode = (int)cmd.param2;
+					if ((int)cmd.param1 == 0) {
+						// DSM binding command
+						int dsm_bind_mode = (int)cmd.param2;
 
-					int dsm_bind_pulses = 0;
+						int dsm_bind_pulses = 0;
 
-					if (dsm_bind_mode == 0) {
-						dsm_bind_pulses = DSM2_BIND_PULSES;
+						if (dsm_bind_mode == 0) {
+							dsm_bind_pulses = DSM2_BIND_PULSES;
 
-					} else if (dsm_bind_mode == 1) {
-						dsm_bind_pulses = DSMX_BIND_PULSES;
+						} else if (dsm_bind_mode == 1) {
+							dsm_bind_pulses = DSMX_BIND_PULSES;
 
-					} else {
-						dsm_bind_pulses = DSMX8_BIND_PULSES;
+						} else {
+							dsm_bind_pulses = DSMX8_BIND_PULSES;
+						}
+
+						ioctl(nullptr, DSM_BIND_START, dsm_bind_pulses);
 					}
-
-					ioctl(nullptr, DSM_BIND_START, dsm_bind_pulses);
 
 				} else {
 					PX4_WARN("system armed, bind request rejected");
@@ -1610,12 +1643,18 @@ PX4FMU::cycle()
 					// The st24 will keep outputting RC channels and RSSI even if RC has been lost.
 					// The only way to detect RC loss is therefore to look at the lost_count.
 
-					if (rc_updated && lost_count == 0) {
-						// we have a new ST24 frame. Publish it.
-						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
-						fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
-							   false, false, frame_drops, st24_rssi);
-						_rc_scan_locked = true;
+					if (rc_updated) {
+						if (lost_count == 0) {
+							// we have a new ST24 frame. Publish it.
+							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
+							fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+								   false, false, frame_drops, st24_rssi);
+							_rc_scan_locked = true;
+
+						} else {
+							// if the lost count > 0 means that there is an RC loss
+							_rc_in.rc_lost = true;
+						}
 					}
 				}
 
@@ -1854,6 +1893,9 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 	case MODE_8PWM:
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+	case MODE_14PWM:
 #endif
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
@@ -2152,6 +2194,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case PWM_SERVO_SET(13):
+	case PWM_SERVO_SET(12):
+	case PWM_SERVO_SET(11):
+	case PWM_SERVO_SET(10):
+	case PWM_SERVO_SET(9):
+	case PWM_SERVO_SET(8):
+		if (_mode < MODE_14PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case PWM_SERVO_SET(7):
@@ -2205,6 +2261,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+	case PWM_SERVO_GET(13):
+	case PWM_SERVO_GET(12):
+	case PWM_SERVO_GET(11):
+	case PWM_SERVO_GET(10):
+	case PWM_SERVO_GET(9):
+	case PWM_SERVO_GET(8):
+		if (_mode < MODE_14PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	/* FALLTHROUGH */
@@ -2261,12 +2331,27 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(6):
 	case PWM_SERVO_GET_RATEGROUP(7):
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+	case PWM_SERVO_GET_RATEGROUP(8):
+	case PWM_SERVO_GET_RATEGROUP(9):
+	case PWM_SERVO_GET_RATEGROUP(10):
+	case PWM_SERVO_GET_RATEGROUP(11):
+	case PWM_SERVO_GET_RATEGROUP(12):
+	case PWM_SERVO_GET_RATEGROUP(13):
+#endif
 		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
+
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
+
+		case MODE_14PWM:
+			*(unsigned *)arg = 14;
+			break;
+#endif
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
@@ -2531,7 +2616,7 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[8];
+	uint16_t values[len];
 
 #if BOARD_HAS_PWM == 0
 	return 0;
@@ -2913,6 +2998,9 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 8
 		servo_mode = PX4FMU::MODE_8PWM;
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 14
+		servo_mode = PX4FMU::MODE_14PWM;
+#endif
 		break;
 
 	case PORT_RC_IN:
@@ -2924,6 +3012,13 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_1PWM;
 		break;
 
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+
+	case PORT_PWM6:
+		/* select 4-pin PWM mode */
+		servo_mode = PX4FMU::MODE_6PWM;
+		break;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 	case PORT_PWM4:
@@ -3343,6 +3438,11 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+
+	} else if (!strcmp(verb, "mode_pwm6")) {
+		new_mode = PORT_PWM6;
+#endif
 	}
 
 	/* was a new mode set? */
@@ -3429,7 +3529,9 @@ mixer files.
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
 #endif
-
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+	PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
+#endif
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a DSM bind command (module must be running)");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_reset", "Do a sensor reset (SPI bus)");

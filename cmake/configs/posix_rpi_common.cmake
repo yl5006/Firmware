@@ -101,14 +101,12 @@ set(config_module_list
 	lib/geo_lookup
 	lib/launchdetection
 	lib/led
-	lib/external_lgpl
 	lib/conversion
 	lib/terrain_estimation
 	lib/runway_takeoff
 	lib/tailsitter_recovery
 	lib/version
 	lib/DriverFramework/framework
-	lib/micro-CDR
 
 	#
 	# POSIX

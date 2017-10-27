@@ -62,8 +62,9 @@ private:
 
 	bool checkMissionItemValidity(dm_item_t dm_current, size_t nMissionItems, bool condition_landed);
 
-	bool check_dist_1wp(dm_item_t dm_current, size_t nMissionItems, double curr_lat, double curr_lon,
-			    float dist_first_wp, bool &warning_issued);
+	bool checkDistanceToFirstWaypoint(dm_item_t dm_current, size_t nMissionItems, float max_distance, bool &warning_issued);
+	bool checkDistancesBetweenWaypoints(dm_item_t dm_current, size_t nMissionItems, float max_distance,
+					    bool &warning_issued);
 
 	/* Checks specific to fixedwing airframes */
 	bool checkFixedwing(dm_item_t dm_current, size_t nMissionItems, fw_pos_ctrl_status_s *fw_pos_ctrl_status,
@@ -76,7 +77,7 @@ private:
 
 	/* Checks specific to rotarywing airframes */
 	bool checkRotarywing(dm_item_t dm_current, size_t nMissionItems,
-			     float home_alt, bool home_valid, float default_acceptance_rad);
+			     float home_alt, bool home_valid, float default_altitude_acceptance_rad);
 
 public:
 	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {}
@@ -88,7 +89,9 @@ public:
 	/*
 	 * Returns true if mission is feasible and false otherwise
 	 */
-	bool checkMissionFeasible(const mission_s &mission, float max_waypoint_distance, bool land_start_req);
+	bool checkMissionFeasible(const mission_s &mission,
+				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
+				  bool land_start_req);
 
 };
 

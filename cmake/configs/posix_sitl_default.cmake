@@ -3,7 +3,7 @@ include(posix/px4_impl_posix)
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
-	drivers/boards/sitl
+	drivers/boards
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
@@ -60,6 +60,12 @@ set(config_module_list
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
+	platforms/posix/tests/hello
+	platforms/posix/tests/hrt_test
+	platforms/posix/tests/muorb
+	platforms/posix/tests/vcdev_test
+	platforms/posix/tests/wqueue
+
 	#
 	# General system control
 	#
@@ -108,9 +114,6 @@ set(config_module_list
 	modules/systemlib/mixer
 	modules/uORB
 
-        # micro RTPS
-        modules/micrortps_bridge/micrortps_client
-
 	#
 	# Libraries
 	#
@@ -118,7 +121,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/external_lgpl
 	lib/geo
 	lib/geo_lookup
 	lib/launchdetection
@@ -141,7 +143,7 @@ set(config_module_list
 	#
 	# OBC challenge
 	#
-	#modules/bottle_drop
+	examples/bottle_drop
 
 	#
 	# Rover apps
@@ -183,45 +185,18 @@ set(config_module_list
 
 	# EKF
 	#examples/ekf_att_pos_estimator
-
-	# micro-RTPS
-	lib/micro-CDR
 )
-
-set(config_extra_builtin_cmds
-	serdis
-	sercon
-	)
-
-set(config_rtps_send_topics
-	sensor_baro
-	)
-
-set(config_rtps_receive_topics
-	sensor_combined
-	)
 
 # Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
 # for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
 # which are based on posix_sitl_default.
-set(config_sitl_rcS_dir
-	posix-configs/SITL/init/ekf2
-	CACHE INTERNAL "init script dir for sitl"
-	)
+set(config_sitl_rcS_dir posix-configs/SITL/init/ekf2 CACHE INTERNAL "init script dir for sitl")
 
-set(config_sitl_viewer
-	jmavsim
-	CACHE STRING "viewer for sitl"
-	)
-set_property(CACHE config_sitl_viewer
-	PROPERTY STRINGS "jmavsim;none")
+set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
+set_property(CACHE config_sitl_viewer PROPERTY STRINGS "jmavsim;none")
 
-set(config_sitl_debugger
-	disable
-	CACHE STRING "debugger for sitl"
-	)
-set_property(CACHE config_sitl_debugger
-	PROPERTY STRINGS "disable;gdb;lldb")
+set(config_sitl_debugger disable CACHE STRING "debugger for sitl")
+set_property(CACHE config_sitl_debugger PROPERTY STRINGS "disable;gdb;lldb")
 
 # If the environment variable 'replay' is defined, we are building with replay
 # support. In this case, we enable the orb publisher rules.
@@ -230,4 +205,3 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
-

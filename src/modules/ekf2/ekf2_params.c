@@ -46,6 +46,7 @@
  * @group EKF2
  * @min 10
  * @max 50
+ * @reboot_required true
  * @unit ms
  */
 PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
@@ -57,6 +58,7 @@ PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
@@ -68,6 +70,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_DELAY, 0);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
@@ -79,6 +82,7 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_DELAY, 0);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
@@ -91,6 +95,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_DELAY, 110);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
@@ -102,6 +107,7 @@ PARAM_DEFINE_FLOAT(EKF2_OF_DELAY, 5);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
@@ -113,6 +119,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_DELAY, 5);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
@@ -124,6 +131,7 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
  * @min 0
  * @max 300
  * @unit ms
+ * @reboot_required true
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
@@ -439,6 +447,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * @bit 0 use geo_lookup declination
  * @bit 1 save EKF2_MAG_DECL on disarm
  * @bit 2 use declination as an observation
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 
@@ -453,6 +462,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 1 Magnetic heading
  * @value 2 3-axis fusion
  * @value 3 None
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
 
@@ -540,6 +550,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 3 vision position fusion
  * @bit 4 vision yaw fusion
  * @bit 5 multi-rotor drag fusion
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
 
@@ -553,7 +564,7 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
  * @value 1 GPS
  * @value 2 Range sensor
  * @value 3 Vision
- *
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
 
@@ -887,6 +898,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAU_POS, 0.25f);
  * @min 0.0
  * @max 0.2
  * @unit rad/sec
+ * @reboot_required true
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
@@ -898,6 +910,7 @@ PARAM_DEFINE_FLOAT(EKF2_GBIAS_INIT, 0.1f);
  * @min 0.0
  * @max 0.5
  * @unit m/s/s
+ * @reboot_required true
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
@@ -909,6 +922,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABIAS_INIT, 0.2f);
  * @min 0.0
  * @max 0.5
  * @unit rad
+ * @reboot_required true
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
@@ -931,6 +945,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * @group EKF2
  * @min -0.5
  * @max 0.5
+ * @reboot_required true
  * @unit mGauss
  * @decimal 3
  */
@@ -943,6 +958,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_X, 0.0f);
  * @group EKF2
  * @min -0.5
  * @max 0.5
+ * @reboot_required true
  * @unit mGauss
  * @decimal 3
  */
@@ -955,6 +971,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Y, 0.0f);
  * @group EKF2
  * @min -0.5
  * @max 0.5
+ * @reboot_required true
  * @unit mGauss
  * @decimal 3
  */
@@ -964,6 +981,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAGBIAS_Z, 0.0f);
  * ID of Magnetometer the learned bias is for.
  *
  * @group EKF2
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
 
@@ -972,6 +990,7 @@ PARAM_DEFINE_INT32(EKF2_MAGBIAS_ID, 0);
  * This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value. Smaller values will make the stored bias data adjust more slowly from flight to flight. Larger values will make it adjust faster.
  *
  * @group EKF2
+ * @reboot_required true
  * @unit mGauss**2
  * @decimal 8
  */
@@ -1131,3 +1150,53 @@ PARAM_DEFINE_FLOAT(EKF2_PCOEF_Y, 0.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_PCOEF_Z, 0.0f);
+
+/**
+ * Accelerometer bias learning limit. The ekf delta velocity bias states will be limited to within a range equivalent to +- of this value.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.8
+ * @unit m/s/s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
+
+/**
+ * Maximum IMU accel magnitude that allows IMU bias learning.
+ * If the magnitude of the IMU accelerometer vector exceeds this value, the EKF delta velocity state estimation will be inhibited.
+ * This reduces the adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale factor errors on the delta velocity bias estimates.
+ *
+ * @group EKF2
+ * @min 20.0
+ * @max 200.0
+ * @unit m/s/s
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
+
+/**
+ * Maximum IMU gyro angular rate magnitude that allows IMU bias learning.
+ * If the magnitude of the IMU angular rate vector exceeds this value, the EKF delta velocity state estimation will be inhibited.
+ * This reduces the adverse effect of rapid rotation rates and associated errors on the delta velocity bias estimates.
+ *
+ * @group EKF2
+ * @min 2.0
+ * @max 20.0
+ * @unit rad/s
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
+
+/**
+ * Time constant used by acceleration and angular rate magnitude checks used to inhibit delta velocity bias learning.
+ * The vector magnitude of angular rate and acceleration used to check if learning should be inhibited has a peak hold filter applied to it with an exponential decay.
+ * This parameter controls the time constant of the decay.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 1.0
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);

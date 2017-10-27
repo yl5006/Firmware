@@ -173,8 +173,6 @@ private:
 	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
 				   struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
-	bool calculate_nearest_mission_items(bool onboard, struct mission_item_s *mission_item,
-			struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
 	 * from the dataman and watch out for DO_JUMPS
@@ -232,8 +230,8 @@ private:
 	control::BlockParamInt _param_onboard_enabled;
 	control::BlockParamFloat _param_takeoff_alt;
 	control::BlockParamFloat _param_dist_1wp;
+	control::BlockParamFloat _param_dist_between_wps;
 	control::BlockParamInt _param_altmode;
-	control::BlockParamInt _param_force_vtol;
 	control::BlockParamInt _param_mission_rtljump;  		/**< jump to nearest misstion RTL */
 	control::BlockParamFloat _param_fw_climbout_diff;
 
