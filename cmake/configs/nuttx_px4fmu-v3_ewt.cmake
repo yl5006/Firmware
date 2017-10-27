@@ -46,15 +46,15 @@ set(config_module_list
 	drivers/px4io
 	drivers/rgbled
 	#drivers/sdp3x_airspeed
-	drivers/sf0x
-	drivers/sf1xx
+	#drivers/sf0x
+	#drivers/sf1xx
 	#drivers/snapdragon_rc_pwm
 	drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
 	drivers/tap_esc
-	drivers/trone
+	drivers/teraranger
 	drivers/vmount
 	modules/sensors
 
@@ -69,6 +69,7 @@ set(config_module_list
 	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/motor_ramp
+	systemcmds/motor_test
 	systemcmds/mtd
 	systemcmds/nshterm
 	systemcmds/param
@@ -234,9 +235,6 @@ set(config_io_board
 set(config_extra_libs
 	uavcan
 	uavcan_stm32_driver
-	)
-
-set(config_io_extra_libs
 	)
 
 add_custom_target(sercon)

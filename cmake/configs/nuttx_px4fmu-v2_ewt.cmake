@@ -30,7 +30,7 @@ set(config_module_list
 	#drivers/srf02    #range finder
 	#drivers/sf0x
 	#drivers/ll40ls
-	#drivers/trone
+	#drivers/teraranger
 	drivers/gps
 	#drivers/pwm_out_sim
 	#drivers/hott
@@ -54,7 +54,7 @@ set(config_module_list
 	#drivers/snapdragon_rc_pwm
 	#drivers/lis3mdl
 	#drivers/iridiumsbd
-	#drivers/ulanding
+	drivers/ulanding
 	#drivers/milliwave
 	#drivers/psk_cm12jl
 	#
@@ -100,7 +100,7 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	#modules/gpio_led
-	#modules/uavcan
+	modules/uavcan
 	modules/land_detector
 	modules/camera_feedback
 
@@ -206,10 +206,6 @@ set(config_extra_builtin_cmds
 set(config_io_board
 	px4io-v2
 	)
-#set(config_extra_libs
-#	uavcan
-#	uavcan_stm32_driver
-#	)
 
 add_custom_target(sercon)
 set_target_properties(sercon PROPERTIES
