@@ -128,6 +128,21 @@ __EXPORT uint32_t px4_firmware_version(void);
  */
 __EXPORT uint32_t version_tag_to_vendor_version_number(const char *tag);
 
+
+/**
+_* Convert a version tag string to a number
+ * @param tag version tag in one of the following forms:
+ *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - rc: v1.4.0rc4
+ *            - release: v1.4.0
+ *            - linux: 7.9.3
+ * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
+ */
+__EXPORT uint32_t version_tag_to_middleware(const char *tag);
+
+
+__EXPORT uint32_t px4_middleware_version(void);
+
 /**
  * get the PX4 Firmware vendor version
  * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)

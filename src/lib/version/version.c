@@ -229,6 +229,25 @@ uint32_t px4_firmware_vendor_version(void)
 	return version_tag_to_vendor_version_number(PX4_GIT_TAG_STR);
 }
 
+uint32_t version_tag_to_middleware(const char *tag)
+{
+	uint32_t ver = 0;
+	unsigned len = strlen(tag);
+
+	for (uint32_t i = 0; i <  len; i++) {
+		if (tag[i] == '-') {
+               if(i<len-5)
+               {
+            	   for(int j=0;j<4;j++)
+            		   {
+            		   ver = ver *10 + (tag[i+j+1] - '0');
+            		   }
+               }
+           break ;
+		}
+	}
+	return ver ;
+}
 uint32_t px4_middleware_version(void)
 {
 	return version_tag_to_middleware(PX4_GIT_TAG_STR);

@@ -102,7 +102,7 @@ Navigator::Navigator() :
 	_param_fw_alt_acceptance_radius(this, "FW_ALT_RAD"),
 	_param_mc_alt_acceptance_radius(this, "MC_ALT_RAD"),
 	_param_force_vtol(this, "FORCE_VT"),
-	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false)
+	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
 	// non-navigator params
 	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false)
 {

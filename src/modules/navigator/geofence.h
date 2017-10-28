@@ -56,9 +56,9 @@
 #define GEOFENCE_FILENAME PX4_ROOTFSDIR"/fs/microsd/etc/geofence.txt"
 
 #if defined(__PX4_NUTTX)
-#define GEOFENCE_EWT PX4_ROOTFSDIR"/etc/extras/ewt.dat"
+#define GEOFENCE_EWT PX4_ROOTFSDIR"/etc/extras/geo_nofly.data"
 #elif defined(__PX4_POSIX)
-#define GEOFENCE_EWT PX4_ROOTFSDIR"/eeprom/ewt.dat"
+#define GEOFENCE_EWT PX4_ROOTFSDIR"/eeprom/geo_nofly.data"
 #endif
 class Navigator;
 

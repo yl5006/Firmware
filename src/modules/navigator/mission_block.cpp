@@ -539,7 +539,7 @@ bool
 MissionBlock::position_contains_command(const struct mission_item_s &item)
 {
 	// XXX: first to test this three cmd
-	if (item.av_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+	if (item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
 		item.nav_cmd == NAV_CMD_COMPONENT_ARM_DISARM ||
 		item.nav_cmd == NAV_CMD_DO_SET_SERVO ||
 		item.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
