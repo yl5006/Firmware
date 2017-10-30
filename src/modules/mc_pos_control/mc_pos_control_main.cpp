@@ -915,7 +915,7 @@ MulticopterPositionControl::update_ref()
 	}
 }
 
-void
+voidwwan
 MulticopterPositionControl::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
@@ -2841,7 +2841,7 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 	// Otherwise, we should just bail out
 	if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
 		// Keep throttle low while still on ground.
-		thr_max = 0.0f;
+		thr_max = _params.thr_min;//0.0f;
 
 	} else if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
 		   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {

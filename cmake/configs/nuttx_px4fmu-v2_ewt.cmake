@@ -1,8 +1,5 @@
 include(nuttx/px4_impl_nuttx)
-
-px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
-
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake)
+px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
 
 set(config_uavcan_num_ifaces 2)
 
@@ -17,7 +14,7 @@ set(config_module_list
 	drivers/led
 	drivers/px4fmu
 	drivers/px4io
-	drivers/boards/px4fmu-v2
+	drivers/boards
 	drivers/rgbled
 	drivers/mpu6000
 	#drivers/max1168
@@ -27,10 +24,11 @@ set(config_module_list
 	drivers/hmc5883
 	drivers/ms5611
 	#drivers/mb12xx
-	#drivers/srf02    #range finder
+	#drivers/srf02
 	#drivers/sf0x
+	#drivers/sf1xx
 	#drivers/ll40ls
-	#drivers/teraranger
+	drivers/teraranger
 	drivers/gps
 	#drivers/pwm_out_sim
 	#drivers/hott
@@ -87,7 +85,6 @@ set(config_module_list
 	#modules/commander/commander_tests
 	#lib/controllib/controllib_test
 	#modules/mavlink/mavlink_tests
-	#modules/unit_test
 	#modules/uORB/uORB_tests
 	#systemcmds/tests
 
@@ -100,7 +97,7 @@ set(config_module_list
 	modules/navigator
 	modules/mavlink
 	#modules/gpio_led
-	modules/uavcan
+	#modules/uavcan
 	modules/land_detector
 	modules/camera_feedback
 
@@ -145,7 +142,6 @@ set(config_module_list
 	lib/mathlib
 	lib/mathlib/math/filter
 	lib/ecl
-	lib/external_lgpl
 	lib/geo
 	lib/rc
 	lib/geo_lookup
@@ -158,7 +154,6 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 	platforms/nuttx
-	lib/micro-CDR
 
 	# had to add for cmake, not sure why wasn't in original config
 	platforms/common
@@ -197,26 +192,3 @@ set(config_module_list
 	# Hardware test
 	#examples/hwtest
 )
-
-set(config_extra_builtin_cmds
-	serdis
-	sercon
-	)
-
-set(config_io_board
-	px4io-v2
-	)
-
-add_custom_target(sercon)
-set_target_properties(sercon PROPERTIES
-	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "sercon"
-	STACK_MAIN "2048"
-	COMPILE_FLAGS "-Os")
-
-add_custom_target(serdis)
-set_target_properties(serdis PROPERTIES
-	PRIORITY "SCHED_PRIORITY_DEFAULT"
-	MAIN "serdis"
-	STACK_MAIN "2048"
-	COMPILE_FLAGS "-Os")
