@@ -915,7 +915,7 @@ MulticopterPositionControl::update_ref()
 	}
 }
 
-voidwwan
+void
 MulticopterPositionControl::reset_pos_sp()
 {
 	if (_reset_pos_sp) {
