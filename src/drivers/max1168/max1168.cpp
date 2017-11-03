@@ -88,7 +88,7 @@
 // MPU 6000 registers
 #define ADVOLT_REF 4.096f
 #define ACCEL_REF 3.3f
-#define GYRO_REF ADVOLT_REF//4.096f
+#define GYRO_REF 4.8f//4.096f
 
 #ifndef MAX1168_CONF8_CHANNEL
 #define MAX1168_CONF_CHANNEL 0x7 // select all channels 7
@@ -106,12 +106,12 @@
 #define MAX1168_CONF_CR ((MAX1168_CONF_CHANNEL<<5)|(MAX1168_CONF_SCAN<<3)|(MAX1168_CONF_REF<<1)|(MAX1168_CONF_CLOCK))
 
 #define MAX1168_ACCEL_DEFAULT_RANGE_G		3
-#define MAX1168_ACCEL_DEFAULT_RATE			1000
+#define MAX1168_ACCEL_DEFAULT_RATE			500
 #define MAX1168_ACCEL_MAX_OUTPUT_RATE		280
 #define MAX1168_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	60
 
 #define MAX1168_GYRO_DEFAULT_RANGE_G		3
-#define MAX1168_GYRO_DEFAULT_RATE			1000
+#define MAX1168_GYRO_DEFAULT_RATE			500
 /* rates need to be the same between accel and gyro */
 #define MAX1168_GYRO_MAX_OUTPUT_RATE			MAX1168_ACCEL_MAX_OUTPUT_RATE
 #define MAX1168_GYRO_DEFAULT_DRIVER_FILTER_FREQ		200
@@ -147,7 +147,7 @@ class MAX1168_gyro;
 class MAX1168 : public device::SPI
 {
 public:
-	MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation);
+	MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
 	virtual ~MAX1168();
 
 	virtual int		init();
@@ -176,7 +176,8 @@ private:
 
 	bool			_collect_phase;
 
-	struct hrt_call		_call;
+	struct hrt_call		_trigcall;
+	struct hrt_call		_meascall;
 	unsigned _call_interval;
 
 	ringbuffer::RingBuffer *_accel_reports;
@@ -251,14 +252,14 @@ private:
 	 *
 	 * @param arg		Instance pointer for the driver that is polling.
 	 */
-	static void		cycle_trampoline(void *arg);
-	static void		measure_trampoline(void *arg);
+	static void		cycle_trig(void *arg);
+	static void		cycle_meas(void *arg);
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
 	void			measure();
 
-	void			cycle();
+//	void			cycle();
 	/**
 	 * Read a register from the MAX1168
 	 *
@@ -360,14 +361,15 @@ private:
 /** driver 'main' command */
 extern "C" { __EXPORT int max1168_main(int argc, char *argv[]); }
 
-MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
+MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 			SPI("MAX1168", path_accel, bus, device, SPIDEV_MODE0, MAX1168_BUS_SPEED),
 			_work{},
 			_measure_ticks(0),
 			_gyro(new MAX1168_gyro(this, path_gyro)),
 			_product(0),
 			_collect_phase(false),
-			_call{},
+			_trigcall{},
+			_meascall{},
 			_call_interval(0),
 			_accel_reports(nullptr),
 			_accel_scale{},
@@ -432,7 +434,8 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				_gyro_scale.z_offset = 0;
 				_gyro_scale.z_scale  = 1.0f;
 
-				memset(&_call, 0, sizeof(_call));
+				memset(&_meascall, 0, sizeof(_meascall));
+				memset(&_trigcall, 0, sizeof(_trigcall));
 			}
 
 			MAX1168::~MAX1168()
@@ -762,7 +765,8 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 	                                          them. This prevents aliasing due to a beat between the
 	                                          stm32 clock and the mpu6000 clock
 						 */
-						_call.period = _call_interval;
+						_trigcall.period = _call_interval;
+						_meascall.period = _call_interval;
 						warnx("_call_interval=%d",_call_interval);
 						/* if we need to start the poll state machine, do it */
 						if (want_start)
@@ -931,11 +935,17 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				set_bits(16);
 				/* schedule a cycle to start things */
 				//	work_queue(HPWORK, &_work, (worker_t)&MAX1168::cycle_trampoline, this, 1);
-				trigmeas();
-				hrt_call_every(&_call,
-						1800,
-						_call_interval,
-						(hrt_callout)&MAX1168::cycle_trampoline, this);
+				hrt_call_every(&_trigcall,0, _call_interval,
+					       (hrt_callout)&MAX1168::cycle_trig, this);
+
+				// schedule trigger on and off calls
+				hrt_call_every(&_meascall,200 ,_call_interval ,
+					       (hrt_callout)&MAX1168::cycle_meas, this);
+//
+//				hrt_call_every(&_call,
+//						1800,
+//						_call_interval,
+//						(hrt_callout)&MAX1168::cycle_trampoline, this);
 
 			}
 
@@ -952,12 +962,20 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				_gyro_reports->flush();
 			}
 			void
-			MAX1168::cycle_trampoline(void *arg)
+			MAX1168::cycle_trig(void *arg)
 			{
 				MAX1168 *dev = reinterpret_cast<MAX1168 *>(arg);
 
 				/* make another measurement */
-				dev->cycle();
+				dev->trigmeas();
+			}
+			void
+			MAX1168::cycle_meas(void *arg)
+			{
+				MAX1168 *dev = reinterpret_cast<MAX1168 *>(arg);
+
+				/* make another measurement */
+				dev->measure();
 			}
 			void
 			MAX1168::trigmeas()
@@ -971,19 +989,19 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 
 				transfer_sel((uint8_t *)&cmd, nullptr,2,0);
 			}
-			void
-			MAX1168::cycle()
-			{
-				//uint64_t timestamp = hrt_absolute_time();
-				//if((timestamp-_reset_wait)>500)
-				//{
-				//_reset_wait=timestamp;
-				//
-				measure();
-				trigmeas();
-
-				//}
-			}
+//			void
+//			MAX1168::cycle()
+//			{
+//				//uint64_t timestamp = hrt_absolute_time();
+//				//if((timestamp-_reset_wait)>500)
+//				//{
+//				//_reset_wait=timestamp;
+//				//
+//				measure();
+//				trigmeas();
+//
+//				//}
+//			}
 			void
 			MAX1168::measure()
 			{
@@ -1062,8 +1080,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				// transfers and bad register reads. This allows the higher
 				// level code to decide if it should use this sensor based on
 				// whether it has had failures
-				grb.error_count = arb.error_count = perf_event_count(_bad_transfers)
-																																			+ perf_event_count(_bad_registers);
+				grb.error_count = arb.error_count = perf_event_count(_bad_transfers)+ perf_event_count(_bad_registers);
 
 				/*
 				 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1134,7 +1151,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
 				//  swap xy and negative y
-				float y_gyro_in_new = -(((xraw_f-GYRO_REF/2) * _gyro_range_scale) - _gyro_scale.x_offset)* _gyro_scale.x_scale;
+				float y_gyro_in_new = (((xraw_f-GYRO_REF/2) * _gyro_range_scale) - _gyro_scale.x_offset)* _gyro_scale.x_scale;
 				float x_gyro_in_new = (((yraw_f-GYRO_REF/2) * _gyro_range_scale) - _gyro_scale.y_offset)* _gyro_scale.y_scale;
 				float z_gyro_in_new = (((zraw_f-GYRO_REF/2) * _gyro_range_scale) - _gyro_scale.z_offset)* _gyro_scale.z_scale;
 				//printf("gx=%.3f,gy=%.3f,gz=%.3f\n",(double)x_gyro_in_new,(double)y_gyro_in_new,(double)z_gyro_in_new);
@@ -1304,14 +1321,14 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, spi_dev
 				/* create the driver */
 				if (external_bus) {
 #ifdef PX4_SPI_BUS_EXT
-					*g_dev_ptr = new MAX1168(PX4_SPI_BUS_EXT, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_EXT_MPU, rotation);
+					*g_dev_ptr = new MAX1168(PX4_SPI_BUS_EXT, path_accel, path_gyro, PX4_SPIDEV_EXT_MPU, rotation);
 #else
 					errx(0, "External SPI not available");
 #endif
 
 				} else {
 					warnx("init already stopped.");
-					*g_dev_ptr = new MAX1168(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, (spi_dev_e)PX4_SPIDEV_GYRO, rotation);
+					*g_dev_ptr = new MAX1168(PX4_SPI_BUS_SENSORS, path_accel, path_gyro, PX4_SPIDEV_GYRO, rotation);
 				}
 
 				if (*g_dev_ptr == nullptr) {

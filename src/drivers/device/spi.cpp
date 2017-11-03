@@ -72,6 +72,7 @@ SPI::SPI(const char *name,
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
+	_setbits(8),
 	_dev(nullptr),
 	_bus(bus)
 {
@@ -172,18 +173,56 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	return result;
 }
 
+int
+SPI::transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel)
+{
+	int result;
+
+	if ((send == nullptr) && (recv == nullptr)) {
+		return -EINVAL;
+	}
+
+	LockMode mode = up_interrupt_context() ? LOCK_NONE : locking_mode;
+
+	/* lock the bus as required */
+	switch (mode) {
+	default:
+	case LOCK_PREEMPTION: {
+			irqstate_t state = px4_enter_critical_section();
+			result = _transfer_sel(send,recv,len,sel);
+			px4_leave_critical_section(state);
+		}
+		break;
+
+	case LOCK_THREADS:
+		SPI_LOCK(_dev, true);
+		result = _transfer_sel(send,recv,len,sel);
+		SPI_LOCK(_dev, false);
+		break;
+
+	case LOCK_NONE:
+		result = _transfer_sel(send,recv,len,sel);
+		break;
+	}
+
+	return result;
+}
 void
 SPI::set_frequency(uint32_t frequency)
 {
 	_frequency = frequency;
 }
-
+void
+SPI::set_bits(uint32_t setbits)
+{
+	_setbits = setbits;
+}
 int
 SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
-	SPI_SETBITS(_dev, 8);
+	SPI_SETBITS(_dev, _setbits);
 	SPI_SELECT(_dev, _device, true);
 
 	/* do the transfer */
@@ -194,5 +233,22 @@ SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 	return OK;
 }
+int
+SPI::_transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel)
+{
+	SPI_SETFREQUENCY(_dev, _frequency);
+	SPI_SETMODE(_dev, _mode);
+	SPI_SETBITS(_dev, _setbits);
+	if (sel == 0) {
+		SPI_SELECT(_dev, _device, true);
+	}
+	/* do the transfer */
+	SPI_EXCHANGE(_dev, send, recv, len);
 
+	/* and clean up */
+	if (sel == 1) {
+		SPI_SELECT(_dev, _device, false);
+	}
+	return OK;
+}
 } // namespace device

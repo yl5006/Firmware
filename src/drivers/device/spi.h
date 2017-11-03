@@ -109,7 +109,7 @@ protected:
 	 *			otherwise.
 	 */
 	int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
-
+	int		transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel);
 	/**
 	 * Set the SPI bus frequency
 	 * This is used to change frequency on the fly. Some sensors
@@ -120,7 +120,7 @@ protected:
 	 * @param frequency	Frequency to set (Hz)
 	 */
 	void		set_frequency(uint32_t frequency);
-
+	void		set_bits(uint32_t setbits);
 	/**
 	 * Set the SPI bus locking mode
 	 *
@@ -137,6 +137,7 @@ private:
 	uint32_t			_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
+	uint32_t		_setbits;
 	struct spi_dev_s	*_dev;
 
 	/* this class does not allow copying */
@@ -147,7 +148,7 @@ protected:
 	int			_bus;
 
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
-
+	int	_transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel);
 };
 
 } // namespace device

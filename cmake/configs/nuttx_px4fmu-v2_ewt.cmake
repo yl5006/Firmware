@@ -17,7 +17,7 @@ set(config_module_list
 	drivers/boards
 	drivers/rgbled
 	drivers/mpu6000
-	#drivers/max1168
+	drivers/max1168
 	#drivers/mpu9250
 	#drivers/lsm303d
 	#drivers/l3gd20

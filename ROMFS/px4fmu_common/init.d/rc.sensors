@@ -30,6 +30,7 @@ else
 
 	# External SPI
 	ms5611 -S start
+	ms5611 -I -X start
 
 	# Internal SPI
 	ms5611 -s start
@@ -131,8 +132,12 @@ then
 	else
 		# $BOARD_FMUV3 == 0 -> FMUv2
 
-		mpu6000 start
-#		max1168 start	
+		if mpu6000 start
+		then
+			# no mpu6000
+		else		
+			max1168 start	
+		fi
 		# As we will use the external mag and the ICM-20608-G
 		# V2 build hwtypecmp is always false
 		# V3 build hwtypecmp supports V2|V2M|V30
