@@ -192,6 +192,7 @@ static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;					/**< Handle of daemon task / thread */
 static bool _usb_telemetry_active = false;
 static hrt_abstime commander_boot_timestamp = 0;
+static hrt_abstime armdisarm_change_timestamp = 0;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -1697,6 +1698,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	commander_boot_timestamp = hrt_absolute_time();
+	armdisarm_change_timestamp = hrt_absolute_time();
 
 	// Run preflight check
 	int32_t rc_in_off = 0;
@@ -2696,7 +2698,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (in_armed_state &&
 				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 				(status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
-				(stick_in_lower_right || arm_button_pressed || arm_switch_to_disarm_transition) ) {
+				(stick_in_lower_right || arm_button_pressed || arm_switch_to_disarm_transition) && hrt_elapsed_time(&armdisarm_change_timestamp) > FAILSAFE_DEFAULT_TIMEOUT) {
 
 				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
 						internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
@@ -2722,6 +2724,10 @@ int commander_thread_main(int argc, char *argv[])
 									     avionics_power_rail_voltage,
 									     arm_requirements,
 									     hrt_elapsed_time(&commander_boot_timestamp));
+					if(arming_ret == TRANSITION_CHANGED)
+					{
+						armdisarm_change_timestamp = hrt_absolute_time();
+					}
 				}
 				stick_off_counter++;
 			/* do not reset the counter when holding the arm button longer than needed */
@@ -2738,7 +2744,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (!in_armed_state &&
 				status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-				(stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition) ) {
+				(stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition) && hrt_elapsed_time(&armdisarm_change_timestamp) > FAILSAFE_DEFAULT_TIMEOUT) {
 				if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
@@ -2773,6 +2779,9 @@ int commander_thread_main(int argc, char *argv[])
 						if (arming_ret != TRANSITION_CHANGED) {
 							usleep(100000);
 							print_reject_arm(204,"NOT ARMING: Preflight checks failed");
+						}else
+						{
+							armdisarm_change_timestamp = hrt_absolute_time();
 						}
 					}
 				}
