@@ -2153,6 +2153,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_act_sub;
+	MavlinkOrbSubscription *_act_sub1;
 	uint64_t _act_time;
 
 	/* do not allow top copying this class */
@@ -2162,9 +2163,11 @@ private:
 protected:
 	explicit MavlinkStreamServoOutputRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_act_sub(nullptr),
+		_act_sub1(nullptr),
 		_act_time(0)
 	{
-		_act_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_outputs), N);
+		_act_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_outputs), 0);
+		_act_sub1 = _mavlink->add_orb_subscription(ORB_ID(actuator_outputs), 1);
 	}
 
 	bool send(const hrt_abstime t)
@@ -2184,7 +2187,17 @@ protected:
 			msg.servo6_raw = act.output[5];
 			msg.servo7_raw = act.output[6];
 			msg.servo8_raw = act.output[7];
-
+			if (_act_sub1->update(&_act_time, &act))
+			{
+				msg.servo9_raw = act.output[0];
+				msg.servo10_raw = act.output[1];
+				msg.servo11_raw = act.output[2];
+				msg.servo12_raw = act.output[3];
+				msg.servo13_raw = act.output[4];
+				msg.servo14_raw = act.output[5];
+				msg.servo15_raw = act.output[6];
+				msg.servo16_raw = act.output[7];
+			}
 			mavlink_msg_servo_output_raw_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
