@@ -24,22 +24,10 @@ env:
 matrix:
   fast_finish: true
   include:
-    - env: BUILD_TARGET=check_format
-    - env: BUILD_TARGET=check_stack
-    - env: BUILD_TARGET=clang-tidy-quiet
-    - env: BUILD_TARGET=cppcheck
-    - env: BUILD_TARGET=px4_metadata
-    - env: BUILD_TARGET=scan-build
-    - env: BUILD_TARGET=tests
-    - env: BUILD_TARGET=tests PX4_ASAN=1
-    - env: BUILD_TARGET=tests PX4_UBSAN=1
-    - env: BUILD_TARGET=tests_coverage
     - env: BUILD_TARGET=coverity_scan
       dist: trusty
       if: branch = coverity_scan
   allow_failures:
-    - env: BUILD_TARGET=tests PX4_ASAN=1
-    - env: BUILD_TARGET=tests PX4_UBSAN=1
     - env: BUILD_TARGET=tests_coverage
 
 cache:
@@ -48,27 +36,18 @@ cache:
 before_install:
   # install dependencies for the coverity build (target and branch), otherwise exit early
   - if [[ "${TRAVIS_BRANCH}" = "coverity_scan" ]]; then
-      if [[ "${BUILD_TARGET}" = "coverity_scan" ]]; then
-        sudo apt-get install python-empy python-jinja2;
-        echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
-      else
-        exit 0;
-      fi
+      sudo pip install empy jinja2 numpy toml;
+      echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
     fi
   # use git:// to fetch instead of https://
   - git config --global url."git://".insteadOf https://
 
 script:
-  - if [[ "${BUILD_TARGET}" != "coverity_scan" ]]; then
-      ./Tools/docker_run.sh make ${BUILD_TARGET};
-    fi
+  - ./Tools/docker_run.sh make ${BUILD_TARGET}
 
 after_success:
-  # upload metadata and static analysis to s3
+  # upload code coverage
   - if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
-      [ "${BUILD_TARGET}" = "px4_metadata" ] && ./Tools/docker_run.sh 'make s3put_metadata AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}"';
-      [ "${BUILD_TARGET}" = "scan-build" ] && ./Tools/docker_run.sh 'make s3put_scan-build AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/scan-build"';
-      [ "${BUILD_TARGET}" = "cppcheck" ] && ./Tools/docker_run.sh 'make s3put_cppcheck AWS_S3_BUCKET="px4-travis/Firmware/${TRAVIS_BRANCH}/cppcheck"';
       [ "${BUILD_TARGET}" = "tests_coverage" ] && bash <(curl -s https://codecov.io/bash) -F unittests;
     fi
 

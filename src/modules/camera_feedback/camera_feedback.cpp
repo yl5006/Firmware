@@ -62,11 +62,10 @@ CameraFeedback::CameraFeedback() :
 	// Parameters
 	_p_feedback = param_find("CAM_FBACK_MODE");
 	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
-	param_get(_p_feedback, &_camera_feedback_mode);
-	if (_log_utc_offset != PARAM_INVALID) {
+	param_get(_p_feedback, (int32_t *)&_camera_feedback_mode);
+		if (_log_utc_offset != PARAM_INVALID) {
 		param_get(_log_utc_offset, &utc_offset);
 	}
-
 }
 
 CameraFeedback::~CameraFeedback()

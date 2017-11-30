@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,6 +88,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_vtol_vehicle_status_pub(nullptr),
 	_v_rates_sp_pub(nullptr),
 	_v_att_sp_pub(nullptr),
+	_v_cmd_ack_pub(nullptr),
 	_transition_command(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
 	_abort_front_transition(false)
 
@@ -132,6 +133,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
 	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
+	_params_handles.fw_alt_err = param_find("VT_FW_ALT_ERR");
 	_params_handles.fw_qc_max_pitch = param_find("VT_FW_QC_P");
 	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
@@ -365,6 +367,22 @@ VtolAttitudeControl::vehicle_local_pos_poll()
 }
 
 /**
+* Check for setpoint updates.
+*/
+void
+VtolAttitudeControl::vehicle_local_pos_sp_poll()
+{
+	bool updated;
+	/* Check if parameters have changed */
+	orb_check(_local_pos_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
+	}
+
+}
+
+/**
 * Check for position setpoint updates.
 */
 void
@@ -466,6 +484,31 @@ VtolAttitudeControl::handle_command()
 	// update transition command if necessary
 	if (_vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
 		_transition_command = int(_vehicle_cmd.param1 + 0.5f);
+
+		// Report that we have received the command no matter what we actually do with it.
+		// This might not be optimal but is better than no response at all.
+
+		if (_vehicle_cmd.from_external) {
+			vehicle_command_ack_s command_ack = {
+				.timestamp = hrt_absolute_time(),
+				.result_param2 = 0,
+				.command = _vehicle_cmd.command,
+				.result = (uint8_t)vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED,
+				.from_external = false,
+				.result_param1 = 0,
+				.target_system = _vehicle_cmd.source_system,
+				.target_component = _vehicle_cmd.source_component
+			};
+
+			if (_v_cmd_ack_pub == nullptr) {
+				_v_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+								     vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+			} else {
+				orb_publish(ORB_ID(vehicle_command_ack), _v_cmd_ack_pub, &command_ack);
+
+			}
+		}
 	}
 }
 
@@ -571,6 +614,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_min_alt, &v);
 	_params.fw_min_alt = v;
 
+	/* maximum negative altitude error for FW mode (Adaptive QuadChute) */
+	param_get(_params_handles.fw_alt_err, &v);
+	_params.fw_alt_err = v;
+
 	/* maximum pitch angle (QuadChute) */
 	param_get(_params_handles.fw_qc_max_pitch, &l);
 	_params.fw_qc_max_pitch = l;
@@ -666,6 +713,7 @@ void VtolAttitudeControl::task_main()
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
+	_local_pos_sp_sub         = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_battery_status_sub	   = orb_subscribe(ORB_ID(battery_status));
@@ -754,6 +802,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_rates_sp_fw_poll();
 		parameters_update_poll();
 		vehicle_local_pos_poll();			// Check for new sensor values
+		vehicle_local_pos_sp_poll();
 		pos_sp_triplet_poll();
 		vehicle_airspeed_poll();
 		vehicle_battery_poll();
@@ -880,7 +929,7 @@ VtolAttitudeControl::start()
 	_control_task = px4_task_spawn_cmd("vtol_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 10,
-					   1200,
+					   1230,
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
 					   nullptr);
 

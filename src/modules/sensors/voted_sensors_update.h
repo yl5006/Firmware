@@ -122,13 +122,6 @@ public:
 	 */
 	void check_failover();
 
-	/**
-	 * check vibration levels and output a warning if they're high
-	 * @return true on high vibration
-	 */
-	bool check_vibration();
-
-
 	int num_gyros() const { return _gyro.subscription_count; }
 	int gyro_fd(int idx) const { return _gyro.subscription[idx]; }
 
@@ -159,10 +152,13 @@ private:
 			  last_failover_count(0)
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+				enabled[i] = true;
 				subscription[i] = -1;
 				priority[i] = 0;
 			}
 		}
+
+		bool enabled[SENSOR_COUNT_MAX];
 
 		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
@@ -256,9 +252,6 @@ private:
 	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX]; /**< latest full timestamp */
 	uint64_t _last_mag_timestamp[MAG_COUNT_MAX]; /**< latest full timestamp */
 	uint64_t _last_baro_timestamp[BARO_COUNT_MAX]; /**< latest full timestamp */
-
-	hrt_abstime _vibration_warning_timestamp = 0;
-	bool _vibration_warning = false;
 
 	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix<3, 3>	_mag_rotation[MAG_COUNT_MAX] = {};	/**< rotation matrix for the orientation that the external mag0 is mounted */

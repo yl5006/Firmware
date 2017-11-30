@@ -182,9 +182,6 @@ static orb_advert_t mavlink_log_pub = nullptr;
 
 static orb_advert_t power_button_state_pub = nullptr;
 
-/* System autostart ID */
-static int autostart_id;
-
 /* flags */
 static bool commander_initialized = false;
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -726,14 +723,6 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
-	// For HIL platforms, require that simulated sensors are connected
-	if (arm && hrt_absolute_time() > commander_boot_timestamp + INAIR_RESTART_HOLDOFF_INTERVAL &&
-		status.hil_state == vehicle_status_s::HIL_STATE_ON) {
-
-		mavlink_log_critical(mavlink_log_pub_local,102, "HITL: Connect to simulator before arming.");
-		return TRANSITION_DENIED;
-	}
-
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
 	arming_res = arming_state_transition(&status,
@@ -1210,6 +1199,8 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
 	case vehicle_command_s::VEHICLE_CMD_NAV_DELAY:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
+	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1326,7 +1317,6 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
-	param_t _param_autostart_id = param_find("SYS_AUTOSTART");
 	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
 	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
 	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
@@ -1685,7 +1675,9 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	param_get(_param_sys_type, &(status.system_type)); // get system type
+	int32_t system_type;
+	param_get(_param_sys_type, &system_type); // get system type
+	status.system_type = (uint8_t)system_type;
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 	status.is_vtol = is_vtol(&status);
 
@@ -1704,7 +1696,6 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t rc_in_off = 0;
 	bool hotplug_timeout = hrt_elapsed_time(&commander_boot_timestamp) > HOTPLUG_SENS_TIMEOUT;
 
-	param_get(_param_autostart_id, &autostart_id);
 	param_get(_param_rc_in_off, &rc_in_off);
 
 	int32_t arm_switch_is_button = 0;
@@ -1757,9 +1748,9 @@ int commander_thread_main(int argc, char *argv[])
 
 
 	/* Thresholds for engine failure detection */
-	int32_t ef_throttle_thres = 1.0f;
-	int32_t ef_current2throttle_thres = 0.0f;
-	int32_t ef_time_thres = 1000.0f;
+	float ef_throttle_thres = 1.0f;
+	float ef_current2throttle_thres = 0.0f;
+	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
 	int32_t disarm_when_landed = 0;
@@ -1806,8 +1797,10 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &(status.system_type)) != OK) {
-					warnx("failed getting new system type");
+				if (param_get(_param_sys_type, &system_type) != OK) {
+					PX4_ERR("failed getting new system type");
+				} else {
+					status.system_type = (uint8_t)system_type;
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
@@ -1875,9 +1868,6 @@ int commander_thread_main(int argc, char *argv[])
 			arm_requirements = (arm_without_gps_param == 1) ? ARM_REQ_NONE : ARM_REQ_GPS_BIT;
 			param_get(_param_arm_mission_required, &arm_mission_required_param);
 			arm_requirements |= (arm_mission_required_param & (ARM_REQ_MISSION_BIT | ARM_REQ_ARM_AUTH_BIT));
-
-			/* Autostart id */
-			param_get(_param_autostart_id, &autostart_id);
 
 			/* EPH / EPV */
 			param_get(_param_eph, &eph_threshold);
@@ -2925,7 +2915,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* potential failure, measure time */
 				if (timestamp_engine_healthy > 0 &&
 				    hrt_elapsed_time(&timestamp_engine_healthy) >
-				    ef_time_thres * 1e6 &&
+				    ef_time_thres * 1e6f &&
 				    !status.engine_failure) {
 					status.engine_failure = true;
 					status_changed = true;

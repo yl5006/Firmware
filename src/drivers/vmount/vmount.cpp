@@ -86,8 +86,8 @@ struct Parameters {
 	int32_t mnt_mode_out;
 	int32_t mnt_mav_sysid;
 	int32_t mnt_mav_compid;
-	int32_t mnt_ob_lock_mode;
-	int32_t mnt_ob_norm_mode;
+	float mnt_ob_lock_mode;
+	float mnt_ob_norm_mode;
 	int32_t mnt_man_pitch;
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
@@ -107,8 +107,8 @@ struct Parameters {
 		       mnt_mode_out != p.mnt_mode_out ||
 		       mnt_mav_sysid != p.mnt_mav_sysid ||
 		       mnt_mav_compid != p.mnt_mav_compid ||
-		       mnt_ob_lock_mode != p.mnt_ob_lock_mode ||
-		       mnt_ob_norm_mode != p.mnt_ob_norm_mode ||
+		       fabsf(mnt_ob_lock_mode - p.mnt_ob_lock_mode) > 1e-6f ||
+		       fabsf(mnt_ob_norm_mode - p.mnt_ob_norm_mode) > 1e-6f ||
 		       mnt_man_pitch != p.mnt_man_pitch ||
 		       mnt_man_roll != p.mnt_man_roll ||
 		       mnt_man_yaw != p.mnt_man_yaw ||
@@ -239,6 +239,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	if (!get_params(param_handles, params)) {
 		PX4_ERR("could not get mount parameters!");
+		delete test_input;
 		return -1;
 	}
 

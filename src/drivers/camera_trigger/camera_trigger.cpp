@@ -73,7 +73,7 @@
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
 
-typedef enum : uint8_t {
+typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_NONE = 0,
 	CAMERA_INTERFACE_MODE_GPIO,
 	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
@@ -81,7 +81,7 @@ typedef enum : uint8_t {
 	CAMERA_INTERFACE_MODE_GENERIC_PWM
 } camera_interface_mode_t;
 
-typedef enum : uint8_t {
+typedef enum : int32_t {
 	TRIGGER_MODE_NONE = 0,
 	TRIGGER_MODE_INTERVAL,
 	TRIGGER_MODE_DISTANCE
@@ -263,7 +263,7 @@ CameraTrigger::CameraTrigger() :
 	_p_interface = param_find("TRIG_INTERFACE");
 
 	param_get(_p_activation_time, &_activation_time);
-	param_get(_p_interface, &_camera_interface_mode);
+	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX

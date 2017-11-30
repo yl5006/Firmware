@@ -56,13 +56,11 @@ set(msg_files
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
-	filtered_bottom_flow.msg
 	follow_target.msg
 	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
-	hil_sensor.msg
 	home_position.msg
 	horizontal_distance.msg
 	input_rc.msg
@@ -77,7 +75,6 @@ set(msg_files
 	multirotor_motor_limits.msg
 	offboard_control_mode.msg
 	optical_flow.msg
-	output_pwm.msg
 	parameter_update.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
@@ -115,7 +112,6 @@ set(msg_files
 	vehicle_command.msg
 	vehicle_command_ack.msg
 	vehicle_control_mode.msg
-	vehicle_force_setpoint.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
 	vehicle_land_detected.msg

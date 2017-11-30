@@ -1697,7 +1697,19 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
+			float yaw_target = _wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt);
+			float yaw_offs = _wrap_pi(yaw_target - _yaw);
+			const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
+						   _params.global_yaw_max;
+			const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+
+			// If the yaw offset became too big for the system to track stop
+			// shifting it, only allow if it would make the offset smaller again.
+			if (fabsf(yaw_offs) < yaw_offset_max ||
+			    (_pos_sp_triplet.current.yawspeed > 0 && yaw_offs < 0) ||
+			    (_pos_sp_triplet.current.yawspeed < 0 && yaw_offs > 0)) {
+				_att_sp.yaw_body = yaw_target;
+			}
 		}
 
 	} else {
@@ -2712,12 +2724,9 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
 
 	/* apply slewrate (aka acceleration limit) for smooth flying */
-
-	if (!_control_mode.flag_control_auto_enabled) {
+	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff) {
 		vel_sp_slewrate(dt);
 	}
-
-	_vel_sp_prev = _vel_sp;
 
 	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
 	if (_in_smooth_takeoff) {
@@ -2737,6 +2746,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 	}
 
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_params.vel_max_up, _params.vel_max_down);
+
+	_vel_sp_prev = _vel_sp;
 }
 
 void

@@ -71,7 +71,6 @@
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_force_setpoint.h>
 #include <uORB/topics/time_offset.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
@@ -116,10 +115,16 @@ public:
 
 private:
 
-	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, int ret);
+	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
+	/**
+	 * common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t
+	 */
+	template<class T>
+	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
+					 const vehicle_command_s &vehicle_command);
 	void handle_message_command_ack(mavlink_message_t *msg);
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
@@ -230,7 +235,6 @@ private:
 	orb_advert_t _global_vel_sp_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
-	orb_advert_t _force_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
 	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
