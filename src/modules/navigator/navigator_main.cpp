@@ -1010,13 +1010,13 @@ void Navigator::check_traffic()
 						}
 
 					case 1: {
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately", tr.callsign,
+							mavlink_log_critical(&_mavlink_log_pub,722, "WARNING TRAFFIC %s at heading %d, land immediately", tr.callsign,
 									     traffic_direction);
 							break;
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home", tr.callsign,
+							mavlink_log_critical(&_mavlink_log_pub,723, "AVOIDING TRAFFIC %s heading %d, returning home", tr.callsign,
 									     traffic_direction);
 
 							// set the return altitude to minimum

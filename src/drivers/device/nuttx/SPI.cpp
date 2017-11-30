@@ -72,7 +72,6 @@ SPI::SPI(const char *name,
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
-	_setbits(8),
 	_dev(nullptr)
 {
 	// fill in _device_id fields for a SPI device
@@ -166,7 +165,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 }
 
 int
-SPI::transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel)
+SPI::transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel,int bits)
 {
 	int result;
 
@@ -181,19 +180,19 @@ SPI::transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel)
 	default:
 	case LOCK_PREEMPTION: {
 			irqstate_t state = px4_enter_critical_section();
-			result = _transfer_sel(send,recv,len,sel);
+			result = _transfer_sel(send,recv,len,sel,bits);
 			px4_leave_critical_section(state);
 		}
 		break;
 
 	case LOCK_THREADS:
 		SPI_LOCK(_dev, true);
-		result = _transfer_sel(send,recv,len,sel);
+		result = _transfer_sel(send,recv,len,sel,bits);
 		SPI_LOCK(_dev, false);
 		break;
 
 	case LOCK_NONE:
-		result = _transfer_sel(send,recv,len,sel);
+		result = _transfer_sel(send,recv,len,sel,bits);
 		break;
 	}
 
@@ -214,11 +213,6 @@ SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	SPI_SELECT(_dev, _device, false);
 
 	return OK;
-}
-void
-SPI::set_bits(uint32_t setbits)
-{
-	_setbits = setbits;
 }
 int
 SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
@@ -272,11 +266,11 @@ SPI::_transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 	return OK;
 }
 int
-SPI::_transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel)
+SPI::_transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel,int bits)
 {
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
-	SPI_SETBITS(_dev, _setbits);
+	SPI_SETBITS(_dev, bits);
 	if (sel == 0) {
 		SPI_SELECT(_dev, _device, true);
 	}

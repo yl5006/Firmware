@@ -107,7 +107,7 @@ protected:
 	 *			otherwise.
 	 */
 	int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
-
+	int		transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel,int bits);
 	/**
 	 * Perform a SPI 16 bit transfer.
 	 *
@@ -164,7 +164,7 @@ private:
 
 protected:
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
-
+	int _transfer_sel(uint8_t *send, uint8_t *recv, unsigned len,int sel,int bits);
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
 	bool	external() { return px4_spi_bus_external(get_device_bus()); }

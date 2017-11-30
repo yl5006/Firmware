@@ -290,7 +290,10 @@ private:
 	 *
 	 * @return true if the sensor is not on the main MCU board
 	 */
-	bool			is_external() { return (_bus == EXTERNAL_BUS); }
+	bool			is_external()
+	{
+		return false;
+	}
 
 	/**
 	 * Measurement self test
@@ -932,7 +935,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 
 				// sensor transfer at high clock speed
 				set_frequency(MAX1168_BUS_SPEED);
-				set_bits(16);
+//				set_bits(16);
 				/* schedule a cycle to start things */
 				//	work_queue(HPWORK, &_work, (worker_t)&MAX1168::cycle_trampoline, this, 1);
 				hrt_call_every(&_trigcall,0, _call_interval,
@@ -987,7 +990,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 
 				// general register transfer at low clock speed
 
-				transfer_sel((uint8_t *)&cmd, nullptr,2,0);
+				transfer_sel((uint8_t *)&cmd, nullptr,2,0,16);
 			}
 //			void
 //			MAX1168::cycle()
@@ -1030,7 +1033,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 					sizeof(max_report))) {
 						return;
 				}*/
-				transfer_sel(nullptr, (uint8_t *) &report,8,1);
+				transfer_sel(nullptr, (uint8_t *) &report,8,1,16);
 				/*
 				 * Convert from big to little endian
 				 */
