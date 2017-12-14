@@ -239,7 +239,7 @@ void VtolType::check_quadchute_condition()
 				    (_ra_hrate < -1.0f) &&
 				    (_ra_hrate_sp > 1.0f)) {
 
-					_attc->abort_front_transition("QuadChute: loss of altitude");
+					_attc->abort_front_transition(835,"QuadChute: loss of altitude");
 				}
 
 			} else {

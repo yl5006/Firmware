@@ -2244,7 +2244,7 @@ int commander_thread_main(int argc, char *argv[])
 							// if the innovation test has failed continuously, declare the nav as failed
 							if ((hrt_absolute_time() - time_last_innov_pass) > 1000*1000) {
 								nav_test_failed = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
+								mavlink_log_emergency(&mavlink_log_pub,1130, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
 							}
 						}
 					}
