@@ -591,6 +591,7 @@ void Logger::add_default_topics()
 	add_topic("ekf2_innovations", 200);
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
+	add_topic("home_position");
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission_result");
@@ -612,6 +613,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
+	add_topic("vehicle_status_flags");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
@@ -624,6 +626,7 @@ void Logger::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
+	add_topic("sensor_combined");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
@@ -1834,7 +1837,7 @@ void Logger::write_parameters()
 	param_t param = 0;
 
 	do {
-		// get next parameter which is invalid OR used
+		// skip over all parameters which are not invalid and not used
 		do {
 			param = param_for_index(param_idx);
 			++param_idx;
@@ -1842,7 +1845,7 @@ void Logger::write_parameters()
 
 		// save parameters which are valid AND used
 		if (param != PARAM_INVALID) {
-			/* get parameter type and size */
+			// get parameter type and size
 			const char *type_str;
 			param_type_t type = param_type(param);
 			size_t value_size = 0;
@@ -1862,11 +1865,11 @@ void Logger::write_parameters()
 				continue;
 			}
 
-			/* format parameter key (type and name) */
+			// format parameter key (type and name)
 			msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, param_name(param));
 			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
-			/* copy parameter value directly to buffer */
+			// copy parameter value directly to buffer
 			switch (type) {
 			case PARAM_TYPE_INT32:
 				param_get(param, (int32_t*)&buffer[msg_size]);
@@ -1902,7 +1905,7 @@ void Logger::write_changed_parameters()
 	param_t param = 0;
 
 	do {
-		// get next parameter which is invalid OR used
+		// skip over all parameters which are not invalid and not used
 		do {
 			param = param_for_index(param_idx);
 			++param_idx;
@@ -1911,7 +1914,7 @@ void Logger::write_changed_parameters()
 		// log parameters which are valid AND used AND unsaved
 		if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
 
-			/* get parameter type and size */
+			// get parameter type and size
 			const char *type_str;
 			param_type_t type = param_type(param);
 			size_t value_size = 0;
@@ -1931,11 +1934,11 @@ void Logger::write_changed_parameters()
 				continue;
 			}
 
-			/* format parameter key (type and name) */
+			// format parameter key (type and name)
 			msg.key_len = snprintf(msg.key, sizeof(msg.key), "%s %s", type_str, param_name(param));
 			size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
-			/* copy parameter value directly to buffer */
+			// copy parameter value directly to buffer
 			switch (type) {
 			case PARAM_TYPE_INT32:
 				param_get(param, (int32_t*)&buffer[msg_size]);
@@ -1950,7 +1953,7 @@ void Logger::write_changed_parameters()
 			}
 			msg_size += value_size;
 
-			/* msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size */
+			// msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 			write_message(buffer, msg_size);
@@ -1975,7 +1978,7 @@ int Logger::check_free_space()
 		max_log_dirs_to_keep = INT32_MAX;
 	}
 
-	/* remove old logs if the free space falls below a threshold */
+	// remove old logs if the free space falls below a threshold
 	do {
 		if (statfs(LOG_ROOT, &statfs_buf) != 0) {
 			return PX4_ERROR;

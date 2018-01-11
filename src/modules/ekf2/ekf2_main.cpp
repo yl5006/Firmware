@@ -217,6 +217,7 @@ private:
 	BlockParamExtFloat _mag_heading_noise;	///< measurement noise used for simple heading fusion (rad)
 	BlockParamExtFloat _mag_noise;		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
 	BlockParamExtFloat _eas_noise;		///< measurement noise used for airspeed fusion (m/sec)
+	BlockParamExtFloat _beta_innov_gate; ///< synthetic sideslip innovation consistency gate size (STD)
 	BlockParamExtFloat _beta_noise;	///< synthetic sideslip noise (rad)
 	BlockParamExtFloat _mag_declination_deg;///< magnetic declination (degrees)
 	BlockParamExtFloat _heading_innov_gate;///< heading fusion innovation consistency gate size (STD)
@@ -361,6 +362,7 @@ Ekf2::Ekf2():
 	_mag_heading_noise(this, "HEAD_NOISE", true, _params->mag_heading_noise),
 	_mag_noise(this, "MAG_NOISE", true, _params->mag_noise),
 	_eas_noise(this, "EAS_NOISE", true, _params->eas_noise),
+	_beta_innov_gate(this, "BETA_GATE", true, _params->beta_innov_gate),
 	_beta_noise(this, "BETA_NOISE", true, _params->beta_noise),
 	_mag_declination_deg(this, "MAG_DECL", true, _params->mag_declination_deg),
 	_heading_innov_gate(this, "HDG_GATE", true, _params->heading_innov_gate),
@@ -1093,7 +1095,7 @@ void Ekf2::run()
 		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
 						&status.vel_test_ratio, &status.pos_test_ratio,
 						&status.hgt_test_ratio, &status.tas_test_ratio,
-						&status.hagl_test_ratio);
+						&status.hagl_test_ratio, &status.beta_test_ratio);
 
 		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
 		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;

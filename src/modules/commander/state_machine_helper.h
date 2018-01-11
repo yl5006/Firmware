@@ -103,15 +103,9 @@ struct status_flags_s {
     bool offboard_control_set_by_command;                // true if the offboard mode was set by a mavlink command and should not be overridden by RC
     bool offboard_control_loss_timeout;                // true if offboard is lost for a certain amount of time
     bool rc_signal_found_once;
-    bool rc_signal_lost_cmd;                        // true if RC lost mode is commanded
     bool rc_input_blocked;                                // set if RC input should be ignored temporarily
-    bool data_link_lost_cmd;                        // datalink to GCS lost mode commanded
     bool vtol_transition_failure;                        // Set to true if vtol transition failed
-    bool vtol_transition_failure_cmd;                // Set to true if vtol transition failure mode is commanded
     bool gps_failure;                                // Set to true if a gps failure is detected
-    bool gps_failure_cmd;                                // Set to true if a gps failure mode is commanded
-    bool barometer_failure;                                // Set to true if a barometer failure is detected
-    bool ever_had_barometer_data;                        // Set to true if ever had valid barometer data before
 };
 
 bool is_safe(const struct safety_s *safety, const struct actuator_armed_s *armed);
@@ -168,7 +162,7 @@ void set_rc_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, st
 void set_data_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed, status_flags_s *status_flags,
 						commander_state_s *internal_state, const link_loss_actions_t link_loss_act);
 
-int preflight_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
+int prearm_check(struct vehicle_status_s *status, orb_advert_t *mavlink_log_pub, bool prearm,
 		    bool force_report, status_flags_s *status_flags, battery_status_s *battery,
 		    uint8_t arm_requirements, hrt_abstime time_since_boot);
 

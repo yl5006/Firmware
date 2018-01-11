@@ -307,6 +307,8 @@ private:
 	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
+	float _z_derivative; /**< velocity in z that agrees with position rate */
+
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	// counters for reset events on position and velocity states
@@ -491,6 +493,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_state_dependent_z(0.0f),
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
+	_z_derivative(0.0f),
 	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
@@ -1733,7 +1736,6 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 {
 	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
 	matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
-	matrix::Vector2f vel_xy(_vel(0), _vel(1));
 	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / dt;
 
 	/* limit total horizontal acceleration */
@@ -2606,10 +2608,25 @@ MulticopterPositionControl::update_velocity_derivative()
 		} else {
 			_vel(2) = _local_pos.vz;
 		}
+
+		if (!_run_alt_control) {
+			/* set velocity to the derivative of position
+			 * because it has less bias but blend it in across the landing speed range*/
+			float weighting = fminf(fabsf(_vel_sp(2)) / _params.land_speed, 1.0f);
+			_vel(2) = _z_derivative * weighting + _vel(2) * (1.0f - weighting);
+
+		}
+
 	}
 
+	if (PX4_ISFINITE(_local_pos.z_deriv)) {
+		_z_derivative = _local_pos.z_deriv;
+	};
+
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
+
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
+
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 }
 

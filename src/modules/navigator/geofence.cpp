@@ -67,8 +67,6 @@ Geofence::Geofence(Navigator *navigator) :
 	_checkindex(0),
 	_indexinit(false)
 {
-	updateParams();
-
 	// we assume there's no concurrent fence update on startup
 	_updateFence();
 }

@@ -1,4 +1,3 @@
-include(nuttx/px4_impl_nuttx)
 
 px4_nuttx_configure(HWCLASS m7 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
@@ -42,7 +41,6 @@ set(config_module_list
 	drivers/rgbled
 	drivers/sdp3x_airspeed
 	drivers/sf0x
-	drivers/snapdragon_rc_pwm
 	drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
@@ -50,6 +48,7 @@ set(config_module_list
 	drivers/tap_esc
 	drivers/teraranger
 	modules/sensors
+	drivers/tfmini
 
 	#
 	# System commands

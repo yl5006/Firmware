@@ -60,10 +60,14 @@ add_custom_command(OUTPUT ${fw_io_exe}
 	COMMENT "Building ${config_io_board}"
 	USES_TERMINAL
 	)
+
+file(RELATIVE_PATH fw_io_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_exe})
+file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
+
 add_custom_command(OUTPUT ${fw_io_bin}
 	COMMAND mkdir -p ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
 	COMMAND cp ${PX4_SOURCE_DIR}/data/geo_nofly.data  ${PX4_BINARY_DIR}/ROMFS/${config_romfs_root}/extras/
-	COMMAND ${OBJCOPY} -O binary ${fw_io_exe} ${fw_io_bin}
+	COMMAND ${OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
 	DEPENDS ${fw_io_exe}
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)

@@ -176,7 +176,7 @@
 #define FW_FILTER									false
 
 #define SPI_BUS_SPEED								1000000
-#define T_STALL										5
+#define T_STALL										9
 
 #define GYROINITIALSENSITIVITY						250
 #define ACCELINITIALSENSITIVITY						(1.0f / 1200.0f)
@@ -293,6 +293,21 @@ private:
 		uint16_t		mag_z;
 		uint16_t		baro;
 		uint16_t		temp;
+
+		ADISReport():
+			cmd(0),
+			status(0),
+			gyro_x(0),
+			gyro_y(0),
+			gyro_z(0),
+			accel_x(0),
+			accel_y(0),
+			accel_z(0),
+			mag_x(0),
+			mag_y(0),
+			mag_z(0),
+			baro(0),
+			temp(0) {}
 	};
 #pragma pack(pop)
 
@@ -509,7 +524,7 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_filter_x(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_y(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
 	_mag_filter_z(ADIS16448_MAG_DEFAULT_RATE, ADIS16448_MAG_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, true),
+	_accel_int(1000000 / ADIS16448_ACCEL_MAX_OUTPUT_RATE, false),
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency"))
@@ -711,20 +726,20 @@ int ADIS16448::reset()
 
 	/* Set gyroscope scale to default value */
 	_set_gyro_dyn_range(GYROINITIALSENSITIVITY);
-	usleep(1000);
 
 	/* Set digital FIR filter tap */
 	_set_dlpf_filter(BITS_FIR_16_TAP_CFG);
-	usleep(1000);
 
 	/* Set IMU sample rate */
 	_set_sample_rate(_sample_rate);
-	usleep(1000);
 
 	_accel_range_scale = ADIS16448_ONE_G * ACCELINITIALSENSITIVITY;
 	_accel_range_m_s2  = ADIS16448_ONE_G * ACCELDYNAMICRANGE;
 	_mag_range_scale   = MAGINITIALSENSITIVITY;
 	_mag_range_mgauss  = MAGDYNAMICRANGE;
+
+	/* settling time */
+	up_udelay(50000);
 
 	return OK;
 
@@ -753,6 +768,7 @@ ADIS16448::probe()
 	case ADIS16448_Product:
 		DEVICE_DEBUG("ADIS16448 is detected ID: 0x%02x, Serial: 0x%02x", _product, serial_number);
 		modify_reg16(ADIS16448_GPIO_CTRL, 0x0200, 0x0002);			/* Turn on ADIS16448 adaptor board led */
+		_set_factory_default();										/* Restore factory calibration 		   */
 		return OK;
 	}
 
@@ -782,9 +798,9 @@ ADIS16448::_set_sample_rate(uint16_t desired_sample_rate_hz)
 		smpl_prd = BITS_SMPL_PRD_NO_TAP_CFG;
 	}
 
-	modify_reg16(ADIS16448_SMPL_PRD, 0x0700, smpl_prd);
+	modify_reg16(ADIS16448_SMPL_PRD, 0x1f00, smpl_prd);
 
-	if ((read_reg16(ADIS16448_SMPL_PRD) & 0x0700) != smpl_prd) {
+	if ((read_reg16(ADIS16448_SMPL_PRD) & 0x1f00) != smpl_prd) {
 		DEVICE_DEBUG("failed to set IMU sample rate");
 	}
 
@@ -809,7 +825,6 @@ void
 ADIS16448::_set_factory_default()
 {
 	write_reg16(ADIS16448_GLOB_CMD, 0x02);
-	warnx("Set IMU to factory default!");
 }
 
 /* set the gyroscope dynamic range */
@@ -1096,23 +1111,11 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _accel_reports->size();
-
 	case ACCELIOCGSAMPLERATE:
 		return _sample_rate;
 
 	case ACCELIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case ACCELIOCGLOWPASS:
-		return _accel_filter_x.get_cutoff_freq();
-
-	case ACCELIOCSLOWPASS:
-		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE: {
@@ -1181,24 +1184,11 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _gyro_reports->size();
-
 	case GYROIOCGSAMPLERATE:
 		return _sample_rate;
 
 	case GYROIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case GYROIOCGLOWPASS:
-		return _gyro_filter_x.get_cutoff_freq();
-
-	case GYROIOCSLOWPASS:
-		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -1259,23 +1249,11 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCGQUEUEDEPTH:
-		return _mag_reports->size();
-
 	case MAGIOCGSAMPLERATE:
 		return _sample_rate;
 
 	case MAGIOCSSAMPLERATE:
 		_set_sample_rate(arg);
-		return OK;
-
-	case MAGIOCGLOWPASS:
-		return _mag_filter_x.get_cutoff_freq();
-
-	case MAGIOCSLOWPASS:
-		_mag_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_mag_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-		_mag_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case MAGIOCSSCALE:
@@ -1316,6 +1294,7 @@ ADIS16448::read_reg16(unsigned reg)
 	transferhword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
 	transferhword(nullptr, cmd, 1);
+	up_udelay(T_STALL);
 
 	return cmd[0];
 }
@@ -1331,6 +1310,7 @@ ADIS16448::write_reg16(unsigned reg, uint16_t value)
 	transferhword(cmd, nullptr, 1);
 	up_udelay(T_STALL);
 	transferhword(cmd + 1, nullptr, 1);
+	up_udelay(T_STALL);
 }
 
 void

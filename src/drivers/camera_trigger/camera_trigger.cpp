@@ -307,7 +307,7 @@ CameraTrigger::CameraTrigger() :
 	     _camera_interface_mode == CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM)) {
 		_activation_time = 40.0f;
 		PX4_WARN("Trigger interval too low for PWM interface, setting to 40 ms");
-		param_set(_p_activation_time, &(_activation_time));
+		param_set_no_notification(_p_activation_time, &(_activation_time));
 	}
 
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
@@ -591,6 +591,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 			trig->_trigger_mode = TRIGGER_MODE_DISTANCE;
 			if (cmd.param1 > 0.0f) {
 				trig->_distance = cmd.param1;
+//				param_set_no_notification(trig->_p_distance, &(trig->_distance));
+
 				trig->_trigger_enabled = true;
 				trig->_trigger_paused = false;
 
@@ -607,6 +609,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 			if (cmd.param2 > 0.0f) {
 				if (trig->_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					trig->_activation_time = cmd.param2;
+//					param_set_no_notification(trig->_p_activation_time, &(trig->_activation_time));
 				}
 			}
 
@@ -643,6 +646,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 			if (cmd.param2 > 0.0f) {
 				if (trig->_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					trig->_activation_time = cmd.param2;
+//					param_set_no_notification(trig->_p_activation_time, &(trig->_activation_time));
 				}
 			}
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;

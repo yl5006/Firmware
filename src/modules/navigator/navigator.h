@@ -149,7 +149,8 @@ public:
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
-	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_hpos && _home_pos.valid_alt); }
+	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
+	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	int		get_onboard_mission_sub() { return _onboard_mission_sub; }
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
@@ -232,16 +233,22 @@ public:
 
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void		increment_mission_instance_count() { _mission_instance_count++; }
+	void		increment_mission_instance_count() { _mission_result.instance_count++; }
 
 	void 		set_mission_failure(uint16_t msgid,const char *reason);
 
-	bool		is_planned_mission() { return _navigation_mode == &_mission; }
+	// MISSION
+	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
+	bool		on_mission_landing() { return _mission.landing(); }
+	bool		start_mission_landing() { return _mission.land_start(); }
+
+	// RTL
+	bool		mission_landing_required() { return _rtl.mission_landing_required(); }
 
 	bool		abort_landing();
 
+	// Param access
 	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
-
 	bool		force_vtol() const { return _vstatus.is_vtol && !_vstatus.is_rotary_wing && _param_force_vtol.get(); }
 
 private:
@@ -259,9 +266,9 @@ private:
 	int		_onboard_mission_sub{-1};	/**< onboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
+	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
-	int		_vstatus_sub{-1};			/**< vehicle status subscription */
-	int		_traffic_sub{-1};			/**< traffic subscription */
+	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
@@ -288,8 +295,6 @@ private:
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
-
-	int		_mission_instance_count{-1};	/**< instance count for the current mission */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
