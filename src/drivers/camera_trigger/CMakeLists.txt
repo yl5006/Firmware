@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__camera_trigger
 	MAIN camera_trigger
-	STACK_MAIN 1200
+	STACK_MAIN 1400
 	COMPILE_FLAGS
 	SRCS
 		camera_trigger.cpp
@@ -41,6 +41,7 @@ px4_add_module(
                 interfaces/src/pwm.cpp
                 interfaces/src/seagull_map2.cpp
                 interfaces/src/gpio.cpp
+                interfaces/src/sbusrc.cpp
 	DEPENDS
 		platforms__common
 	)

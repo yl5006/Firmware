@@ -163,15 +163,20 @@ sbus_initrc(const char *device, bool singlewire)
 {
 	int sbus_fd = open(device, O_RDWR | O_NONBLOCK);
  	struct termios t;
-	 	/* 115200, even parity, two stop bits */
-	 	tcgetattr(sbus_fd, &t);
+		/* 100000bps, even parity, two stop bits */
+	tcgetattr(sbus_fd, &t);
+	cfsetspeed(&t, 100000);
+	t.c_cflag |= (CSTOPB | PARENB);
+	tcsetattr(sbus_fd, TCSANOW, &t);
+/*
 	 	cfsetispeed(&t, B115200);
 	 	cfsetospeed(&t, B115200);
 	 	t.c_cflag  |= CS8;
 	 	t.c_cflag  &= ~CRTSCTS ;
      	t.c_cflag  &= ~(PARENB|CSTOPB);
 	 	tcsetattr(sbus_fd, TCSANOW, &t);
-		return sbus_fd;
+	 	*/
+	return sbus_fd;
 }
 int
 sbus_config(int sbus_fd, bool singlewire)
@@ -228,39 +233,6 @@ sbus_config(int sbus_fd, bool singlewire)
 	int ret = -1;
 
 	if (sbus_fd >= 0) {
-#ifdef __PX4_POSIX
-		struct termios t;
-
-		/* 100000bps, even parity, two stop bits */
-		tcgetattr(sbus_fd, &t);
-		ret=cfsetspeed(&t, B38400);
-		t.c_iflag |= (INPCK );
-		t.c_cflag &= ~PARODD;
-		t.c_cflag &= ~CSIZE;
-		t.c_cflag |=  CLOCAL | CREAD;
-		t.c_cflag |= (CSTOPB | PARENB | CS8);
-		t.c_cc[VTIME]  = 0; //VTIME:非cannoical模式读时的延时，以十分之一秒位单位
-		t.c_cc[VMIN] = 0; //VMIN:非canonical模式读到最小字符数
-		tcflush(sbus_fd,TCIFLUSH);
-		tcsetattr(sbus_fd, TCSANOW, &t);
-		struct serial_struct ss, ss_set;
-		if((ioctl(sbus_fd,TIOCGSERIAL,&ss))<0){
-			printf("BAUD: error to get the serial_struct info\n");
-		        return -1;
-		 }
-		 ss.flags = (ss.flags & ~ASYNC_SPD_MASK) | ASYNC_SPD_CUST;
-		 ss.custom_divisor =  (ss.baud_base + (100000 / 2)) / 100000;
-		  if((ioctl(sbus_fd,TIOCSSERIAL,&ss))<0){
-			  printf("BAUD: error to set serial_struct:\n");
-		        return -2;
-		 }
-		  if((ioctl(sbus_fd,TIOCSSERIAL,&ss))<0){
-					  printf("BAUD: error to set serial_struct:\n");
-				        return -2;
-				 }
-		  ioctl(sbus_fd,TIOCGSERIAL,&ss_set);
-		     printf("BAUD: success set baud to %d,custom_divisor=%d,baud_base=%d\n",100000,ss_set.custom_divisor,ss_set.baud_base);
-#else
 		 	struct termios t;
 
 		 	/* 100000bps, even parity, two stop bits */
@@ -268,7 +240,6 @@ sbus_config(int sbus_fd, bool singlewire)
 		 	cfsetspeed(&t, 100000);
 		 	t.c_cflag |= (CSTOPB | PARENB);
 		 	tcsetattr(sbus_fd, TCSANOW, &t);
-#endif
 
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL */

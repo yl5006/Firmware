@@ -525,21 +525,6 @@ PX4FMU::init()
 #  endif
 #endif
 
-#ifdef	GROUNDSTATION_RC_SBUS
-	_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
-	/* open uart */
-
-	_rcs_fd	=sbus_initrc(GROUNDSTATION_RC_SBUS,false);
-
-#endif
-
-#ifdef	GROUNDSTATION_RC_SBUS
-	_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
-	/* open uart */
-
-	_rcs_fd	=sbus_initrc(GROUNDSTATION_RC_SBUS,false);
-
-#endif
 	// Getting initial parameter values
 	update_params();
 
@@ -1489,16 +1474,6 @@ PX4FMU::cycle()
 
 #endif
 
-#ifdef GROUNDSTATION_RC_SBUS
-		/* vehicle command */
-		orb_check(_cammer_rc_sub, &updated);
-
-		if (updated) {
-			struct cammer_rc_s camrc;
-			orb_copy(ORB_ID(cammer_rc), _cammer_rc_sub, &camrc);
-			sbus1_output(_rcs_fd,camrc.values,16);
-		}
-#endif
 		orb_check(_param_sub, &updated);
 
 		if (updated) {

@@ -199,7 +199,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 			_mavlink->set_config_link_on(true);
 		}
 	}
-
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		if (_mavlink->accepting_commands()) {
@@ -1613,6 +1612,7 @@ MavlinkReceiver::handle_message_cammer_rc(mavlink_message_t *msg)
 	camrc.values[15] = man.chan16_raw;
 	camrc.values[16] = man.chan17_raw;
 	camrc.values[17] = man.chan18_raw;
+
 	if (_cammer_rc_pub == nullptr) {
 		_cammer_rc_pub = orb_advertise(ORB_ID(cammer_rc), &camrc);
 

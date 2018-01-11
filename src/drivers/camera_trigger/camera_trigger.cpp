@@ -63,12 +63,14 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/cammer_rc.h>
 
 #include <drivers/drv_hrt.h>
 
 #include "interfaces/src/camera_interface.h"
 #include "interfaces/src/gpio.h"
 #include "interfaces/src/pwm.h"
+#include "interfaces/src/sbusrc.h"
 #include "interfaces/src/seagull_map2.h"
 
 extern "C" __EXPORT int camera_trigger_main(int argc, char *argv[]);
@@ -78,7 +80,8 @@ typedef enum : int32_t {
 	CAMERA_INTERFACE_MODE_GPIO,
 	CAMERA_INTERFACE_MODE_SEAGULL_MAP2_PWM,
 	CAMERA_INTERFACE_MODE_MAVLINK,
-	CAMERA_INTERFACE_MODE_GENERIC_PWM
+	CAMERA_INTERFACE_MODE_GENERIC_PWM,
+	CAMERA_INTERFACE_MODE_SBUS
 } camera_interface_mode_t;
 
 typedef enum : int32_t {
@@ -171,6 +174,7 @@ private:
 	bool			_valid_position;
 
 	int			_command_sub;
+	int			_cammer_rc_sub;
 	int			_lpos_sub;
 
 	orb_advert_t		_trigger_pub;
@@ -196,7 +200,7 @@ private:
 	 * Resets trigger
 	 */
 	static void	disengage(void *arg);
-	/**
+	/**_chan(-1),
 	 * Fires on/off
 	 */
 	static void engange_turn_on_off(void *arg);
@@ -242,6 +246,7 @@ CameraTrigger::CameraTrigger() :
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
 	_command_sub(-1),
+	_cammer_rc_sub(-1),
 	_lpos_sub(-1),
 	_trigger_pub(nullptr),
 	_cmd_ack_pub(nullptr),
@@ -280,6 +285,10 @@ CameraTrigger::CameraTrigger() :
 		_camera_interface = new CameraInterfaceSeagull();
 		break;
 
+	case CAMERA_INTERFACE_MODE_SBUS:
+		_camera_interface = new CameraInterfaceSBUS();
+		break;
+
 #endif
 
 	case CAMERA_INTERFACE_MODE_MAVLINK:
@@ -291,7 +300,6 @@ CameraTrigger::CameraTrigger() :
 		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
 		break;
 	}
-
 	// Enforce a lower bound on the activation interval in PWM modes to not miss
 	// engage calls in-between 50Hz PWM pulses. (see PX4 PR #6973)
 	if ((_activation_time < 40.0f) &&
@@ -498,6 +506,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 	if (trig->_command_sub < 0) {
 		trig->_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	}
+
+#ifdef	GROUNDSTATION_RC_SBUS
+    if(trig->_cammer_rc_sub < 0) {
+    	trig->_cammer_rc_sub = orb_subscribe(ORB_ID(cammer_rc));
+    }
+#endif
 
 	bool updated = false;
 	orb_check(trig->_command_sub, &updated);
@@ -748,7 +762,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		}
 	}
-
+	orb_check(trig->_cammer_rc_sub, &updated);
+	{
+		if (updated) {
+			struct cammer_rc_s camrc;
+			orb_copy(ORB_ID(cammer_rc), trig->_cammer_rc_sub, &camrc);
+			trig->_camera_interface->set_cammer_rc(&camrc);
+		}
+	}
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline,
 		   camera_trigger::g_camera_trigger, USEC2TICK(poll_interval_usec));
 }
@@ -767,6 +788,7 @@ CameraTrigger::engage(void *arg)
 		// do not send messages or increment frame count for test shots
 		return;
 	}
+
 
 	// Send camera trigger message. This messages indicates that we sent
 	// the camera trigger request. Does not guarantee capture.
