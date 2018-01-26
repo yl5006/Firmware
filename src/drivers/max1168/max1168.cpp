@@ -786,7 +786,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 
 					return 1000000 / _call_interval;
 
-				case SENSORIOCGQUEUEDEPTH:
+				case SENSORIOCSQUEUEDEPTH:
 					return _accel_reports->size();
 
 				case ACCELIOCGSAMPLERATE:
@@ -794,18 +794,6 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 
 				case ACCELIOCSSAMPLERATE:
 					_set_sample_rate(arg);
-					return OK;
-
-				case ACCELIOCGLOWPASS:
-					return _accel_filter_x.get_cutoff_freq();
-
-				case ACCELIOCSLOWPASS:
-					// set hardware filtering
-					//	_set_dlpf_filter(arg);
-					// set software filtering
-					_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-					_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-					_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 					return OK;
 
 				case ACCELIOCSSCALE: {
@@ -852,7 +840,7 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 				case SENSORIOCRESET:
 					return ioctl(filp, cmd, arg);
 
-				case SENSORIOCGQUEUEDEPTH:
+				case SENSORIOCSQUEUEDEPTH:
 					return _gyro_reports->size();
 
 				case GYROIOCGSAMPLERATE:
@@ -860,17 +848,6 @@ MAX1168::MAX1168(int bus, const char *path_accel, const char *path_gyro, uint32_
 
 				case GYROIOCSSAMPLERATE:
 					_set_sample_rate(arg);
-					return OK;
-
-				case GYROIOCGLOWPASS:
-					return _gyro_filter_x.get_cutoff_freq();
-
-				case GYROIOCSLOWPASS:
-					// set hardware filtering
-					//	_set_dlpf_filter(arg);
-					_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-					_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-					_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 					return OK;
 
 				case GYROIOCSSCALE:

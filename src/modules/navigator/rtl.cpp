@@ -129,7 +129,7 @@ RTL::set_rtl_item()
 
 			} else {
 				// otherwise use regular RTL
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unable to use mission landing");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: unable to use mission landing");
 			}
 		}
 	}

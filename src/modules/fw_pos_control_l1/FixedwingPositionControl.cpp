@@ -237,7 +237,7 @@ FixedwingPositionControl::parameters_update()
 	    _parameters.airspeed_trim < _parameters.airspeed_min ||
 	    _parameters.airspeed_trim > _parameters.airspeed_max) {
 
-		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
+		mavlink_log_critical(&_mavlink_log_pub, 450,"Airspeed parameters invalid");
 
 		return PX4_ERROR;
 	}
