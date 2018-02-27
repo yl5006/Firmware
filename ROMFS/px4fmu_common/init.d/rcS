@@ -15,7 +15,7 @@ set +e
 #
 # UART mapping on FMUv2/3/4:
 #
-# UART1			/dev/ttyS0		IO debug
+# UART1			/dev/ttyS0		IO debug (except v4, there ttyS0 is the wifi)
 # USART2		/dev/ttyS1		TELEM1 (flow control)
 # USART3		/dev/ttyS2		TELEM2 (flow control)
 # UART4
@@ -51,7 +51,7 @@ ver all
 #
 set MODE autostart
 
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
+set TUNE_ERR "ML<<CP4CP4CP4CP4CP4"
 set LOG_FILE /fs/microsd/bootlog.txt
 
 #
@@ -68,9 +68,6 @@ then
 			hardfault_log reset
 			tone_alarm stop
 		fi
-	else
-		# Start playing the startup tune
-		tone_alarm start
 	fi
 else
 	tone_alarm MBAGP
@@ -108,6 +105,12 @@ then
 	# Start the ORB (first app to start)
 	#
 	uorb start
+
+	# Start tone driver
+	tone_alarm start
+
+	# play startup tone
+	tune_control play -t 1
 
 	#
 	# Load parameters
@@ -338,7 +341,7 @@ then
 					fi
 				else
 					echo "IOBoard update failed" >> $LOG_FILE
-					tone_alarm ${TUNE_ERR}
+					tune_control play -m ${TUNE_ERR}
 				fi
 			fi
 		fi
@@ -347,7 +350,7 @@ then
 		if [ $IO_PRESENT == no ]
 		then
 			echo "IOBoard not found" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			tune_control play -m ${TUNE_ERR}
 		fi
 	fi
 
@@ -464,7 +467,7 @@ then
 				sh /etc/init.d/rc.io
 			else
 				echo "IOBoard start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tune_control play -m  ${TUNE_ERR}
 			fi
 		fi
 
@@ -474,7 +477,7 @@ then
 			then
 			else
 				echo "FMU start failed" >> $LOG_FILE
-				tone_alarm $TUNE_ERR
+				tune_control play -m ${TUNE_ERR}
 			fi
 		fi
 
@@ -493,7 +496,7 @@ then
 			if mkblctrl $MKBLCTRL_ARG
 			then
 			else
-				tone_alarm $TUNE_ERR
+				tune_control play -m ${TUNE_ERR}
 			fi
 			unset MKBLCTRL_ARG
 		fi
@@ -504,7 +507,7 @@ then
 			if pwm_out_sim mode_pwm16
 			then
 			else
-				tone_alarm $TUNE_ERR
+				tune_control play -m ${TUNE_ERR}
 			fi
 		fi
 
@@ -520,7 +523,7 @@ then
 					sh /etc/init.d/rc.io
 				else
 					echo "IOBoard start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tune_control play -m ${TUNE_ERR}
 				fi
 			fi
 		else
@@ -530,7 +533,7 @@ then
 				then
 				else
 					echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-					tone_alarm $TUNE_ERR
+					tune_control play -m ${TUNE_ERR}
 				fi
 			fi
 		fi
@@ -541,7 +544,7 @@ then
 		# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 		set MAVLINK_F "-r 1200 -f"
 
-		# Avoid using ttyS1 for MAVLink on FMUv4
+		# Use ttyS1 for MAVLink on FMUv4 in addition to ttyS0 (debug)
 		if ver hwcmp PX4FMU_V4
 		then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS1"
@@ -552,6 +555,16 @@ then
 		if ver hwcmp AEROFC_V1
 		then
 			set MAVLINK_F "-r 1200 -d /dev/ttyS3"
+
+			# Only start mavlink if the Benewake TFMini or LeddarOne isn't being used
+			if param greater SENS_EN_TFMINI 0
+			then
+				set MAVLINK_F none
+			fi
+			if param greater SENS_EN_LEDDAR1 0
+			then
+				set MAVLINK_F none				
+			fi
 		fi
 
 		if ver hwcmp CRAZYFLIE
@@ -576,7 +589,14 @@ then
 	if param compare SYS_COMPANION 10
 	then
 		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
+	else
+		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
+		then
+			# This is TELEM4 on Pixhawk 3 Pro
+			frsky_telemetry start -d /dev/ttyS6
+		fi
 	fi
+
 	if param compare SYS_COMPANION 20
 	then
 		syslink start
@@ -659,11 +679,6 @@ then
 		fi
 	fi
 
-	if ver hwcmp PX4FMU_V4 MINDPX_V2
-	then
-		frsky_telemetry start -d /dev/ttyS6
-	fi
-
 	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5
 	then
 		# Check for flow sensor - as it is a background task, launch it last
@@ -676,36 +691,6 @@ then
 	else
 		# Start MAVLink
 		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
-
-	#
-	# Logging
-	#
-	if param compare SYS_LOGGER 0
-	then
-		sdlog2 start -r 100 -a -b 9 -t
-	else
-		set LOGGER_ARGS ""
-
-		if param compare SDLOG_MODE 1
-		then
-			set LOGGER_ARGS "-e"
-		fi
-
-		if param compare SDLOG_MODE 2
-		then
-			set LOGGER_ARGS "-f"
-		fi
-
-		if ver hwcmp AEROFC_V1
-		then
-			set LOGGER_ARGS "-m mavlink"
-		fi
-
-		logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
-
-		unset LOGGER_BUF
-		unset LOGGER_ARGS
 	fi
 
 	#
@@ -955,6 +940,8 @@ then
 		then
 		fi
 	fi
+
+	sh /etc/init.d/rc.logging
 
 # End of autostart
 fi

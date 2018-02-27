@@ -64,15 +64,18 @@ set(msg_files
 	home_position.msg
 	horizontal_distance.msg
 	input_rc.msg
+	irlock_report.msg
+	landing_target_innovations.msg
+	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
-	mc_att_ctrl_status.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
+	obstacle_distance.msg
 	offboard_control_mode.msg
 	optical_flow.msg
 	parameter_update.msg
@@ -81,6 +84,7 @@ set(msg_files
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
+	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
 	safety.msg
@@ -103,6 +107,7 @@ set(msg_files
 	test_motor.msg
 	time_offset.msg
 	transponder_report.msg
+	tune_control.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
 	ulog_stream.msg

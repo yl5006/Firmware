@@ -57,6 +57,7 @@ if ver hwcmp AUAV_X21
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
+	lis3mdl -X start
 
 	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
 	mpu6000 -R 2 -T 20608 start
@@ -202,7 +203,7 @@ then
 			# lis3mdl internal SPI bus is rotated 90 deg yaw
 		else
 			# BMI055 gyro internal SPI bus
-			bmi055 -G start	
+			bmi055 -G start
 		fi
 	fi
 
@@ -404,7 +405,44 @@ fi
 # Benewake TFMini
 if param greater SENS_EN_TFMINI 0
 then
-	tfmini start
+	if ver hwcmp PX4FMU_V3
+	then
+		# start the driver on serial 4/5
+		tfmini start -d /dev/ttyS6
+	else
+		if ver hwcmp AEROFC_V1
+		then
+			# start the driver on telemetry
+			tfmini start -d /dev/ttyS3
+		else
+			if param compare SYS_COMPANION 0
+			then
+				# start on default mavlink companion device
+				tfmini start -d /dev/ttyS2
+			fi
+		fi
+	fi
+fi
+
+# LeddarOne
+if param greater SENS_EN_LEDDAR1 0
+then
+	if ver hwcmp PX4FMU_V3
+	then
+		# start the driver on serial 4/5
+		leddar_one -d /dev/ttyS6 start
+	fi
+	if ver hwcmp AEROFC_V1
+	then
+		# start the driver on telemetry
+		leddar_one -d /dev/ttyS3 start
+	else
+		if param compare SYS_COMPANION 0
+		then
+			# start on default mavlink companion device
+			leddar_one -d /dev/ttyS2 start
+		fi
+	fi
 fi
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)

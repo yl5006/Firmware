@@ -176,6 +176,15 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
 
 /**
+ * Optical Flow minimum focus distance
+ *
+ * This parameter defines the minimum distance from ground required for the optical flow sensor to operate reliably. The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+ * *
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_MINRNG, 0.7f);
+
+/**
  * Board rotation Y (Pitch) offset
  *
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
@@ -209,75 +218,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensors
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
-
-/**
- * Lightware laser rangefinder (serial)
- *
- * @reboot_required true
- * @min 0
- * @max 4
- * @group Sensors
- * @value 0 Disabled
- * @value 1 SF02
- * @value 2 SF10/a
- * @value 3 SF10/b
- * @value 4 SF10/c
- * @value 5 SF11/c
- */
-PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
-
-/**
- * Maxbotix Soanr (mb12xx)
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
-
-/**
- * TeraRanger Rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 3
- * @group Sensors
- * @value 0 Disabled
- * @value 1 Autodetect
- * @value 2 TROne
- * @value 3 TREvo
- */
-PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);
-
-/**
- * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 5
- * @group Sensors
- * @value 0 Disabled
- * @value 1 SF10/a
- * @value 2 SF10/b
- * @value 3 SF10/c
- * @value 4 SF11/c
- * @value 5 SF/LW20
- */
-PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
-
-/**
  * Thermal control of sensor temperature
  *
  * @value -1 Thermal control unavailable
@@ -287,13 +227,13 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 
 /**
-* Driver level cut frequency for gyro
+* Driver level cutoff frequency for gyro
 *
-* The cut frequency for the 2nd order butterworth filter on the gyro driver. This features
+* The cutoff frequency for the 2nd order butterworth filter on the gyro driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
-* @min 5
+* @min 0
 * @max 1000
 * @unit Hz
 * @reboot_required true
@@ -302,26 +242,16 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 
 /**
-* Driver level cut frequency for accel
+* Driver level cutoff frequency for accel
 *
-* The cut frequency for the 2nd order butterworth filter on the accel driver. This features
+* The cutoff frequency for the 2nd order butterworth filter on the accel driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
-* @min 5
+* @min 0
 * @max 1000
 * @unit Hz
 * @reboot_required true
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
-
-/**
- * Benewake TFmini laser rangefinder
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_EN_TFMINI, 0);

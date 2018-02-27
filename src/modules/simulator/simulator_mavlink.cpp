@@ -94,6 +94,7 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 	    _system_type == MAV_TYPE_OCTOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
+	    _system_type == MAV_TYPE_VTOL_TILTROTOR ||
 	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
 
 		/* multirotors: set number of rotor outputs depending on type */
@@ -101,25 +102,23 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 		unsigned n;
 
 		switch (_system_type) {
-		case MAV_TYPE_QUADROTOR:
-			n = 4;
-			break;
-
-		case MAV_TYPE_HEXAROTOR:
-			n = 6;
-			break;
-
 		case MAV_TYPE_VTOL_DUOROTOR:
 			n = 2;
 			break;
 
+		case MAV_TYPE_QUADROTOR:
 		case MAV_TYPE_VTOL_QUADROTOR:
+		case MAV_TYPE_VTOL_TILTROTOR:
 			n = 4;
 			break;
 
 		case MAV_TYPE_VTOL_RESERVED2:
 			// this is the standard VTOL / quad plane with 5 propellers
 			n = 5;
+			break;
+
+		case MAV_TYPE_HEXAROTOR:
+			n = 6;
 			break;
 
 		default:
@@ -368,23 +367,16 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 					batt_sim_start = now;
 				}
 
-				unsigned cellcount = _battery.cell_count();
+				float ibatt = -1.0f; // no current sensor in simulation
+				const float minimum_percentage = 0.5f; // change this value if you want to simulate low battery reaction
 
-				float vbatt = _battery.full_cell_voltage() ;
-				float ibatt = -1.0f;
+				/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
+				float battery_percentage = (now - batt_sim_start) / discharge_interval_us;
+				battery_percentage = math::min(battery_percentage, minimum_percentage);
+				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.full_cell_voltage(), _battery.empty_cell_voltage());
+				vbatt *= _battery.cell_count();
 
-				float discharge_v = _battery.full_cell_voltage() - _battery.empty_cell_voltage();
-
-				vbatt = (_battery.full_cell_voltage() - (discharge_v * ((now - batt_sim_start) / discharge_interval_us)))  * cellcount;
-
-				float batt_voltage_loaded = _battery.empty_cell_voltage() - 0.05f;
-
-				if (!PX4_ISFINITE(vbatt) || (vbatt < (cellcount * batt_voltage_loaded))) {
-					vbatt = cellcount * batt_voltage_loaded;
-				}
-
-				// TODO: don't hard-code throttle.
-				const float throttle = 0.5f;
+				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
 				_battery.updateBatteryStatus(now, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
 
 				// publish the battery voltage
@@ -439,6 +431,25 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			int rc_multi;
 			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
 		}
+
+		break;
+
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		mavlink_landing_target_t landing_target_mavlink;
+		mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
+
+		struct irlock_report_s report;
+		memset(&report, 0, sizeof(report));
+
+		report.timestamp = hrt_absolute_time();
+		report.signature = landing_target_mavlink.target_num;
+		report.pos_x = landing_target_mavlink.angle_x;
+		report.pos_y = landing_target_mavlink.angle_y;
+		report.size_x = landing_target_mavlink.size_x;
+		report.size_y = landing_target_mavlink.size_y;
+
+		int irlock_multi;
+		orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
 
 		break;
 
@@ -523,6 +534,8 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_lpos.ref_lon = _hil_ref_lon;
 			hil_lpos.ref_alt = _hil_ref_alt;
 			hil_lpos.ref_timestamp = _hil_ref_timestamp;
+			hil_lpos.vxy_max = 0.0f;
+			hil_lpos.limit_hagl = false;
 
 			// always publish ground truth attitude message
 			int hil_lpos_multi;
@@ -1123,6 +1136,11 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 	vision_position.x = ev_mavlink->x;
 	vision_position.y = ev_mavlink->y;
 	vision_position.z = ev_mavlink->z;
+
+	vision_position.xy_valid = true;
+	vision_position.z_valid = true;
+	vision_position.v_xy_valid = true;
+	vision_position.v_z_valid = true;
 
 	struct vehicle_attitude_s vision_attitude = {};
 

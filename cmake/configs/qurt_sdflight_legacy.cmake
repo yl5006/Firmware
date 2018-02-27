@@ -88,20 +88,10 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-
-	#
-	# QuRT port
-	#
-	platforms/common
-	platforms/qurt/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# sources for muorb over fastrpc

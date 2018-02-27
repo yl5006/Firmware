@@ -40,7 +40,6 @@ set(config_module_list
 
 	lib/controllib
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
@@ -48,9 +47,6 @@ set(config_module_list
 	lib/version
 	lib/DriverFramework/framework
 
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 	modules/muorb/krait
 	)
 

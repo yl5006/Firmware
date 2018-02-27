@@ -471,17 +471,13 @@ protected:
 		if (_cmd_sub->update_if_changed(&cmd)) {
 
 			if (!cmd.from_external) {
-				if (_mavlink->verbose()) {
-					PX4_INFO("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
-				}
+				PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 
 				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
 				sent = true;
 
 			} else {
-				if (_mavlink->verbose()) {
-					PX4_INFO("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
-				}
+				PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 			}
 		}
 
@@ -1231,9 +1227,14 @@ protected:
 		msg.time_boot_ms = hrt_absolute_time() / 1000;
 		msg.time_unix_usec = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
-		mavlink_msg_system_time_send_struct(_mavlink->get_channel(), &msg);
+		// If the time is before 2001-01-01, it's probably the default 2000
+		// and we don't need to bother sending it because it's definitely wrong.
+		if (msg.time_unix_usec > 978307200000000) {
+			mavlink_msg_system_time_send_struct(_mavlink->get_channel(), &msg);
+			return true;
+		}
 
-		return true;
+		return false;
 	}
 };
 
@@ -1352,6 +1353,8 @@ protected:
 		while (_pos_sub->update(&_pos_time, &pos)) {
 			mavlink_adsb_vehicle_t msg = {};
 
+			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) { continue; }
+
 			msg.ICAO_address = pos.ICAO_address;
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
@@ -1363,8 +1366,21 @@ protected:
 			memcpy(&msg.callsign[0], &pos.callsign[0], sizeof(msg.callsign));
 			msg.emitter_type = pos.emitter_type;
 			msg.tslc = pos.tslc;
-			msg.flags = pos.flags;
 			msg.squawk = pos.squawk;
+
+			msg.flags = 0;
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS) { msg.flags |= ADSB_FLAGS_VALID_COORDS; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE) { msg.flags |= ADSB_FLAGS_VALID_ALTITUDE; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING) { msg.flags |= ADSB_FLAGS_VALID_HEADING; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY) { msg.flags |= ADSB_FLAGS_VALID_VELOCITY; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) { msg.flags |= ADSB_FLAGS_VALID_CALLSIGN; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) { msg.flags |= ADSB_FLAGS_VALID_SQUAWK; }
 
 			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
 			sent = true;
@@ -3825,7 +3841,7 @@ protected:
 		_msg()
 	{
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
-		_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
+		_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
 	}
 
 	bool send(const hrt_abstime t)
@@ -3875,9 +3891,6 @@ protected:
 						}
 					}
 				}
-
-			} else {
-				_msg.landed_state = MAV_LANDED_STATE_UNDEFINED;
 			}
 		}
 

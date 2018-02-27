@@ -55,12 +55,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
-	NavigatorMode(navigator, name),
-	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
-	_param_yaw_err(this, "MIS_YAW_ERR", false),
-	_param_yawmode(this, "MIS_YAWMODE", false),
-	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
-	_param_reverse_delay(this, "VT_B_REV_DEL", false)
+	NavigatorMode(navigator, name)
 {
 }
 
@@ -91,6 +86,9 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_SET_ROI:
+	case NAV_CMD_DO_SET_ROI_LOCATION:
+	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
+	case NAV_CMD_DO_SET_ROI_NONE:
 //	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 //	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
@@ -295,9 +293,11 @@ MissionBlock::is_mission_item_reached()
 				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
-				if (_param_back_trans_dec_mss.get() > FLT_EPSILON && velocity > FLT_EPSILON) {
-					mission_acceptance_radius = ((velocity / _param_back_trans_dec_mss.get() / 2) * velocity) + _param_reverse_delay.get() *
-								    velocity;
+				const float back_trans_dec = _navigator->get_vtol_back_trans_deceleration();
+				const float reverse_delay = _navigator->get_vtol_reverse_delay();
+
+				if (back_trans_dec > FLT_EPSILON && velocity > FLT_EPSILON) {
+					mission_acceptance_radius = ((velocity / back_trans_dec / 2) * velocity) + reverse_delay * velocity;
 
 				}
 
@@ -330,16 +330,16 @@ MissionBlock::is_mission_item_reached()
 			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
-			if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
-			    || (_param_yaw_timeout.get() >= FLT_EPSILON && !_mission_item.force_heading)) {
+			if (fabsf(yaw_err) < math::radians(_navigator->get_yaw_threshold())
+			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
 
 				_waypoint_yaw_reached = true;
 			}
 
 			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
 			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
-			    (_param_yaw_timeout.get() >= FLT_EPSILON) &&
-			    (now - _time_wp_reached >= (hrt_abstime)_param_yaw_timeout.get() * 1e6f)) {
+			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
+			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
 
 				_navigator->set_mission_failure(725,"unable to reach heading within timeout");
 			}
@@ -348,42 +348,10 @@ MissionBlock::is_mission_item_reached()
 			_waypoint_yaw_reached = true;
 		}
 	}
-	//到达航点后先转机头
-	if (_waypoint_position_reached && _waypoint_yaw_reached && _navigator->get_vstatus()->is_rotary_wing && _param_yawmode.get()==MISSION_YAWMODE_TURN_BEFOR_WAYPOINT)
-	{
 
-		if(!_secend_yaw_reached)
-		{
-			struct position_setpoint_s *next_sp1=  &_navigator->get_position_setpoint_triplet()->next;
-			struct position_setpoint_s *curr_sp1 = &_navigator->get_position_setpoint_triplet()->current;
-			if (next_sp1->valid) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-						_navigator->get_global_position()->lon,
-						next_sp1->lat, next_sp1->lon);
-				curr_sp1->yaw=_mission_item.yaw;
-				_navigator->set_position_setpoint_triplet_updated();
-
-				float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
-						_navigator->get_global_position()->vel_e,
-						_navigator->get_global_position()->vel_n);
-				float yaw_err = _wrap_pi(_mission_item.yaw - cog);
-
-				/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
-				if (fabsf(yaw_err) < math::radians(_param_yaw_err.get())
-				|| (_param_yaw_timeout.get() >= FLT_EPSILON )) {
-
-					_secend_yaw_reached = true;
-				}
-			}else
-			{
-				_secend_yaw_reached = true;
-			}
-		}
-	}
 	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
-	if (_waypoint_position_reached && _waypoint_yaw_reached &&
-		(_secend_yaw_reached || !_navigator->get_vstatus()->is_rotary_wing || _param_yawmode.get()!= MISSION_YAWMODE_TURN_BEFOR_WAYPOINT))
-	{
+	if (_waypoint_position_reached && _waypoint_yaw_reached) {
+
 		if (_time_first_inside_orbit == 0) {
 			_time_first_inside_orbit = now;
 		}
@@ -430,7 +398,7 @@ MissionBlock::is_mission_item_reached()
 
 	// all acceptance criteria must be met in the same iteration
 	_waypoint_position_reached = false;
-//	_waypoint_yaw_reached = false;
+	_waypoint_yaw_reached = false;
 	return false;
 }
 
@@ -439,7 +407,6 @@ MissionBlock::reset_mission_item_reached()
 {
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
-	_secend_yaw_reached= false;
 	_time_first_inside_orbit = 0;
 	_time_wp_reached = 0;
 }
@@ -497,8 +464,13 @@ MissionBlock::issue_command(const mission_item_s &item)
 		vcmd.param4 = item.params[3];
 		vcmd.param5 = item.params[4];
 		vcmd.param6 = item.params[5];
-		vcmd.param7 = item.params[6];
-*/
+
+		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION && item.altitude_is_relative) {
+			vcmd.param7 = item.params[6] + _navigator->get_home_position()->alt;
+
+		} else {
+			vcmd.param7 = item.params[6];
+		}
 
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
@@ -633,16 +605,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->valid = true;
 
 	return sp->valid;
-}
-
-void
-MissionBlock::set_previous_pos_setpoint()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	if (pos_sp_triplet->current.valid) {
-		memcpy(&pos_sp_triplet->previous, &pos_sp_triplet->current, sizeof(struct position_setpoint_s));
-	}
 }
 
 void

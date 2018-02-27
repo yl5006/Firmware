@@ -42,8 +42,12 @@
 #define NAVIGATOR_MISSION_BLOCK_H
 
 #include "navigator_mode.h"
+#include "navigation.h"
 
-#include <navigator/navigation.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+#include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -59,25 +63,12 @@ public:
 	 * Constructor
 	 */
 	MissionBlock(Navigator *navigator, const char *name);
-	~MissionBlock() = default;
+	virtual ~MissionBlock() = default;
 
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
 	static bool item_contains_position(const mission_item_s &item);
-
-	/* TODO: move this to a helper class in navigator */
-	static bool position_contains_command(const struct mission_item_s &item);
-
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_TO_ROI = 4,
-		MISSION_YAWMODE_TURN_BEFOR_WAYPOINT = 5,
-		MISSION_YAWMODE_MAX = 6
-	};
 
 protected:
 	/**
@@ -98,11 +89,6 @@ protected:
 	 * @param the position setpoint that needs to be set
 	 */
 	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
-
-	/**
-	 * Set previous position setpoint to current setpoint
-	 */
-	void set_previous_pos_setpoint();
 
 	/**
 	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
@@ -137,21 +123,12 @@ protected:
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
-	bool _secend_yaw_reached{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
 	orb_advert_t    _actuator_pub{nullptr};
-
-	control::BlockParamFloat _param_yaw_timeout;
-	control::BlockParamFloat _param_yaw_err;
-	control::BlockParamInt _param_yawmode;
-
-	// VTOL parameters
-	control::BlockParamFloat _param_back_trans_dec_mss;
-	control::BlockParamFloat _param_reverse_delay;
 };
 
 #endif

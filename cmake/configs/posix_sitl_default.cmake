@@ -2,18 +2,20 @@
 set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-native.cmake)
 
 set(config_module_list
+	#drivers/barometer
+	drivers/differential_pressure
+	drivers/distance_sensor
+	#drivers/telemetry
+
+	drivers/airspeed
+	drivers/batt_smbus
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
+	drivers/linux_gpio
 	drivers/pwm_out_sim
 	drivers/vmount
-	drivers/linux_gpio
-	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/sdp3x_airspeed
 
 	modules/sensors
 	platforms/posix/drivers/accelsim
@@ -44,12 +46,13 @@ set(config_module_list
 	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/ver
 
 	#
 	# Testing
 	#
-	drivers/sf0x/sf0x_tests
+	drivers/distance_sensor/sf0x/sf0x_tests
 	#drivers/test_ppm
 	lib/rc/rc_tests
 	modules/commander/commander_tests
@@ -63,7 +66,6 @@ set(config_module_list
 	platforms/posix/tests/hrt_test
 	platforms/posix/tests/muorb
 	platforms/posix/tests/vcdev_test
-	platforms/posix/tests/wqueue
 
 	#
 	# General system control
@@ -111,6 +113,7 @@ set(config_module_list
 	modules/systemlib/param
 	modules/systemlib
 	modules/uORB
+	modules/landing_target_estimator
 
 	#
 	# Libraries
@@ -121,23 +124,13 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/mixer
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/terrain_estimation
+	lib/tunes
 	lib/version
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 
 	#
 	# OBC challenge
@@ -168,16 +161,15 @@ set(config_module_list
 	#examples/px4_simple_app
 
 	# Tutorial code from
-	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
-
-	# Tutorial code from
 	# https://px4.io/dev/debug_values
 	#examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
 	#examples/fixedwing_control
+
+	# Template Module
+	templates/module
 
 	# Hardware test
 	#examples/hwtest

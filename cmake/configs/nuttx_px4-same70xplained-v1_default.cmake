@@ -7,6 +7,12 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+	drivers/telemetry
+
 	drivers/device
 	drivers/samv7
 #WIP 	drivers/samv7/adc
@@ -15,28 +21,14 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/boards
 	drivers/rgbled
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/lsm303d
-	drivers/l3gd20
-	drivers/hmc5883
-	drivers/ms5611
-	drivers/mb12xx
-	drivers/srf02
-	drivers/sf0x
-	drivers/ll40ls
-	drivers/teraranger
+	drivers/imu/mpu6000
+	drivers/imu/mpu9250
+	drivers/imu/lsm303d
+	drivers/imu/l3gd20
 	drivers/gps
 #WIP 	drivers/pwm_out_sim
-	drivers/hott
-	drivers/hott/hott_telemetry
-	drivers/hott/hott_sensors
 	drivers/blinkm
 	drivers/airspeed
-	drivers/ets_airspeed
-	drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow
@@ -44,10 +36,6 @@ set(config_module_list
 ##	drivers/gimbal
 #WIP  	drivers/pwm_input
 #WIP  	drivers/camera_trigger
-	drivers/bst
-	drivers/lis3mdl
-	drivers/tfmini
-
 
 	#
 	# System commands
@@ -119,21 +107,12 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
 	lib/terrain_estimation
 	lib/version
-	platforms/nuttx
-
-	# had to add for cmake, not sure why wasn't in original config
-	platforms/common
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge
@@ -152,10 +131,6 @@ set(config_module_list
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
 	#examples/px4_simple_app
-
-	# Tutorial code from
-	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values

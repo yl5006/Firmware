@@ -7,19 +7,19 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
-	drivers/stm32
-	drivers/led
-	drivers/px4fmu
-	drivers/boards
-	drivers/tap_esc
-	drivers/mpu9250
-	drivers/ms5611
-	drivers/hmc5883
-	drivers/gps
-	drivers/ist8310
-	drivers/ll40ls
 	drivers/aerofc_adc
+	drivers/boards
+	drivers/device
+	drivers/distance_sensor
+	drivers/gps
+	drivers/led
+	drivers/barometer/ms5611
+	drivers/magnetometer/hmc5883
+	drivers/magnetometer/ist8310
+	drivers/imu/mpu9250
+	drivers/px4fmu
+	drivers/stm32
+	drivers/tap_esc
 	modules/sensors
 
 	#
@@ -82,12 +82,7 @@ set(config_module_list
 	lib/geo
 	lib/geo_lookup
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
-	lib/tailsitter_recovery
 	lib/version
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 )

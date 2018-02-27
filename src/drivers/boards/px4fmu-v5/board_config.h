@@ -52,6 +52,22 @@
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
+
+/* PX4IO connection configuration */
+
+#define BOARD_USES_PX4IO_VERSION       2
+#define PX4IO_SERIAL_DEVICE     "/dev/ttyS5"
+#define PX4IO_SERIAL_TX_GPIO    GPIO_UART7_TX
+#define PX4IO_SERIAL_RX_GPIO    GPIO_UART7_RX
+#define PX4IO_SERIAL_BASE       STM32_UART7_BASE	/* hardwired on the board */
+#define PX4IO_SERIAL_VECTOR     STM32_IRQ_UART7
+#define PX4IO_SERIAL_TX_DMAMAP  DMAMAP_UART7_TX
+#define PX4IO_SERIAL_RX_DMAMAP  DMAMAP_UART7_RX
+#define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB1ENR
+#define PX4IO_SERIAL_RCC_EN	RCC_APB1ENR_UART7EN
+#define PX4IO_SERIAL_CLOCK      STM32_PCLK1_FREQUENCY
+#define PX4IO_SERIAL_BITRATE    1500000			/* 1.5Mbps -> max rate for IO */
+
 /* Configuration ************************************************************************************/
 
 /* Un-comment to support some RC00 polarities inversions
@@ -227,7 +243,6 @@
 
 #define PX4_I2C_OBDEV_LED	    0x55
 #define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_LIS3MDL	0x1e
 
 /*
  * ADC channels
@@ -305,6 +320,12 @@
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
 	 (1 << ADC1_SPARE_1_CHANNEL))
 #endif
+
+/* Define Battery 1 Voltage Divider and A per V
+ */
+
+#define BOARD_BATTERY1_V_DIV         (10.133333333f)
+#define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 

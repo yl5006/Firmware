@@ -593,11 +593,14 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
+	add_topic("landing_target_pose");
 	add_topic("manual_control_setpoint", 200);
+	add_topic("mission");
 	add_topic("mission_result");
-	add_topic("offboard_mission");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
+	add_topic("rate_ctrl_status", 30);
+	add_topic("safety");
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
@@ -626,6 +629,7 @@ void Logger::add_high_rate_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
+	add_topic("rate_ctrl_status");
 	add_topic("sensor_combined");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
@@ -2071,7 +2075,7 @@ int Logger::check_free_space()
 			break;
 		}
 
-		PX4_WARN("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
+		PX4_INFO("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
 			 (unsigned int)(statfs_buf.f_bavail / 1024U * statfs_buf.f_bsize / 1024U));
 
 		if (remove_directory(directory_to_delete)) {

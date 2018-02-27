@@ -91,6 +91,7 @@ Navigator::Navigator() :
 	_loiter(this, "LOI"),
 	_takeoff(this, "TKF"),
 	_land(this, "LND"),
+	_precland(this, "PLD"),
 	_rtl(this, "RTL"),
 	_rcLoss(this, "RCL"),
 	_dataLinkLoss(this, "DLL"),
@@ -106,7 +107,12 @@ Navigator::Navigator() :
 	_param_traffic_avoidance_mode(this, "TRAFF_AVOID"),
 	_param_mission_rtljump(this, "RTL_ENABLE_JUMP", false),
 	// non-navigator params
-	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false)
+	_param_loiter_min_alt(this, "MIS_LTRMIN_ALT", false),
+	_param_takeoff_min_alt(this, "MIS_TAKEOFF_ALT", false),
+	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
+	_param_yaw_err(this, "MIS_YAW_ERR", false),
+	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
+	_param_reverse_delay(this, "VT_B_REV_DEL", false)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -118,7 +124,9 @@ Navigator::Navigator() :
 	_navigation_mode_array[6] = &_rcLoss;
 	_navigation_mode_array[7] = &_takeoff;
 	_navigation_mode_array[8] = &_land;
-	_navigation_mode_array[9] = &_follow_target;
+	_navigation_mode_array[9] = &_precland;
+	_navigation_mode_array[10] = &_follow_target;
+
 }
 
 Navigator::~Navigator()
@@ -244,8 +252,7 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(offboard_mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
@@ -519,9 +526,33 @@ Navigator::task_main()
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI
-				   || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_ROI) {
+				   || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_ROI
+				   || cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION
+				   || cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
+				   || cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE) {
 				_vroi = {};
-				_vroi.mode = cmd.param1;
+
+				switch (cmd.command) {
+				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
+				case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
+					_vroi.mode = cmd.param1;
+					break;
+
+				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
+					_vroi.mode = vehicle_command_s::VEHICLE_ROI_LOCATION;
+					break;
+
+				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
+					_vroi.mode = vehicle_command_s::VEHICLE_ROI_WPNEXT;
+					_vroi.pitchOffset = cmd.param5;
+					_vroi.rollOffset = cmd.param6;
+					_vroi.yawOffset = cmd.param7;
+					break;
+
+				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
+					_vroi.mode = vehicle_command_s::VEHICLE_ROI_NONE;
+					break;
+				}
 
 				switch (_vroi.mode) {
 				case vehicle_command_s::VEHICLE_ROI_NONE:
@@ -648,6 +679,12 @@ Navigator::task_main()
 			navigation_mode_new = &_land;
 			break;
 
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
+			_pos_sp_triplet_published_invalid_once = false;
+			navigation_mode_new = &_precland;
+			_precland.set_mode(PrecLandMode::Required);
+			break;
+
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_land;
@@ -739,7 +776,6 @@ Navigator::task_main()
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_onboard_mission_sub);
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
@@ -931,7 +967,10 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign));
 	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
 	tr.tslc = 2; // Time since last communication in seconds
-	tr.flags = 0; // Flags to indicate various statuses including valid data fields
+	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
 	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
@@ -961,9 +1000,19 @@ void Navigator::check_traffic()
 		transponder_report_s tr;
 		orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
 
+		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+					  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+
+		if ((tr.flags & required_flags) != required_flags) {
+			orb_check(_traffic_sub, &changed);
+			continue;
+		}
+
 		float d_hor, d_vert;
 		get_distance_to_point_global_wgs84(lat, lon, alt,
 						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
+
 
 		// predict final altitude (positive is up) in prediction time frame
 		float end_alt = tr.altitude + (d_vert / tr.hor_velocity) * tr.ver_velocity;
@@ -999,18 +1048,22 @@ void Navigator::check_traffic()
 
 					case 0: {
 							/* ignore */
-							PX4_WARN("TRAFFIC %s, hdg: %d", tr.callsign, traffic_direction);
+							PX4_WARN("TRAFFIC %s, hdg: %d", tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
+								 "unknown",
+								 traffic_direction);
 							break;
 						}
 
 					case 1: {
-							mavlink_log_critical(&_mavlink_log_pub,722, "WARNING TRAFFIC %s at heading %d, land immediately", tr.callsign,
+							mavlink_log_critical(&_mavlink_log_pub,722, "WARNING TRAFFIC %s at heading %d, land immediately",
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction);
 							break;
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub,723, "AVOIDING TRAFFIC %s heading %d, returning home", tr.callsign,
+							mavlink_log_critical(&_mavlink_log_pub,723, "AVOIDING TRAFFIC %s heading %d, returning home",
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction);
 
 							// set the return altitude to minimum
@@ -1128,10 +1181,6 @@ Navigator::publish_mission_result()
 		/* advertise and publish */
 		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
 	}
-
-	// Don't reset current waypoint because it won't be updated e.g. if not in mission mode
-	// however, the current is still valid and therefore helpful for ground stations.
-	//_mission_result.seq_current = 0;
 
 	/* reset some of the flags */
 	_mission_result.item_do_jump_changed = false;

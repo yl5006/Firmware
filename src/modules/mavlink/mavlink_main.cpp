@@ -56,10 +56,6 @@
 #include <termios.h>
 #include <time.h>
 
-#ifdef __PX4_POSIX
-#include <net/if.h>
-#endif
-
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -219,7 +215,6 @@ Mavlink::Mavlink() :
 	_logbuffer(5, sizeof(mavlink_log_s)),
 	_total_counter(0),
 	_receive_thread{},
-	_verbose(false),
 	_forwarding_on(false),
 	_ftp_on(false),
 	_uart_fd(-1),
@@ -499,32 +494,6 @@ Mavlink::get_status_all_instances()
 	return (iterations == 0);
 }
 
-void
-Mavlink::set_verbose(bool v)
-{
-	_verbose = v;
-}
-
-int
-Mavlink::set_verbose_all_instances(bool enabled)
-{
-	Mavlink *inst = ::_mavlink_instances;
-
-	unsigned iterations = 0;
-
-	while (inst != nullptr) {
-
-		inst->set_verbose(enabled);
-
-		/* move on */
-		inst = inst->next;
-		iterations++;
-	}
-
-	/* return an error if there are no instances */
-	return (iterations == 0);
-}
-
 bool
 Mavlink::instance_exists(const char *device_name, Mavlink *self)
 {
@@ -608,9 +577,6 @@ void Mavlink::mavlink_update_system()
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_broadcast = param_find("MAV_BROADCAST");
-
-		/* test param - needs to be referenced, but is unused */
-		(void)param_find("MAV_TEST_PAR");
 	}
 
 	/* update system and component id */
@@ -770,7 +736,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 	/* if this is a config link, stay here and wait for it to open */
 	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
 
-		int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
+		int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 		struct actuator_armed_s armed;
 
 		/* get the system arming state and abort on arming */
@@ -778,26 +744,27 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name)
 
 			/* abort if an arming topic is published and system is armed */
 			bool updated = false;
-			orb_check(armed_fd, &updated);
+			orb_check(armed_sub, &updated);
 
 			if (updated) {
 				/* the system is now providing arming status feedback.
 				 * instead of timing out, we resort to abort bringing
 				 * up the terminal.
 				 */
-				orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
+				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 
 				if (armed.armed) {
 					/* this is not an error, but we are done */
+					orb_unsubscribe(armed_sub);
 					return -1;
 				}
 			}
 
 			usleep(100000);
 			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
-		};
+		}
 
-		::close(armed_fd);
+		orb_unsubscribe(armed_sub);
 	}
 
 	if (_uart_fd < 0) {
@@ -1151,7 +1118,6 @@ Mavlink::find_broadcast_address()
 	     offset += sizeof(struct ifreq)
 #endif
 	    ) {
-
 		// Point to next network interface in buffer.
 		cur_ifreq = (struct ifreq *) & (((uint8_t *)ifconf.ifc_req)[offset]);
 
@@ -1163,19 +1129,6 @@ Mavlink::find_broadcast_address()
 		    strcmp(cur_ifreq->ifr_name, "lo1") == 0 ||
 		    strcmp(cur_ifreq->ifr_name, "lo2") == 0) {
 			PX4_DEBUG("skipping loopback");
-			continue;
-		}
-
-		struct ifreq bc_ifreq;
-
-		memset(&bc_ifreq, 0, sizeof(bc_ifreq));
-
-		strncpy(bc_ifreq.ifr_name, cur_ifreq->ifr_name, IF_NAMESIZE);
-
-		ret = ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_ifreq);
-
-		if (ret != 0) {
-			PX4_DEBUG("getting broadcast address failed for %s", cur_ifreq->ifr_name);
 			continue;
 		}
 
@@ -1192,19 +1145,21 @@ Mavlink::find_broadcast_address()
 		}
 
 		if (!_broadcast_address_found) {
-			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+			const struct in_addr netmask_addr = query_netmask_addr(_socket_fd, *cur_ifreq);
+			const struct in_addr broadcast_addr = compute_broadcast_addr(sin_addr, netmask_addr);
 
-			struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
-			PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
+			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+			PX4_INFO("with netmask: %s", inet_ntoa(netmask_addr));
+			PX4_INFO("and broadcast IP: %s", inet_ntoa(broadcast_addr));
 
 			_bcast_addr.sin_family = AF_INET;
-			_bcast_addr.sin_addr = bc_addr;
+			_bcast_addr.sin_addr = broadcast_addr;
 
 			_broadcast_address_found = true;
 
 		} else {
-			PX4_INFO("ignoring additional network interface %s, IP:  %s",
-				 cur_ifreq->ifr_name, inet_ntoa(sin_addr));
+			PX4_DEBUG("ignoring additional network interface %s, IP:  %s",
+				  cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 		}
 	}
 
@@ -1230,6 +1185,28 @@ Mavlink::find_broadcast_address()
 
 #endif
 }
+
+#ifdef __PX4_POSIX
+const in_addr
+Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
+{
+	struct ifreq netmask_ifreq;
+	memset(&netmask_ifreq, 0, sizeof(netmask_ifreq));
+	strncpy(netmask_ifreq.ifr_name, ifreq.ifr_name, IF_NAMESIZE);
+	ioctl(socket_fd, SIOCGIFNETMASK, &netmask_ifreq);
+
+	return ((struct sockaddr_in *)&netmask_ifreq.ifr_addr)->sin_addr;
+}
+
+const in_addr
+Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
+{
+	struct in_addr broadcast_addr;
+	broadcast_addr.s_addr = ~netmask_addr.s_addr | host_addr.s_addr;
+
+	return broadcast_addr;
+}
+#endif
 
 void
 Mavlink::init_udp()
@@ -1290,6 +1267,7 @@ void
 Mavlink::send_statustext_critical(const char *string)
 {
 	mavlink_log_info(&_mavlink_log_pub, string);   //critical to info
+	PX4_ERR(string);
 }
 
 void
@@ -1790,7 +1768,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fvwx", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fwx", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, nullptr, 10);
@@ -1902,10 +1880,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'f':
 			_forwarding_on = true;
-			break;
-
-		case 'v':
-			_verbose = true;
 			break;
 
 		case 'w':
@@ -2809,11 +2783,9 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose output", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("verbose", "Set verbose mode for all running instances");
 	PRINT_MODULE_USAGE_ARG("on|off", "Enable/disable", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
@@ -2853,15 +2825,6 @@ int mavlink_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		return Mavlink::get_status_all_instances();
-
-	} else if (!strcmp(argv[1], "verbose")) {
-		bool on = true;
-
-		if (argc > 2 && !strcmp(argv[2], "off")) {
-			on = false;
-		}
-
-		return Mavlink::set_verbose_all_instances(on);
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
