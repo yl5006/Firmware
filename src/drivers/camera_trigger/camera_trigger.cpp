@@ -180,6 +180,7 @@ private:
 	orb_advert_t		_trigger_pub;
 	orb_advert_t		_cmd_ack_pub;
 
+	param_t			_p_mode;
 	param_t			_p_activation_time;
 	param_t			_p_interface;
 
@@ -266,7 +267,9 @@ CameraTrigger::CameraTrigger() :
 	// Parameters
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_interface = param_find("TRIG_INTERFACE");
+	_p_mode = param_find("TRIG_MODE");
 
+	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
 

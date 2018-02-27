@@ -104,7 +104,7 @@ set(config_module_list
 	modules/commander
 	modules/events
 	#modules/gpio_led
-	modules/uavcan
+	#modules/uavcan
 	modules/land_detector
 	modules/load_mon
 	modules/mavlink

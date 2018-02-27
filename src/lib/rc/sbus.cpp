@@ -36,7 +36,8 @@
  *
  * Serial protocol decoder for the Futaba S.bus protocol.
  */
-
+#include <errno.h>
+#include <stdio.h>
 #include <px4_config.h>
 
 #include <fcntl.h>
@@ -161,12 +162,18 @@ sbus_init(const char *device, bool singlewire)
 int
 sbus_initrc(const char *device, bool singlewire)
 {
-	int sbus_fd = open(device, O_RDWR | O_NONBLOCK);
+	int sbus_fd = open(device, O_RDWR | O_NOCTTY);
+	if(sbus_fd <= 0)
+	{
+		printf("sbus_fd open:%d\r\n",errno);
+	}
  	struct termios t;
 		/* 100000bps, even parity, two stop bits */
 	tcgetattr(sbus_fd, &t);
 	cfsetspeed(&t, 100000);
-	t.c_cflag |= (CSTOPB | PARENB);
+ 	t.c_cflag  &= ~ONLCR;
+ 	t.c_cflag  &= ~CRTSCTS ;
+ 	t.c_cflag  &= ~(PARENB|CSTOPB);
 	tcsetattr(sbus_fd, TCSANOW, &t);
 /*
 	 	cfsetispeed(&t, B115200);
@@ -296,7 +303,13 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 			oframe[byteindex + 2] |= (value >> (16 - offset)) & 0xff;
 			offset += 11;
 		}
-		write(sbus_fd, oframe, SBUS_FRAME_SIZE);
+		int res = write(sbus_fd, oframe, SBUS_FRAME_SIZE);
+		if(res <= 0)
+		{
+			printf("sbus fd %d\r\n",sbus_fd);
+			printf("sbus_fd write %d\r\n",errno);
+		}
+
 	}
 }
 void

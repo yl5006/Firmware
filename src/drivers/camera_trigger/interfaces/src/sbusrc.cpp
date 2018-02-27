@@ -10,8 +10,8 @@
 #include "sbusrc.h"
 
 // TODO : make these parameters later
-#define PWM_CAMERA_SHOOT 1100
-#define PWM_CAMERA_NEUTRAL 1500
+#define PWM_CAMERA_SHOOT 1800
+#define PWM_CAMERA_NEUTRAL 1000
 
 CameraInterfaceSBUS::CameraInterfaceSBUS():
 	CameraInterface()
@@ -29,7 +29,7 @@ CameraInterfaceSBUS::CameraInterfaceSBUS():
 
 CameraInterfaceSBUS::~CameraInterfaceSBUS()
 {
-	// Deinitialise trigger channels
+	work_cancel(LPWORK, &_work);
 }
 
 void CameraInterfaceSBUS::setup()
@@ -46,12 +46,12 @@ void CameraInterfaceSBUS::setup()
 			rcvalues[i]= 1500;
 	}
 
-	work_queue(HPWORK, &_work, (worker_t)&CameraInterfaceSBUS::cycle_trampoline,
+	work_queue(LPWORK, &_work, (worker_t)&CameraInterfaceSBUS::cycle_trampoline,
 		   this, USEC2TICK(1));
 	//25Hz
 	// Precompute the bitmask for enabled channels
 //	hrt_call_every(&_trigcall, 0, (25 * 1000),
-//		       (hrt_callout)&CameraInterfaceSBUS::cicle, this);
+//		       (hrt_callout)&CameraInterfaceSBUS::cycle_trampoline, this);
 }
 void
 CameraInterfaceSBUS::cycle_trampoline(void *arg)
@@ -71,9 +71,10 @@ void CameraInterfaceSBUS::cicle()
 			{
 				rcvalues[_chan-1] = PWM_CAMERA_NEUTRAL;
 		}
+	   _rcs_fd	= sbus_initrc(GROUNDSTATION_RC_SBUS,false);
 		sbus1_output(_rcs_fd,rcvalues,16);
-
-		work_queue(HPWORK, &_work, (worker_t)&CameraInterfaceSBUS::cycle_trampoline,
+		close(_rcs_fd);
+		work_queue(LPWORK, &_work, (worker_t)&CameraInterfaceSBUS::cycle_trampoline,
 				   this, USEC2TICK(25 * 1000 ));
 #endif
 }
@@ -92,6 +93,9 @@ void CameraInterfaceSBUS::set_cammer_rc(struct cammer_rc_s *camrc)
 
 void CameraInterfaceSBUS::info()
 {
+
+		PX4_INFO("trigger sbus %s, rc chan 7= : [%d]",GROUNDSTATION_RC_SBUS,rcvalues[_chan-1]);
+
 }
 
 #endif /* ifdef __PX4_NUTTX */
