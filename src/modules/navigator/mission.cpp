@@ -193,6 +193,7 @@ Mission::on_active()
 	 * 添加一个参数使能
 	 * 在返航模式下继续执行航线功能
 	*/
+#if 0
 	if(_param_mission_rtljump.get() == 1 && (_navigator->get_vstatus()->nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)&&!_havejump&&!_navigator->get_land_detected()->landed)
 	{
 
@@ -254,6 +255,7 @@ Mission::on_active()
 			set_mission_finished();
 		}
 	}
+#endif
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
@@ -274,14 +276,9 @@ Mission::on_active()
 					int *mission_index_ptr;
 					dm_item_t dm_item;
 					const ssize_t len = sizeof(struct mission_item_s);
-					if (_mission_type==MISSION_TYPE_ONBOARD) {
-						mission_index_ptr = &_current_onboard_mission_index ;
-						dm_item = DM_KEY_WAYPOINTS_ONBOARD;
-					} else {
 						/* offboard mission */
-						mission_index_ptr =  &_current_offboard_mission_index;
-						dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
-					}
+					mission_index_ptr =  &_current_offboard_mission_index;
+					dm_item = (dm_item_t)_offboard_mission.dataman_id;
 				/* do DO_JUMP as many times as requested */
 				if (_mission_item.do_jump_current_count < _mission_item.do_jump_repeat_count) {
 

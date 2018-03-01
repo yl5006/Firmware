@@ -69,7 +69,7 @@ public:
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
 	static bool item_contains_position(const mission_item_s &item);
-
+	static bool position_contains_command(const mission_item_s &item);
 protected:
 	/**
 	 * Check if mission item has been reached

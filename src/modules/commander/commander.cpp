@@ -1060,7 +1060,7 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&mavlink_log_pub, "Precision landing denied, land manually");
+				mavlink_log_critical(&mavlink_log_pub,118, "Precision landing denied, land manually");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}

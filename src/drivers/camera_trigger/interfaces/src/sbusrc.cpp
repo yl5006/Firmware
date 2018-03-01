@@ -93,9 +93,9 @@ void CameraInterfaceSBUS::set_cammer_rc(struct cammer_rc_s *camrc)
 
 void CameraInterfaceSBUS::info()
 {
-
+#ifdef GROUNDSTATION_RC_SBUS
 		PX4_INFO("trigger sbus %s, rc chan 7= : [%d]",GROUNDSTATION_RC_SBUS,rcvalues[_chan-1]);
-
+#endif
 }
 
 #endif /* ifdef __PX4_NUTTX */

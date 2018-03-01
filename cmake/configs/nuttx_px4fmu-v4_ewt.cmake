@@ -7,58 +7,36 @@ set(config_module_list
 	#
 	# Board support modules
 	#
+	drivers/barometer
+	drivers/differential_pressure
+	drivers/distance_sensor
+	drivers/magnetometer
+	drivers/telemetry
+	drivers/imu
+
 	drivers/airspeed
-#	drivers/blinkm
-#	drivers/bma180
-#	drivers/bmi055
-#	drivers/bmi160
-#	drivers/bmm150
-#	drivers/bmp280
+	drivers/batt_smbus
+	drivers/blinkm
 	drivers/boards
-	drivers/bst
 	drivers/camera_trigger
 	drivers/device
-#	drivers/ets_airspeed
-#	drivers/frsky_telemetry
 	drivers/gps
-	drivers/hmc5883
-	#drivers/hott
-	#drivers/hott/hott_sensors
-	#drivers/hott/hott_telemetry
-	#drivers/iridiumsbd
-	#drivers/irlock
-	#drivers/ist8310
-	#drivers/l3gd20
+	drivers/irlock
 	drivers/led
-	#drivers/lis3mdl
-	#drivers/ll40ls
-	#drivers/lsm303d
-	#drivers/mb12xx
-	#drivers/mkblctrl
-	drivers/mpu6000
-	drivers/mpu9250
-	drivers/ms4525_airspeed
-	drivers/ms5525_airspeed
-	drivers/ms5611
-#	drivers/oreoled
-#	drivers/pca9685
+	drivers/mkblctrl
+	drivers/oreoled
+	drivers/pca9685
 	drivers/pwm_input
-#	drivers/pwm_out_sim
+	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/rgbled
-	drivers/sdp3x_airspeed
-#	drivers/sf0x
-#	drivers/sf1xx
-#	drivers/srf02
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
-#	drivers/tap_esc
-	drivers/teraranger
+	drivers/tap_esc
 	drivers/vmount
 	modules/sensors
-	drivers/tfmini
 
 	#
 	# System commands
@@ -66,20 +44,21 @@ set(config_module_list
 	systemcmds/bl_update
 	systemcmds/config
 	systemcmds/dumpfile
-#	systemcmds/esc_calib
+	systemcmds/esc_calib
 	systemcmds/hardfault_log
-#	systemcmds/led_control
+	systemcmds/led_control
 	systemcmds/mixer
-#	systemcmds/motor_ramp
+	systemcmds/motor_ramp
 	systemcmds/mtd
-#	systemcmds/nshterm
+	systemcmds/nshterm
 	systemcmds/param
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
-#	systemcmds/sd_bench
+	systemcmds/sd_bench
 	systemcmds/top
-#	systemcmds/topic_listener
+	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/ver
 
 	#
@@ -113,6 +92,7 @@ set(config_module_list
 	#
 #	modules/attitude_estimator_q
 	modules/ekf2
+	modules/landing_target_estimator
 #	modules/local_position_estimator
 #	modules/position_estimator_inav
 
@@ -150,23 +130,13 @@ set(config_module_list
 	lib/ecl
 	lib/geo
 	lib/geo_lookup
-	lib/launchdetection
 	lib/led
 	lib/mathlib
-	lib/mathlib/math/filter
 	lib/mixer
 	lib/rc
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-#	lib/terrain_estimation
+	lib/terrain_estimation
+	lib/tunes
 	lib/version
-
-	#
-	# Platform
-	#
-	platforms/common
-	platforms/nuttx
-	platforms/nuttx/px4_layer
 
 	#
 	# OBC challenge
@@ -190,10 +160,6 @@ set(config_module_list
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
 #	examples/px4_simple_app
-
-	# Tutorial code from
-	# https://px4.io/dev/daemon
-#	examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values

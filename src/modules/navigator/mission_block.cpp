@@ -464,7 +464,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 		vcmd.param4 = item.params[3];
 		vcmd.param5 = item.params[4];
 		vcmd.param6 = item.params[5];
-
+*/
 		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION && item.altitude_is_relative) {
 			vcmd.param7 = item.params[6] + _navigator->get_home_position()->alt;
 
@@ -510,7 +510,7 @@ MissionBlock::item_contains_position(const mission_item_s &item)
 }
 
 bool
-MissionBlock::position_contains_command(const struct mission_item_s &item)
+MissionBlock::position_contains_command(const mission_item_s &item)
 {
 	// XXX: first to test this three cmd
 	if (item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
