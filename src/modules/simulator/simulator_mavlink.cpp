@@ -392,12 +392,6 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		publish_flow_topic(&flow);
 		break;
 
-	case MAVLINK_MSG_ID_LANDING_TARGET:
-		mavlink_landing_target_t sensor_msg;
-		mavlink_msg_landing_target_decode(msg, &sensor_msg);
-        warnx("irlock %f %f",(double)sensor_msg.angle_x,(double)sensor_msg.angle_y);
-		break;
-
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		mavlink_vision_position_estimate_t ev;
 		mavlink_msg_vision_position_estimate_decode(msg, &ev);
