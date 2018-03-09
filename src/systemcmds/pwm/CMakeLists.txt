@@ -29,16 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
-if(${OS} STREQUAL "nuttx")
-	list(APPEND srcs
-		pwm.cpp
-		)
-else()
-	list(APPEND srcs
-		pwm_system_posix.cpp
-		)
-endif()
+###########################################################################
 
 
 px4_add_module(
@@ -47,7 +38,8 @@ px4_add_module(
 	STACK_MAIN 2500
 	COMPILE_FLAGS
 		-Wno-array-bounds
-	SRCS ${srcs}
+	SRCS 
+		pwm.cpp
 	DEPENDS
 		platforms__common
 	)

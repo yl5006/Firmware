@@ -122,12 +122,6 @@ I2C::init()
 	return ret;
 }
 int
-I2C::probe()
-{
-	// Assume the device is too stupid to be discoverable.
-	return OK;
-}
-int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
 #ifndef __PX4_LINUX
