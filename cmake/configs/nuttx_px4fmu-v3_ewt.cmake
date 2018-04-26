@@ -1,7 +1,6 @@
-
 # FMUv3 is FMUv2 with access to the full 2MB flash
 set(BOARD px4fmu-v2 CACHE string "" FORCE)
-set(FW_NAME nuttx_px4fmu-v3_default.elf CACHE string "" FORCE)
+set(FW_NAME nuttx_px4fmu-v3_ewt.elf CACHE string "" FORCE)
 set(FW_PROTOTYPE px4fmu-v3 CACHE string "" FORCE)
 set(LD_SCRIPT ld_full.script CACHE string "" FORCE)
 
