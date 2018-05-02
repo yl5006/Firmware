@@ -1999,7 +1999,7 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_NORMAL:
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 0.5f); //1 Hz defaut to 0.5Hz
-//		configure_stream("HIGHRES_IMU", 1.5f);
+		configure_stream("HIGHRES_IMU", 1.0f);
 		configure_stream("ATTITUDE", 10.0f);   //20 Hz defaut to 10Hz
 		configure_stream("RC_CHANNELS", 2.0f); //5 Hz defaut to 2Hz
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
