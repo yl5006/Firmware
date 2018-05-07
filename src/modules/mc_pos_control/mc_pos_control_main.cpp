@@ -372,7 +372,6 @@ private:
 	 */
 	void		control_offboard();
 
-	float		manual_arminit(float dt);
 	/**
 	 * Set position setpoint for AUTO
 	 */
@@ -1520,41 +1519,6 @@ MulticopterPositionControl::control_manual()
 
 	control_position();
 }
-float
-MulticopterPositionControl::manual_arminit(float dt)
-{
-	static bool haveinit=false;
-	static int timeindex=0;
-	// only trigger flight conditions if we are armed
-	if (!_control_mode.flag_armed ) {
-		haveinit=false;
-		timeindex=0;
-	}else
-	{
-		timeindex++;
-	}
-	if(_control_mode.flag_armed && !haveinit)
-	{
-		if(timeindex<200)
-		{
-			return _params.thr_min;
-		}else if(timeindex<270)
-		{
-			return _params.thr_min*2;
-		}else if(timeindex<340)
-		{
-			return _params.thr_min;
-		}else if(timeindex<410)
-		{
-			return _params.thr_min*2;
-		}
-	}
-	if(timeindex>=410)
-	{
-		haveinit=true;
-	}
-	return _params.thr_min;
-}
 
 void
 MulticopterPositionControl::control_non_manual()
@@ -2204,7 +2168,7 @@ void MulticopterPositionControl::control_auto()
 					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
 
 					if (reached_altitude && next_setpoint_valid
-					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)&&_slow_speed.get()==0) {
+					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
 
 						/* get velocity close to current that depends on angle between prev-current and current-next line */
@@ -2339,17 +2303,9 @@ void MulticopterPositionControl::control_auto()
 			_run_pos_control = false;
 
 		} else {
-			if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
-			{
-				//可在此添加精准降落，
-			//	math::Vector<3> _sp_err={1.0,1.0,0};		/**< derivative of current velocity */
-
 			/* just go to the target point */;
-				_pos_sp = _curr_pos_sp;//+_sp_err;
-			}else
-			{
-				_pos_sp = _curr_pos_sp;
-			}
+			_pos_sp = _curr_pos_sp;
+
 			/* set max velocity to cruise */
 			_vel_max_xy = get_cruising_speed_xy();
 		}

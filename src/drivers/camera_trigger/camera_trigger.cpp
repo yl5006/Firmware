@@ -201,7 +201,7 @@ private:
 	 * Resets trigger
 	 */
 	static void	disengage(void *arg);
-	/**_chan(-1),
+	/**
 	 * Fires on/off
 	 */
 	static void engange_turn_on_off(void *arg);
@@ -303,6 +303,7 @@ CameraTrigger::CameraTrigger() :
 		PX4_ERR("unknown camera interface mode: %i", (int)_camera_interface_mode);
 		break;
 	}
+
 	// Enforce a lower bound on the activation interval in PWM modes to not miss
 	// engage calls in-between 50Hz PWM pulses. (see PX4 PR #6973)
 	if ((_activation_time < 40.0f) &&

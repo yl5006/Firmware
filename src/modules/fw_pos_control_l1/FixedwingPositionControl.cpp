@@ -1143,7 +1143,7 @@ FixedwingPositionControl::control_takeoff(const math::Vector<2> &curr_pos, const
 
 				/* Inform user that launchdetection is running every 4s */
 				if (hrt_elapsed_time(&_launch_detection_notify) > 4e6) {
-					mavlink_log_critical(&_mavlink_log_pub, "Launch detection running");
+					mavlink_log_info(&_mavlink_log_pub, "Launch detection running");  //critical to info
 					_launch_detection_notify = hrt_absolute_time();
 				}
 
