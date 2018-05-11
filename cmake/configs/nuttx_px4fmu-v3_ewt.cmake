@@ -19,11 +19,11 @@ set(config_module_list
 	drivers/magnetometer
 	drivers/telemetry
 
-	drivers/imu/adis16448
+	#drivers/imu/adis16448
 	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
-	drivers/imu/bmi160
+	#drivers/imu/bmi160
 	drivers/boards
 	drivers/camera_trigger
 	drivers/device
@@ -33,11 +33,11 @@ set(config_module_list
 	drivers/led
 	drivers/mkblctrl
 	drivers/imu/mpu6000
-	drivers/imu/mpu9250
+	#drivers/imu/mpu9250
 	drivers/oreoled
 	drivers/protocol_splitter
 	drivers/pwm_input
-	drivers/pwm_out_sim
+	#drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/px4io
@@ -59,8 +59,8 @@ set(config_module_list
 	systemcmds/hardfault_log
 	systemcmds/led_control
 	systemcmds/mixer
-	systemcmds/motor_ramp
-	systemcmds/motor_test
+	#systemcmds/motor_ramp
+	#systemcmds/motor_test
 	systemcmds/mtd
 	systemcmds/nshterm
 	systemcmds/param

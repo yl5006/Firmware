@@ -8,8 +8,8 @@
 # @maintainer Bart Slinger <bartslinger@gmail.com>
 #
 # @output MAIN1 main motor
-# @output MAIN2 back swashplate servo
 # @output MAIN3 right swashplate servo
+# @output MAIN2 back swashplate servo
 # @output MAIN4 left swashplate servo
 # @output MAIN5 tail-rotor servo
 #
