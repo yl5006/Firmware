@@ -655,6 +655,15 @@ CameraTrigger::cycle_trampoline(void *arg)
 			}
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL) {
+
+			if(trig->_camera_interface_mode == CAMERA_INTERFACE_MODE_SBUS)
+			{
+				need_ack = true;
+				trig->_camera_interface->set_mount(cmd.param1 /240 ,cmd.param2 /240,cmd.param3 /240);
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			}
+
 		}
 
 		if(befor_trigger_mode!=trig->_trigger_mode)

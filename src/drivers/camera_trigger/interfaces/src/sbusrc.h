@@ -24,10 +24,11 @@ public:
 
 	void info();
 	void set_cammer_rc(struct cammer_rc_s *camrc);
+	void set_mount(float pitch,float roll,float yaw);
 
 private:
 	int	 _chan;
-	int	_rcs_fd;
+	int	 _rcs_fd;
 	int	_cammer_rc_sub;
 	struct work_s	_work;
 	struct hrt_call		_trigcall;
@@ -36,6 +37,8 @@ private:
 	uint16_t rcvalues[18];
 	static void	cycle_trampoline(void *arg);
 	void cicle();
+	int fd_open();
+	void sbus_output(uint16_t *values, uint16_t num_values);
 
 };
 

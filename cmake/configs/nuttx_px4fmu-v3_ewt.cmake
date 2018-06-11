@@ -14,7 +14,7 @@ set(config_module_list
 	#
 	drivers/barometer
 	drivers/differential_pressure
-	drivers/distance_sensor
+	#drivers/distance_sensor
 	drivers/magnetometer
 	drivers/telemetry
 
@@ -140,7 +140,6 @@ set(config_module_list
 	lib/DriverFramework/framework
 	lib/ecl
 	lib/geo
-	lib/rc
 	lib/geo_lookup
 	lib/led
 	lib/mathlib

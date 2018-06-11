@@ -35,7 +35,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-unused-result
 	SRCS
-	    	cm12jl.c
+#	    	cm12jl.c
 		st24.cpp
 		sumd.cpp
 		sbus.cpp

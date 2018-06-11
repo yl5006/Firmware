@@ -30,10 +30,17 @@ public:
 	virtual void trigger(bool enable) {}
 
 	/**
-		 * trigger the camera
+		 * camera rc
 		 * @param enable
 		 */
 	virtual void set_cammer_rc(struct cammer_rc_s *camrc) {}
+
+	/**
+			 * trigger the camera
+			 * @param enable
+			 */
+	virtual void set_mount(float pitch,float roll,float yaw) {}
+
 
 	/**
 	 * send command to turn the camera on/off
