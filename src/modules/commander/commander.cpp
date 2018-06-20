@@ -770,7 +770,9 @@ Commander::handle_command(vehicle_status_s *status_local, const safety_s *safety
 						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
 							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_PRECLAND, main_state_prev, &status_flags, &internal_state);
 							break;
-
+						case PX4_CUSTOM_SUB_MODE_AUTO_CIRCLE:
+							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_CIRCLE, main_state_prev, &status_flags, &internal_state);
+							break;
 						default:
 							main_ret = TRANSITION_DENIED;
 							mavlink_log_critical(&mavlink_log_pub,104,"Unsupported auto mode");
@@ -3763,6 +3765,7 @@ set_control_mode()
 		control_mode.flag_external_manual_override_ok = false;
 		/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_CIRCLE:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
