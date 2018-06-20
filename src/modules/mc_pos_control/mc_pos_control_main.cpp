@@ -1833,6 +1833,14 @@ void MulticopterPositionControl::control_auto()
 					       &curr_pos_sp.data[0], &curr_pos_sp.data[1]);
 
 			_triplet_lat_lon_finite = true;
+			if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_CIRCLE)
+			{
+			    float angle_change = 3 / 360 * 2 * M_PI_F  * _dt;
+			    float _angle = _yaw + angle_change;
+			    _att_sp.yaw_body = _angle;
+			    curr_pos_sp(0)= curr_pos_sp(0) + 10 * cosf(-_angle);
+			    curr_pos_sp(1)= curr_pos_sp(1) - 10 * sinf(-_angle);
+			}
 
 		} else { // use current position if NAN -> e.g. land
 			if (_triplet_lat_lon_finite) {
