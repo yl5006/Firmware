@@ -97,7 +97,8 @@ Navigator::Navigator() :
 	_dataLinkLoss(this),
 	_engineFailure(this),
 	_gpsFailure(this),
-	_follow_target(this)
+	_follow_target(this),
+	_circle(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -111,6 +112,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
+	_navigation_mode_array[11] = &_circle;
 
 }
 
