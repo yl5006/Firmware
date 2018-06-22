@@ -138,6 +138,7 @@ private:
 	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
 	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
 	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
+	bool 		_circle_angle_init = false; 		/**<true if triplets current is non-finite */
 
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
@@ -180,6 +181,7 @@ private:
 	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
 	control::BlockParamFloat _acceleration_z_max_up; /** max acceleration up */
 	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
+	control::BlockParamFloat _circle_radius; /**circle mode radius default 10 m*/
 	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
@@ -298,6 +300,7 @@ private:
 	math::Vector<3> _curr_pos_sp;  /**< current setpoint of the triplets */
 	math::Vector<3> _prev_pos_sp; /**< previous setpoint of the triples */
 	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
+	math::Vector<3> _center_sp;
 
 	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
@@ -315,6 +318,7 @@ private:
 	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	float _min_hagl_limit; /**< minimum continuous height above ground (m) */
+	float _angle;
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -469,6 +473,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_deceleration_hor_slow(this, "DEC_HOR_SLOW", true),
 	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
+	_circle_radius(this, "CIRCLE_RAD", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
 	_velocity_hor_manual(this, "VEL_MANUAL", true),
 	_nav_rad(this, "NAV_ACC_RAD", false),
@@ -501,6 +506,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_z_derivative(0.0f),
 	_takeoff_vel_limit(0.0f),
 	_min_hagl_limit(0.0f),
+	_angle(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_heading_reset_counter(0)
@@ -528,6 +534,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_curr_pos_sp.zero();
 	_prev_pos_sp.zero();
 	_stick_input_xy_prev.zero();
+	_center_sp.zero();
 
 	_R.identity();
 	_R_setpoint.identity();
@@ -1835,11 +1842,28 @@ void MulticopterPositionControl::control_auto()
 			_triplet_lat_lon_finite = true;
 			if(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_CIRCLE)
 			{
-			    float angle_change = 3 / 360 * 2 * M_PI_F  * _dt;
-			    float _angle = _yaw + angle_change;
+				float radius = _circle_radius.get();
+				float angle_speed = _cruise_speed_90.get() / ( radius);
+				if(!_circle_angle_init)
+				{
+					_angle = _yaw;
+					_center_sp(0) = curr_pos_sp(0) + radius * cosf(_angle);
+					_center_sp(1) = curr_pos_sp(1) + radius * sinf(_angle);
+					_circle_angle_init = true;
+				}
+			    float angle_change = angle_speed * _dt;
+			    _angle = _angle + angle_change;
+			    _angle = _wrap_2pi(_angle);
 			    _att_sp.yaw_body = _angle;
-			    curr_pos_sp(0)= curr_pos_sp(0) + 10 * cosf(-_angle);
-			    curr_pos_sp(1)= curr_pos_sp(1) - 10 * sinf(-_angle);
+			    curr_pos_sp(0)= _center_sp(0) - radius * cosf(_angle);
+			    curr_pos_sp(1)= _center_sp(1) - radius * sinf(_angle);
+			}
+			else
+			{
+				if(_circle_angle_init)
+				{
+					_circle_angle_init = false;
+				}
 			}
 
 		} else { // use current position if NAN -> e.g. land

@@ -96,11 +96,6 @@ Circle::set_loiter_position()
 		// Already set, nothing to do.
 		return;
 	}
-
-	double lat_target;
- 	double lon_target;
-
-	waypoint_from_heading_and_distance(_navigator->get_global_position()->lat,_navigator->get_global_position()->lon,_navigator->get_global_position()->yaw,10,&lat_target,&lon_target);
 	
 	_circle_pos_set = true;
 
@@ -115,10 +110,8 @@ Circle::set_loiter_position()
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_CIRCLE;
-	pos_sp_triplet->current.lat = lat_target;
-	pos_sp_triplet->current.lon = lon_target;
-	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
-
+	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_CIRCLE);
 	_navigator->set_position_setpoint_triplet_updated();
 }
 

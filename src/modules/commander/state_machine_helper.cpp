@@ -439,6 +439,15 @@ main_state_transition(struct vehicle_status_s *status, main_state_t new_main_sta
 
 		break;
 
+	case commander_state_s::MAIN_STATE_AUTO_CIRCLE:
+
+		/* need global position estimate */
+		if (status_flags->condition_global_position_valid) {
+			ret = TRANSITION_CHANGED;
+		}
+
+		break;
+
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 
 		/* FOLLOW only implemented in MC */
@@ -756,6 +765,39 @@ bool set_nav_state(struct vehicle_status_s *status,
 		} else {
 			/* everything is perfect */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		}
+
+		break;
+
+	case commander_state_s::MAIN_STATE_AUTO_CIRCLE:
+
+		/* go into failsafe on a engine failure */
+		if (status->engine_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
+			/* also go into failsafe if just datalink is lost, and we're actually in air */
+			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,427, reason_no_datalink);
+
+		} else if (rc_lost && !data_link_loss_act_configured) {
+			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
+			enable_failsafe(status, old_failsafe, mavlink_log_pub,420, reason_no_rc);
+
+			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+
+		} else if (status->rc_signal_lost) {
+			/* don't bother if RC is lost if datalink is connected */
+
+			/* this mode is ok, we don't need RC for LOITERing */
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_CIRCLE;
+
+		} else {
+			/* everything is perfect */
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_CIRCLE;
 		}
 
 		break;

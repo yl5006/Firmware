@@ -244,6 +244,21 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
  */
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
+
+/**
+ * Circle mode radius
+ *
+ * Circle mode radius
+ *
+ * @unit m
+ * @min 3.0
+ * @max 200
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_CIRCLE_RAD, 10.0f);
+
 /**
  * Cruise speed when angle prev-current/current-next setpoint
  * is 90 degrees. It should be lower than MPC_XY_CRUISE.
