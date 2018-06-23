@@ -58,7 +58,7 @@
 #include <navigator/navigation.h>
 #include <px4_module_params.h>
 #include <px4_module.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>
@@ -250,9 +250,12 @@ public:
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
 	bool		on_mission_landing() { return _mission.landing(); }
 	bool		start_mission_landing() { return _mission.land_start(); }
+	bool		mission_start_land_available() { return _mission.get_land_start_available(); }
 
 	// RTL
-	bool		mission_landing_required() { return _rtl.mission_landing_required(); }
+	bool		mission_landing_required() { return _rtl.rtl_type() == RTL::RTL_LAND; }
+	int			rtl_type() { return _rtl.rtl_type(); }
+	bool		in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool		abort_landing();
 
@@ -268,7 +271,6 @@ public:
 	bool		force_vtol();
 
 private:
-
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
@@ -277,7 +279,6 @@ private:
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
-	int		_sensor_combined_sub{-1};	/**< sensor combined subscription */
 	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
@@ -294,13 +295,12 @@ private:
 	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
-	sensor_combined_s				_sensor_combined{};	/**< sensor values */
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
-
+	uint8_t					_previous_nav_state{}; /**< nav_state of the previous iteration*/
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -366,7 +366,6 @@ private:
 	void		home_position_update(bool force = false);
 	void		local_position_update();
 	void		params_update();
-	void		sensor_combined_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
 

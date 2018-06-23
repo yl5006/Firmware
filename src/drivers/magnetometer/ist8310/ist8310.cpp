@@ -63,7 +63,7 @@
 
 #include <board_config.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/device/i2c.h>
@@ -910,6 +910,7 @@ IST8310::collect()
 	new_report.timestamp = hrt_absolute_time();
 	new_report.is_external = sensor_is_external;
 	new_report.error_count = perf_event_count(_comms_errors);
+	new_report.range_ga = 1.6f; // constant for this sensor for x and y
 	new_report.scaling = _range_scale;
 	new_report.device_id = _device_id.devid;
 
@@ -1253,12 +1254,7 @@ IST8310::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("output  (%.2f %.2f %.2f)\n", (double)_last_report.x, (double)_last_report.y, (double)_last_report.z);
-	printf("offsets (%.2f %.2f %.2f)\n", (double)_scale.x_offset, (double)_scale.y_offset, (double)_scale.z_offset);
-	printf("scaling (%.2f %.2f %.2f) 1/range_scale %.2f\n",
-	       (double)_scale.x_scale, (double)_scale.y_scale, (double)_scale.z_scale,
-	       (double)(1.0f / _range_scale));
-	printf("temperature %.2f\n", (double)_last_report.temperature);
+	print_message(_last_report);
 	_reports->print_info("report queue");
 }
 
@@ -1279,13 +1275,10 @@ struct ist8310_bus_option {
 } bus_options[] = {
 	{ IST8310_BUS_I2C_EXTERNAL, "/dev/ist8310_ext", PX4_I2C_BUS_EXPANSION, NULL },
 #ifdef PX4_I2C_BUS_EXPANSION1
-	{ IST8310_BUS_I2C_EXTERNAL1, "/dev/ist8311_int", PX4_I2C_BUS_EXPANSION1, NULL },
+	{ IST8310_BUS_I2C_EXTERNAL1, "/dev/ist8311_ext1", PX4_I2C_BUS_EXPANSION1, NULL },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION2
-	{ IST8310_BUS_I2C_EXTERNAL2, "/dev/ist8312_int", PX4_I2C_BUS_EXPANSION2, NULL },
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION3
-	{ IST8310_BUS_I2C_EXTERNAL3, "/dev/ist8313_int", PX4_I2C_BUS_EXPANSION3, NULL },
+	{ IST8310_BUS_I2C_EXTERNAL2, "/dev/ist8312_ext2", PX4_I2C_BUS_EXPANSION2, NULL },
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ IST8310_BUS_I2C_INTERNAL, "/dev/ist8310_int", PX4_I2C_BUS_ONBOARD, NULL },
@@ -1412,16 +1405,12 @@ test(enum IST8310_BUS busid)
 		err(1, "immediate read failed");
 	}
 
-	PX4_INFO("single read");
-	PX4_INFO("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	PX4_INFO("time:        %lld", report.timestamp);
+	print_message(report);
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
 		errx(1, "failed to get if mag is onboard or external");
 	}
-
-	PX4_INFO("device active: %s", ret ? "external" : "onboard");
 
 	/* set the queue depth to 5 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
@@ -1453,9 +1442,7 @@ test(enum IST8310_BUS busid)
 			err(1, "periodic read failed");
 		}
 
-		PX4_INFO("periodic read %u", i);
-		PX4_INFO("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-		PX4_INFO("time:        %lld", report.timestamp);
+		print_message(report);
 	}
 
 	PX4_INFO("PASS");

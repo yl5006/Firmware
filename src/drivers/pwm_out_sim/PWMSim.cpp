@@ -34,7 +34,8 @@
 #include "PWMSim.hpp"
 
 PWMSim::PWMSim() :
-	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH)
+	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_pwm_min[i] = PWM_SIM_PWM_MIN_MAGIC;
@@ -54,6 +55,11 @@ PWMSim::PWMSim() :
 
 	// default to MODE_16PWM
 	set_mode(MODE_16PWM);
+}
+
+PWMSim::~PWMSim()
+{
+	perf_free(_perf_control_latency);
 }
 
 int
@@ -135,6 +141,18 @@ PWMSim::subscribe()
 	}
 }
 
+void PWMSim::update_params()
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		_airmode = val > 0;
+	}
+}
+
 void
 PWMSim::run()
 {
@@ -145,6 +163,9 @@ PWMSim::run()
 
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
+
+	update_params();
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* loop until killed */
 	while (!should_exit()) {
@@ -170,6 +191,10 @@ PWMSim::run()
 
 			// up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;
+		}
+
+		if (_mixers) {
+			_mixers->set_airmode(_airmode);
 		}
 
 		/* this can happen during boot, but after the sleep its likely resolved */
@@ -213,7 +238,6 @@ PWMSim::run()
 			/* do mixing */
 			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 			_actuator_outputs.noutputs = num_outputs;
-			_actuator_outputs.timestamp = hrt_absolute_time();
 
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
@@ -265,7 +289,19 @@ PWMSim::run()
 			}
 
 			/* and publish for anyone that cares to see */
+			_actuator_outputs.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
+
+			// use first valid timestamp_sample for latency tracking
+			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+				const bool required = _groups_required & (1 << i);
+				const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+				if (required && (timestamp_sample > 0)) {
+					perf_set_elapsed(_perf_control_latency, _actuator_outputs.timestamp - timestamp_sample);
+					break;
+				}
+			}
 		}
 
 		/* how about an arming update? */
@@ -283,6 +319,16 @@ PWMSim::run()
 				_lockdown = aa.manual_lockdown;
 			}
 		}
+
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params();
+		}
 	}
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -292,6 +338,7 @@ PWMSim::run()
 	}
 
 	orb_unsubscribe(_armed_sub);
+	orb_unsubscribe(params_sub);
 }
 
 int
@@ -325,7 +372,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
 
-				if (i <= MAX_ACTUATORS) {
+				if (i < MAX_ACTUATORS) {
 					_pwm_min[i] = pwm->values[i];
 				}
 			}
@@ -337,8 +384,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
-
-				if (i <= MAX_ACTUATORS) {
+				if (i < MAX_ACTUATORS) {
 					_pwm_max[i] = pwm->values[i];
 				}
 			}
@@ -533,7 +579,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 int
 PWMSim::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("pwmsim",
+	_task_id = px4_task_spawn_cmd("pwm_out_sim",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 				      1100,
@@ -563,7 +609,7 @@ int PWMSim::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
-	/* start the FMU if not running */
+	/* start the task if not running */
 	if (!is_running()) {
 		int ret = PWMSim::task_spawn(argc, argv);
 
@@ -590,6 +636,8 @@ int PWMSim::custom_command(int argc, char *argv[])
 			/* (re)set the PWM output mode */
 			return object->set_mode(servo_mode);
 		}
+
+		return 0;
 	}
 
 	return print_usage("unknown command");
@@ -604,29 +652,23 @@ int PWMSim::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
+Driver for simulated PWM outputs.
 
-Driver/configurator for the virtual PWMSim port.
-
-This virtual driver emulates PWM / servo outputs for setups where
-the connected hardware does not provide enough or no PWM outputs.
-
-Its only function is to take actuator_control uORB messages,
+Its only function is to take `actuator_control` uORB messages,
 mix them with any loaded mixer and output the result to the
-actuator_output uORB topic. PWMSim can also be performed with normal
-PWM outputs, a special flag prevents the outputs to be operated
-during PWMSim mode. If PWMSim is not performed with a standalone FMU,
-but in a real system, it is NOT recommended to use this virtual
-driver. Use instead the normal FMU or IO driver.
+`actuator_output` uORB topic.
+
+It is used in SITL and HITL.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("pwmsim", "driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task (without any mode set, use any of the mode_* cmds)");
+	PRINT_MODULE_USAGE_NAME("pwm_out_sim", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task in mode_pwm16");
 
 	PRINT_MODULE_USAGE_PARAM_COMMENT("All of the mode_* commands will start the pwm sim if not running already");
 
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm16");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm", "use 8 PWM outputs");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm16", "use 16 PWM outputs");
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

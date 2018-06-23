@@ -31,22 +31,21 @@
  *
  ****************************************************************************/
 
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
 #include <px4_module.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_wheel_controller.h>
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
-#include <systemlib/param/param.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
@@ -68,7 +67,7 @@ using matrix::Quatf;
 
 using uORB::Subscription;
 
-class FixedwingAttitudeControl final : public control::SuperBlock, public ModuleBase<FixedwingAttitudeControl>
+class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>
 {
 public:
 	FixedwingAttitudeControl();
@@ -124,7 +123,7 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
-	Subscription<airspeed_s>			_sub_airspeed;
+	Subscription<airspeed_s>			_airspeed_sub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -204,6 +203,7 @@ private:
 		int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
+		bool airspeed_disabled;
 
 	} _parameters{};			/**< local copies of interesting parameters */
 
@@ -271,14 +271,9 @@ private:
 		param_t vtol_type;
 
 		param_t bat_scale_en;
+		param_t airspeed_mode;
 
 	} _parameter_handles{};		/**< handles for interesting parameters */
-
-	// Rotation matrix and euler angles to extract from control state
-	math::Matrix<3, 3> _R{};
-	float _roll{0.0f};
-	float _pitch{0.0f};
-	float _yaw{0.0f};
 
 	ECL_RollController				_roll_ctrl;
 	ECL_PitchController				_pitch_ctrl;

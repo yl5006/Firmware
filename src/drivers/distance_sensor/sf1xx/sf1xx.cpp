@@ -62,7 +62,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
@@ -732,9 +732,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.current_distance);
-	warnx("time:        %llu", report.timestamp);
+	print_message(report);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
@@ -761,11 +759,7 @@ test()
 			err(1, "periodic read failed");
 		}
 
-		warnx("periodic read %u", i);
-		warnx("valid %u", (float)report.current_distance > report.min_distance
-		      && (float)report.current_distance < report.max_distance ? 1 : 0);
-		warnx("measurement: %0.3f", (double)report.current_distance);
-		warnx("time:        %llu", report.timestamp);
+		print_message(report);
 	}
 
 	/* reset the sensor polling to default rate */
@@ -822,23 +816,25 @@ info()
 int
 sf1xx_main(int argc, char *argv[])
 {
-	// check for optional arguments
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
 			break;
 
 		default:
 			PX4_WARN("Unknown option!");
+			return -1;
 		}
+	}
+
+	if (myoptind >= argc) {
+		goto out_error;
 	}
 
 	/*
@@ -876,6 +872,7 @@ sf1xx_main(int argc, char *argv[])
 		sf1xx::info();
 	}
 
+out_error:
 	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
-	return PX4_ERROR;
+	return -1;
 }

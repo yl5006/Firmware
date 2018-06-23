@@ -52,14 +52,13 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/systemlib.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -111,7 +110,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
-
 }
 
 void
@@ -130,12 +128,6 @@ void
 Navigator::gps_position_update()
 {
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
-}
-
-void
-Navigator::sensor_combined_update()
-{
-	orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 }
 
 void
@@ -201,7 +193,6 @@ Navigator::run()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
@@ -217,7 +208,6 @@ Navigator::run()
 	global_position_update();
 	local_position_update();
 	gps_position_update();
-	sensor_combined_update();
 	home_position_update(true);
 	fw_pos_ctrl_status_update(true);
 	params_update();
@@ -279,13 +269,6 @@ Navigator::run()
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
 			}
-		}
-
-		/* sensors combined updated */
-		orb_check(_sensor_combined_sub, &updated);
-
-		if (updated) {
-			sensor_combined_update();
 		}
 
 		/* parameters updated */
@@ -538,7 +521,7 @@ Navigator::run()
 		    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 		    (hrt_elapsed_time(&last_geofence_check) > GEOFENCE_CHECK_INTERVAL)) {
 
-			bool inside = _geofence.check(_global_pos, _gps_pos, _sensor_combined.baro_alt_meter, _home_pos,
+			bool inside = _geofence.check(_global_pos, _gps_pos, _home_pos,
 						      home_position_valid());
 			last_geofence_check = hrt_absolute_time();
 			have_geofence_position_data = false;
@@ -574,7 +557,10 @@ Navigator::run()
 		switch (_vstatus.nav_state) {
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
+
+			_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_NORMAL);
 			navigation_mode_new = &_mission;
+
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
@@ -587,18 +573,96 @@ Navigator::run()
 			navigation_mode_new = &_rcLoss;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			_pos_sp_triplet_published_invalid_once = false;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
+				_pos_sp_triplet_published_invalid_once = false;
 
-			// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION
-			if (mission_landing_required() && on_mission_landing()) {
-				navigation_mode_new = &_mission;
+				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-			} else {
-				navigation_mode_new = &_rtl;
+				switch (rtl_type()) {
+				case RTL::RTL_LAND:
+					if (rtl_activated) {
+						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+					}
+
+					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
+					if (on_mission_landing() && !get_land_detected()->landed) {
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+						navigation_mode_new = &_mission;
+
+					} else {
+						navigation_mode_new = &_rtl;
+					}
+
+					break;
+
+				case RTL::RTL_MISSION:
+					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
+						// the mission contains a landing spot
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+
+						if (_navigation_mode != &_mission) {
+							if (_navigation_mode == nullptr) {
+								// switching from an manual mode, go to landing if not already landing
+								if (!on_mission_landing()) {
+									start_mission_landing();
+								}
+
+							} else {
+								// switching from an auto mode, continue the mission from the closest item
+								_mission.set_closest_item_as_current();
+							}
+						}
+
+						if (rtl_activated) {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission");
+						}
+
+						navigation_mode_new = &_mission;
+
+					} else {
+						// fly the mission in reverse if switching from a non-manual mode
+						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_REVERSE);
+
+						if ((_navigation_mode != nullptr && (_navigation_mode != &_rtl || _mission.get_mission_changed())) &&
+						    (! _mission.get_mission_finished()) &&
+						    (!get_land_detected()->landed)) {
+							// determine the closest mission item if switching from a non-mission mode, and we are either not already
+							// mission mode or the mission waypoints changed.
+							// The seconds condition is required so that when no mission was uploaded and one is available the closest
+							// mission item is determined and also that if the user changes the active mission index while rtl is active
+							// always that waypoint is tracked first.
+							if ((_navigation_mode != &_mission) && (rtl_activated || _mission.get_mission_waypoints_changed())) {
+								_mission.set_closest_item_as_current();
+							}
+
+							if (rtl_activated) {
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse");
+							}
+
+							navigation_mode_new = &_mission;
+
+						} else {
+							if (rtl_activated) {
+								mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home");
+							}
+
+							navigation_mode_new = &_rtl;
+						}
+					}
+
+					break;
+
+				default:
+					if (rtl_activated) {
+						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL HOME activated");
+					}
+
+					navigation_mode_new = &_rtl;
+					break;
+				}
+
+				break;
 			}
-
-			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
@@ -654,6 +718,9 @@ Navigator::run()
 			_can_loiter_at_sp = false;
 			break;
 		}
+
+		// update the vehicle status
+		_previous_nav_state = _vstatus.nav_state;
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
@@ -711,7 +778,6 @@ Navigator::run()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_sensor_combined_sub);
 	orb_unsubscribe(_fw_pos_ctrl_status_sub);
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
@@ -909,7 +975,8 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	tr.heading = traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
 	tr.hor_velocity	= hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
 	tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
-	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign));
+	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
+	tr.callsign[sizeof(tr.callsign) - 1] = 0;
 	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
 	tr.tslc = 2; // Time since last communication in seconds
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
