@@ -515,17 +515,17 @@ static bool powerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, 
 					success = false;
 
 					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+						mavlink_log_critical(mavlink_log_pub,383, "PREFLIGHT FAIL: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
 					}
 
 				} else if (avionics_power_rail_voltage < 4.9f) {
 					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+						mavlink_log_critical(mavlink_log_pub,384, "CAUTION: Avionics power low: %6.2f Volt", (double)avionics_power_rail_voltage);
 					}
 
 				} else if (avionics_power_rail_voltage > 5.4f) {
 					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics power high: %6.2f Volt", (double)avionics_power_rail_voltage);
+						mavlink_log_critical(mavlink_log_pub,385, "CAUTION: Avionics power high: %6.2f Volt", (double)avionics_power_rail_voltage);
 					}
 				}
 			}

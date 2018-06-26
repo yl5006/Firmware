@@ -1017,7 +1017,7 @@ Mission::set_mission_items()
 					_mission_item.time_inside = 0.0f;
 
 				} else {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "MissionReverse: Got a non-position mission item, ignoring it");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),709, "MissionReverse: Got a non-position mission item, ignoring it");
 				}
 
 				break;
@@ -1592,7 +1592,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)_offboard_mission.count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if ((*mission_index_ptr != (int)_offboard_mission.count) && (*mission_index_ptr != -1)) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %d.",
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),703, "Mission item index out of bound, index: %d, max: %d.",
 						     *mission_index_ptr, _offboard_mission.count);
 			}
 

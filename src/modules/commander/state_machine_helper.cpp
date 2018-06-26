@@ -291,7 +291,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_CIRCLE:
 
 		/* need global position estimate */
-		if (status_flags->condition_global_position_valid) {
+		if (status_flags.condition_global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -626,17 +626,19 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
-		} else if (status->data_link_lost && data_link_loss_act_configured && !landed) {
+		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			/* also go into failsafe if just datalink is lost, and we're actually in air */
-			set_data_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act,
+						vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS);
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub,427, reason_no_datalink);
 
-		} else if (rc_lost && !data_link_loss_act_configured) {
+		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
 			/* go into failsafe if RC is lost and datalink loss is not set up and rc loss is not DISABLED */
 			enable_failsafe(status, old_failsafe, mavlink_log_pub,420, reason_no_rc);
 
-			set_rc_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act,
+						vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
 
 		} else if (status->rc_signal_lost) {
 			/* don't bother if RC is lost if datalink is connected */
@@ -980,7 +982,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		// Fail transition if power is not good
 		if (!status_flags.condition_power_input_valid) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Connect power module");
+				mavlink_log_critical(mavlink_log_pub,382, "ARMING DENIED: Connect power module");
 			}
 
 			prearm_ok = false;
@@ -1009,7 +1011,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		if (!status_flags.condition_global_position_valid) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: mission requires global position");
+				mavlink_log_critical(mavlink_log_pub,380, "ARMING DENIED: mission requires global position");
 			}
 
 			prearm_ok = false;
@@ -1021,7 +1023,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		if (!status_flags.condition_global_position_valid) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
+				mavlink_log_critical(mavlink_log_pub,380, "ARMING DENIED: global position required");
 			}
 
 			prearm_ok = false;
@@ -1032,7 +1034,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	if (safety.safety_switch_available && !safety.safety_off) {
 		// Fail transition if we need safety switch press
 		if (prearm_ok && reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Press safety switch first");
+			mavlink_log_critical(mavlink_log_pub,381, "ARMING DENIED: Press safety switch first");
 		}
 
 		prearm_ok = false;

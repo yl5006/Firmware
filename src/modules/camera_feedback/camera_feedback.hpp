@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <poll.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 

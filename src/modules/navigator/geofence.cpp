@@ -55,11 +55,11 @@
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
 	_navigator(navigator),
+	_sub_airdata(ORB_ID(vehicle_air_data)),
 	_maxindex(0),
 	_startindex(0),
 	_checkindex(0),
-	_indexinit(false),
-	_sub_airdata(ORB_ID(vehicle_air_data))
+	_indexinit(false)
 {
 	// we assume there's no concurrent fence update on startup
 	_updateFence();

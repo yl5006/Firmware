@@ -83,8 +83,7 @@
 #include "Utility/ControlMath.hpp"
 
 #include <math.h>
-#define ZERO_FLOAT 			1E-4
-static const double PI=3.141592f;
+#define ZERO_FLOAT 			0.0001f
 
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
@@ -195,7 +194,9 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acceleration_z_max_up, /** max acceleration up */
 		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acceleration_z_max_down, /** max acceleration down */
 		(ParamFloat<px4::params::MPC_CIRCLE_RAD>) _circle_radius,
-		(ParamFloat<p x4::params::MPC_CRUISE_90>)
+		(ParamFloat<px4::params::MPC_SAFE_DIS>) _safe_dis,
+		(ParamInt<px4::params::MPC_SAFE_EN>) _safe_en,
+		(ParamFloat<px4::params::MPC_CRUISE_90>)
 		_cruise_speed_90, /**<speed when angle is 90 degrees between prev-current/current-next*/
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>)
 		_velocity_hor_manual, /**< target velocity in manual controlled mode at full speed*/
@@ -239,10 +240,9 @@ private:
 		(ParamInt<px4::params::MPC_ALT_MODE>) _alt_mode,
 		(ParamFloat<px4::params::RC_FLT_CUTOFF>) _rc_flt_cutoff,
 		(ParamFloat<px4::params::RC_FLT_SMP_RATE>) _rc_flt_smp_rate,
-		(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) _acc_max_estimator_xy,
+		(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) _acc_max_estimator_xy
 
 	);
-
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
@@ -1743,7 +1743,7 @@ void MulticopterPositionControl::control_auto()
 				}
 			    float angle_change = angle_speed * _dt;
 			    _angle = _angle + angle_change;
-			    _angle = _wrap_2pi(_angle);
+			    _angle = wrap_2pi(_angle);
 			    _att_sp.yaw_body = _angle;
 			    curr_pos_sp(0)= _center_sp(0) - radius * cosf(_angle);
 			    curr_pos_sp(1)= _center_sp(1) - radius * sinf(_angle);
@@ -2311,7 +2311,7 @@ void MulticopterPositionControl::adjust_manual(float vx,bool positive,float &man
 
 void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoint_s &manual) {
 	// get euler  angle   roll pitch yaw
-	math::Vector<3> euler = _R.to_euler();
+	matrix::Vector3f euler=matrix::Eulerf(_R);
 	//we get altitude from distance sensors
 	// min 30cm max 500cm but shows 0
 	// if altitude larger than calcucated safe altitude, then we do it
@@ -2319,9 +2319,9 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 	float altitude = (_vertical_dis.current_distance < (float)ZERO_FLOAT)
 	                 ? _vertical_dis.current_distance
 	                 : (_vertical_dis.current_distance + (float)0.1) *
-	                 cosf(fabs(euler(0))) *
-	                 cosf(fabs(euler(1))) ;
-
+	                 cosf(fabsf(euler(0))) *
+	                 cosf(fabsf(euler(1))) ;
+	float safedis =_safe_dis.get();
 	//pitch distance
 	float mp_altitude = 0;
 	//roll distance
@@ -2334,43 +2334,43 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 
 	float prepare_safe_distance_x = fabsf(vx)*1.0f;
 	float prepare_safe_distance_y = fabsf(vy)*1.5f;
-	const float stop_distance = 1.0f + _params.safe_dis;
+	const float stop_distance = 1.0f + safedis;
 
-	if(fabs(euler(1)) < (PI / 4)) {
-		horizontal_dis[0] = (fabs(_horizontal_dis.current_distance[0] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[0] : _horizontal_dis.current_distance[0] * (cosf(fabs(euler(1))));
-		horizontal_dis[2] = (fabs(_horizontal_dis.current_distance[2] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[2] : _horizontal_dis.current_distance[2] * (cosf(fabs(euler(1))));
-		mp_altitude = (tanf(fabs(euler(1)))) * _params.safe_dis;
+	if(fabsf(euler(1)) < (M_PI_F / 4)) {
+		horizontal_dis[0] = (fabsf(_horizontal_dis.current_distance[0] - _horizontal_dis.max_distance) < (float)ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[0] : _horizontal_dis.current_distance[0] * (cosf(fabsf(euler(1))));
+		horizontal_dis[2] = (fabsf(_horizontal_dis.current_distance[2] - _horizontal_dis.max_distance) < (float) ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[2] : _horizontal_dis.current_distance[2] * (cosf(fabsf(euler(1))));
+		mp_altitude = (tanf(fabs(euler(1)))) * safedis;
 	} else {
 		horizontal_dis[0] = _horizontal_dis.current_distance[0];
 		horizontal_dis[2] = _horizontal_dis.current_distance[2];
-		mp_altitude = _params.safe_dis;
+		mp_altitude = safedis;
 	}
 
-	if(fabs(euler(0)) < (PI / 4)) {
-		horizontal_dis[1] = (fabs(_horizontal_dis.current_distance[1] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[1] : _horizontal_dis.current_distance[1] * (cosf(fabs(euler(0))));
-		horizontal_dis[3] = (fabs(_horizontal_dis.current_distance[3] - _horizontal_dis.max_distance) < ZERO_FLOAT)
-		                    ? _horizontal_dis.current_distance[3] : _horizontal_dis.current_distance[3] * (cosf(fabs(euler(0))));
-		mr_altitude = (tanf(fabs(euler(0)))) * _params.safe_dis;
+	if(fabsf(euler(0)) < (M_PI_F / 4)) {
+		horizontal_dis[1] = (fabsf(_horizontal_dis.current_distance[1] - _horizontal_dis.max_distance) < (float)ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[1] : _horizontal_dis.current_distance[1] * (cosf(fabsf(euler(0))));
+		horizontal_dis[3] = (fabsf(_horizontal_dis.current_distance[3] - _horizontal_dis.max_distance) < (float)ZERO_FLOAT)
+		                    ? _horizontal_dis.current_distance[3] : _horizontal_dis.current_distance[3] * (cosf(fabsf(euler(0))));
+		mr_altitude = (tanf(fabsf(euler(0)))) * safedis;
 
 	} else {
 		horizontal_dis[1] = _horizontal_dis.current_distance[1];
 		horizontal_dis[3] = _horizontal_dis.current_distance[3];
-		mr_altitude =  _params.safe_dis;
+		mr_altitude =  safedis;
 	}
 
 	if (_horizontal_dis.type== horizontal_distance_s::MAV_DISTANCE_SENSOR_INFRARED) {
 		bool pitchtoroll = false;
 		bool rolltopitch = false;
 		float mindis=100;
-		if (horizontal_dis[0] < _params.safe_dis
-		        && horizontal_dis[2] < _params.safe_dis) {
+		if (horizontal_dis[0] < safedis
+		        && horizontal_dis[2] < safedis) {
 			pitchtoroll = true;
 		}
-		if (horizontal_dis[1] < _params.safe_dis
-		        && horizontal_dis[3] < _params.safe_dis) {
+		if (horizontal_dis[1] < safedis
+		        && horizontal_dis[3] < safedis) {
 			rolltopitch = true;
 		}
 		for(int i=0; i<4; i++) {
@@ -2378,24 +2378,24 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 				mindis = horizontal_dis[i];
 		}
 		if(pitchtoroll&&rolltopitch) {
-			manual.z=-(mindis-_params.safe_dis)/2/_params.safe_dis + manual.z;
+			manual.z=-(mindis-safedis)/2/safedis + manual.z;
 		}
 		// pitch to do
-		if ((horizontal_dis[0] < _params.safe_dis
-		        && horizontal_dis[2] < _params.safe_dis)
+		if ((horizontal_dis[0] < safedis
+		        && horizontal_dis[2] < safedis)
 		        || (horizontal_dis[0] > stop_distance + prepare_safe_distance_x
 		            && horizontal_dis[2]
 		            > stop_distance + prepare_safe_distance_x)) {
 			//	_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max
-		} else if(altitude > mp_altitude || fabs(altitude) < ZERO_FLOAT) {
+		} else if(altitude > mp_altitude || fabsf(altitude) < ZERO_FLOAT) {
 			//20%distance before the safe distance and velocity direction is positive,decline the speed
 
-			if (horizontal_dis[0] < _params.safe_dis) {
+			if (horizontal_dis[0] < safedis) {
 
-				if(horizontal_dis[0] < _params.safe_dis / 2) {
+				if(horizontal_dis[0] < safedis / 2) {
 					manual.x = -1.0;
 				} else {
-					manual.x = (horizontal_dis[0] - _params.safe_dis) / _params.safe_dis * 2;
+					manual.x = (horizontal_dis[0] - safedis) / safedis * 2;
 				}
 			} else if( horizontal_dis[0] < stop_distance + prepare_safe_distance_x ) {
 				if(manual.x > 0) { //not allowed to go forward
@@ -2406,11 +2406,11 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 				}
 			}
 
-			if (horizontal_dis[2] < _params.safe_dis) {
-				if(horizontal_dis[2] < _params.safe_dis/2) {
+			if (horizontal_dis[2] < safedis) {
+				if(horizontal_dis[2] < safedis/2) {
 					manual.x=1.0;
 				} else {
-					manual.x = -(horizontal_dis[2]- _params.safe_dis) / _params.safe_dis * 2;
+					manual.x = -(horizontal_dis[2]- safedis) / safedis * 2;
 				}
 			} else if( horizontal_dis[2] < stop_distance + prepare_safe_distance_x ) {
 				if(manual.x < 0) {
@@ -2424,18 +2424,18 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 
 
 		// roll to do
-		if ((horizontal_dis[1] < _params.safe_dis
-		        && horizontal_dis[3] < _params.safe_dis)
+		if ((horizontal_dis[1] < safedis
+		        && horizontal_dis[3] < safedis)
 		        || (horizontal_dis[1] > stop_distance + prepare_safe_distance_y
 		            && horizontal_dis[3]
 		            > stop_distance + prepare_safe_distance_y)) {
 			//	_att_sp.roll_body = _manual.y * _params.man_roll_max;
-		} else if(altitude > mr_altitude || fabs(altitude) < ZERO_FLOAT) {
-			if (horizontal_dis[1] < _params.safe_dis) {
-				if(horizontal_dis[1] < _params.safe_dis/2) {
+		} else if(altitude > mr_altitude || fabsf(altitude) < ZERO_FLOAT) {
+			if (horizontal_dis[1] < safedis) {
+				if(horizontal_dis[1] < safedis/2) {
 					manual.y = -1.0;
 				} else {
-					manual.y = (horizontal_dis[1]- _params.safe_dis) / _params.safe_dis * 2;
+					manual.y = (horizontal_dis[1]- safedis) / safedis * 2;
 				}
 			} else if( horizontal_dis[1] < stop_distance + prepare_safe_distance_y ) {
 				if(manual.y > 0) {
@@ -2446,11 +2446,11 @@ void MulticopterPositionControl::obstacle_avoidance(struct manual_control_setpoi
 				}
 			}
 
-			if (horizontal_dis[3] < _params.safe_dis) {
-				if(horizontal_dis[3] < _params.safe_dis/2) {
+			if (horizontal_dis[3] < safedis) {
+				if(horizontal_dis[3] < safedis/2) {
 					manual.y = 1.0;
 				} else {
-					manual.y = -(horizontal_dis[3]- _params.safe_dis) / _params.safe_dis * 2;
+					manual.y = -(horizontal_dis[3]- safedis) / safedis * 2;
 				}
 			}  else if( horizontal_dis[3] < stop_distance + prepare_safe_distance_y ) {
 				if(manual.y < 0) {
@@ -2777,7 +2777,7 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	// Otherwise, we should just bail out
 	if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
 		// Keep throttle low while still on ground.
-		thr_max = _params.thr_min;//0.0f;
+		thr_max = thr_min;//0.0f;
 
 	} else if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
 		   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {

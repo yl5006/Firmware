@@ -138,6 +138,7 @@ static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL = 500_ms;
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
 static orb_advert_t power_button_state_pub = nullptr;
+#define ARMDISARM_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< arm disarm time between */
 
 /* flags */
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -703,11 +704,9 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
 							main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_PRECLAND, status_flags, &internal_state);
 							break;
-						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
-							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_PRECLAND, main_state_prev, &status_flags, &internal_state);
-							break;
+
 						case PX4_CUSTOM_SUB_MODE_AUTO_CIRCLE:
-							main_ret = main_state_transition(status_local, commander_state_s::MAIN_STATE_AUTO_CIRCLE, main_state_prev, &status_flags, &internal_state);
+							main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_CIRCLE, status_flags, &internal_state);
 							break;
 						default:
 							main_ret = TRANSITION_DENIED;
@@ -782,7 +781,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			} else {
 
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
-				parachute = (static_cast<int>(cmd->param2)== 21196);
+				parachute = (static_cast<int>(cmd.param2)== 21196);
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
 					status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
@@ -826,7 +825,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					}
 					if(parachute)
 					{
-						main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, main_state_prev, &status_flags, &internal_state);
+						main_state_transition(*status_local, commander_state_s::MAIN_STATE_STAB, status_flags, &internal_state);
 					}
 				}
 			}
@@ -1044,7 +1043,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			// if no high latency telemetry exists send a failed acknowledge
 			if (!hl_exists) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_FAILED;
-				mavlink_log_critical(&mavlink_log_pub, "Control high latency failed, no hl telemetry available");
+				mavlink_log_critical(&mavlink_log_pub,119, "Control high latency failed, no hl telemetry available");
 			}
 		}
 		break;
@@ -2297,7 +2296,7 @@ Commander::run()
 
 			if (!in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)&& hrt_elapsed_time(&armdisarm_change_timestamp) > FAILSAFE_DEFAULT_TIMEOUT) {
+			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)&& hrt_elapsed_time(&armdisarm_change_timestamp) > ARMDISARM_DEFAULT_TIMEOUT) {
 				if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
@@ -2518,7 +2517,7 @@ Commander::run()
 				}
 
 				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-					mavlink_log_critical(&mavlink_log_pub,139,"DL and GPS lost: flight termination");
+					mavlink_log_critical(&mavlink_log_pub,138,"DL and GPS lost: flight termination");
 				}
 			}
 
@@ -2762,12 +2761,12 @@ Commander::run()
 
 		// Handle shutdown request from emergency battery action
 		if(!armed.armed && dangerous_battery_level_requests_poweroff){
-			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+			mavlink_log_critical(&mavlink_log_pub,125, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
 			usleep(200000);
 			int ret_val = px4_shutdown_request(false, false);
 
 			if (ret_val) {
-				mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+				mavlink_log_critical(&mavlink_log_pub,126, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
 				dangerous_battery_level_requests_poweroff = false;
 
 			} else {
@@ -4123,7 +4122,7 @@ void Commander::poll_telemetry_status()
 				if ((mission_result.timestamp > commander_boot_timestamp) && status_flags.condition_system_hotplug_timeout &&
 				    (mission_result.instance_count > 0) && !mission_result.valid) {
 
-					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+					mavlink_log_critical(&mavlink_log_pub,146, "Planned mission fails check. Please upload again.");
 					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false, status); // TODO
 				} else {
 					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true, status); // TODO
@@ -4250,7 +4249,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			// to avoid transmitting unnecessary data over that link
 			status.high_latency_data_link_active = false;
 			*status_changed = true;
-			mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
+			mavlink_log_critical(&mavlink_log_pub,137, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
 		}
 
 	} else {
@@ -4267,15 +4266,15 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			}
 
 			if (!status.data_link_lost) {
-				mavlink_log_critical(&mavlink_log_pub, "ALL LOW LATENCY DATA LINKS LOST, ACTIVATING HIGH LATENCY LINK");
+				mavlink_log_critical(&mavlink_log_pub,139, "ALL LOW LATENCY DATA LINKS LOST, ACTIVATING HIGH LATENCY LINK");
 
 			} else {
-				mavlink_log_critical(&mavlink_log_pub, "ACTIVATING AVAILABLE HIGH LATENCY LINK");
+				mavlink_log_critical(&mavlink_log_pub,127, "ACTIVATING AVAILABLE HIGH LATENCY LINK");
 			}
 
 		} else if (!status.data_link_lost) {
 			if (armed.armed) {
-				mavlink_log_critical(&mavlink_log_pub, "ALL DATA LINKS LOST");
+				mavlink_log_critical(&mavlink_log_pub,136, "ALL DATA LINKS LOST");
 			}
 
 			status.data_link_lost = true;

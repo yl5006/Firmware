@@ -1397,7 +1397,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
-			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
 
 			mission_item->param8 = mavlink_mission_item->param8;
 			mission_item->param9 = mavlink_mission_item->param9;
@@ -1409,7 +1409,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
-			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
 			mission_item->do_jump_mission_index = mavlink_mission_item->param8;
 			mission_item->do_jump_current_count = 0;
 			mission_item->do_jump_repeat_count = mavlink_mission_item->param9;
