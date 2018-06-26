@@ -1,3 +1,4 @@
+
 # FMUv3 is FMUv2 with access to the full 2MB flash
 set(BOARD px4fmu-v2 CACHE string "" FORCE)
 set(FW_NAME nuttx_px4fmu-v3_ewt.elf CACHE string "" FORCE)
@@ -18,25 +19,22 @@ set(config_module_list
 	drivers/magnetometer
 	drivers/telemetry
 
-	#drivers/imu/adis16448
-	drivers/airspeed
 	drivers/batt_smbus
 	drivers/blinkm
-	#drivers/imu/bmi160
-	drivers/boards
 	drivers/camera_trigger
-	drivers/device
 	drivers/gps
-	drivers/irlock
-	drivers/imu/l3gd20
-	drivers/led
-	drivers/mkblctrl
+#	drivers/imu/adis16448
+	drivers/imu/bmi160
+#	drivers/imu/l3gd20
+#	drivers/imu/lsm303d
 	drivers/imu/mpu6000
-	#drivers/imu/mpu9250
+#	drivers/imu/mpu9250
+	drivers/irlock
+	drivers/mkblctrl
 	drivers/oreoled
 	drivers/protocol_splitter
 	drivers/pwm_input
-	#drivers/pwm_out_sim
+#	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/px4io
@@ -106,6 +104,7 @@ set(config_module_list
 	modules/landing_target_estimator
 #	modules/local_position_estimator
 #	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
@@ -128,25 +127,6 @@ set(config_module_list
 	# Library modules
 	#
 	modules/dataman
-	modules/systemlib
-	modules/systemlib/param
-	modules/uORB
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
 
 	#
 	# OBC challenge

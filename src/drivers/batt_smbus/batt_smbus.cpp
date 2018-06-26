@@ -44,15 +44,15 @@
 #include <float.h>
 #include <stdio.h>
 #include <string.h>
+#include <ecl/geo/geo.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_workqueue.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/uORB.h>
 
 #define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address
@@ -249,6 +249,7 @@ int serial_number();
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
+	_last_report{},
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),
@@ -317,10 +318,7 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				PX4_INFO("V=%4.2f C=%4.2f AveC=%4.2f DismAh=%f Cap:%hu TempC:%4.2f Remaining:%3.2f\n RunTimeToEmpty:%hu AveTimeToEmpty:%hu CycleCount:%hu SerialNum:%04x",
-					 (double)status.voltage_v, (double)status.current_a, (double)status.average_current_a, (double)status.discharged_mah,
-					 (uint16_t)status.capacity, (double)status.temperature, (double)status.remaining, (uint16_t)status.run_time_to_empty,
-					 (uint16_t)status.average_time_to_empty, (uint16_t)status.cycle_count, (uint16_t)status.serial_number);
+				print_message(status);
 			}
 		}
 
@@ -558,7 +556,7 @@ BATT_SMBUS::cycle()
 
 		// read battery temperature and covert to Celsius
 		if (read_reg(BATT_SMBUS_TEMP, tmp) == OK) {
-			new_report.temperature = (float)(((float)tmp / 10.0f) - 273.15f);
+			new_report.temperature = (float)(((float)tmp / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
 		}
 
 		//Check if remaining % is out of range

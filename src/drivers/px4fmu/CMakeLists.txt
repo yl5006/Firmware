@@ -46,6 +46,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS ${srcs}
 	DEPENDS
-		platforms__common
+		circuit_breaker
+		mixer
+		rc
+		pwm_limit
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

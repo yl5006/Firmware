@@ -55,6 +55,6 @@ px4_add_module(
 		follow_target.cpp
 		circle.cpp
 	DEPENDS
-		platforms__common
+		git_ecl
+		ecl_geo
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

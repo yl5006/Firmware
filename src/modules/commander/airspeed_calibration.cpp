@@ -53,9 +53,8 @@
 #include <drivers/drv_airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
-#include <systemlib/airspeed.h>
 
 static const char *sensor_name = "airspeed";
 
@@ -193,7 +192,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		feedback_calibration_failed(mavlink_log_pub);
 		goto error_return;
 	}
-	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);// all critical change to info
+
+	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
 
 	/* wait 500 ms to ensure parameter propagated through the system */
 	usleep(500 * 1000);

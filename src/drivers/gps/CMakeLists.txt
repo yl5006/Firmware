@@ -45,6 +45,5 @@ px4_add_module(
 		devices/src/ubx.cpp
 		devices/src/nova.cpp
 	DEPENDS
-		platforms__common
 		git_gps_devices
 	)

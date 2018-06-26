@@ -41,7 +41,7 @@
 
 #include "px4_param_macros.h"
 
-#include <px4_parameters_public.h>
+#include <parameters/px4_parameters_public.h>
 
 /**
  * get the parameter handle from a parameter enum
@@ -82,7 +82,7 @@ inline static param_t param_handle(px4::params p)
 
 #define _DEFINE_PARAMETER_UPDATE_METHOD_CUSTOM_PARENT(parent_class, ...) \
 	protected: \
-	void updateParamsImpl() { \
+	void updateParamsImpl() override { \
 		parent_class::updateParamsImpl(); \
 		APPLY_ALL(_CALL_UPDATE, __VA_ARGS__) \
 	} \

@@ -64,6 +64,7 @@ set(msg_files
 	home_position.msg
 	horizontal_distance.msg
 	input_rc.msg
+	iridiumsbd_status.msg
 	irlock_report.msg
 	landing_target_innovations.msg
 	landing_target_pose.msg
@@ -79,6 +80,7 @@ set(msg_files
 	offboard_control_mode.msg
 	optical_flow.msg
 	parameter_update.msg
+	ping.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
@@ -105,13 +107,14 @@ set(msg_files
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
-	time_offset.msg
+	timesync_status.msg
 	transponder_report.msg
 	tune_control.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_air_data.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
@@ -122,6 +125,7 @@ set(msg_files
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
+	vehicle_magnetometer.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg
@@ -167,7 +171,10 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
 		-q
-	DEPENDS ${msg_files}
+	DEPENDS
+		${msg_files}
+		templates/uorb/msg.h.template
+		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -184,11 +191,14 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
 		-q
-	DEPENDS ${msg_files}
+	DEPENDS
+		${msg_files}
+		templates/uorb/msg.cpp.template
+		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 	)
 
-px4_add_library(uorb_msgs ${uorb_sources})
-add_dependencies(uorb_msgs uorb_headers)
+add_library(uorb_msgs ${uorb_sources})
+add_dependencies(uorb_msgs prebuild_targets uorb_headers)

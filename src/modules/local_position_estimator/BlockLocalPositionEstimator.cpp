@@ -47,6 +47,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_lidar(nullptr),
 	_sub_sonar(nullptr),
 	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
+	_sub_airdata(ORB_ID(vehicle_air_data), 0, 0, &getSubscriptions()),
 
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
@@ -247,17 +248,10 @@ void BlockLocalPositionEstimator::update()
 	bool paramsUpdated = _sub_param_update.updated();
 	_baroUpdated = false;
 
-	if ((_fusion.get() & FUSE_BARO) && _sub_sensor.updated()) {
-		int32_t baro_timestamp_relative = _sub_sensor.get().baro_timestamp_relative;
-
-		if (baro_timestamp_relative != _sub_sensor.get().RELATIVE_TIMESTAMP_INVALID) {
-			uint64_t baro_timestamp = _sub_sensor.get().timestamp +	\
-						  _sub_sensor.get().baro_timestamp_relative;
-
-			if (baro_timestamp != _timeStampLastBaro) {
-				_baroUpdated = true;
-				_timeStampLastBaro = baro_timestamp;
-			}
+	if ((_fusion.get() & FUSE_BARO) && _sub_airdata.updated()) {
+		if (_sub_airdata.get().timestamp != _timeStampLastBaro) {
+			_baroUpdated = true;
+			_timeStampLastBaro = _sub_airdata.get().timestamp;
 		}
 	}
 
@@ -610,8 +604,11 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		//TODO provide calculated values for these
 		_pub_lpos.get().evh = 0.0f;
 		_pub_lpos.get().evv = 0.0f;
-		_pub_lpos.get().vxy_max = 0.0f;
-		_pub_lpos.get().limit_hagl = false;
+		_pub_lpos.get().vxy_max = INFINITY;
+		_pub_lpos.get().vz_max = INFINITY;
+		_pub_lpos.get().hagl_min = INFINITY;
+		_pub_lpos.get().hagl_max = INFINITY;
+
 	}
 }
 
@@ -674,7 +671,6 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().yaw = _eul(2);
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
-		_pub_gpos.get().pressure_alt = _sub_sensor.get().baro_alt_meter;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
 		_pub_gpos.get().terrain_alt_valid = _estimatorInitialized & EST_TZ;
 		_pub_gpos.get().dead_reckoning = !(_estimatorInitialized & EST_XY);
@@ -782,7 +778,7 @@ void BlockLocalPositionEstimator::predict()
 	Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 	// note, bias is removed in dynamics function
 	_u = _R_att * a;
-	_u(U_az) += 9.81f;	// add g
+	_u(U_az) += CONSTANTS_ONE_G;	// add g
 
 	// update state space based on new states
 	updateSSStates();

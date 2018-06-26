@@ -198,14 +198,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 
 /**
- * Optimal recovery strategy for pitch-weak tailsitters
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_OPT_RECOV_EN, 0);
-
-/**
  * Front transition timeout
  *
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
@@ -245,8 +237,8 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 /**
  * Adaptive QuadChute
  *
- * Maximum negative altitude error, when in fixed wing the altitude drops below this copared to the altitude setpoint
- * the vehicle will transition back to MC mode and enter failsafe RTL
+ * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
+ * the vehicle will transition back to MC mode and enter failsafe RTL.
  * @min 0.0
  * @max 200.0
  * @group VTOL Attitude Control
@@ -324,3 +316,14 @@ PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
+
+/**
+ * The channel number of motors that must be turned off in fixed wing mode.
+ *
+ * @min 0
+ * @max 12345678
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);

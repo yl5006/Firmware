@@ -73,14 +73,13 @@
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #if defined(CONFIG_KINETIS_BBSRAM) //fixme:Need BBSRAM
 #include <systemlib/hardfault_log.h>
 #endif
 
-#include <systemlib/systemlib.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
