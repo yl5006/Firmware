@@ -676,7 +676,7 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 
 		vehicle_command_s vcmd = {};
 		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		vcmd.param8 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
 
@@ -725,7 +725,7 @@ void
 MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode)
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-	item->params[0] = (float) new_mode;
+	item->params[7] = (float) new_mode;
 	item->yaw = _navigator->get_global_position()->yaw;
 	item->autocontinue = true;
 }
