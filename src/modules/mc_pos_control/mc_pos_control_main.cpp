@@ -1734,19 +1734,37 @@ void MulticopterPositionControl::control_auto()
 			{
 				float radius = _circle_radius.get();
 				float angle_speed = _cruise_speed_90.get() / ( radius);
-				if(!_circle_angle_init)
+
+				if((curr_pos_sp(0)-_center_sp(0))>0.01f || (curr_pos_sp(1)-_center_sp(1))>0.01f)
 				{
-					_angle = _yaw;
-					_center_sp(0) = curr_pos_sp(0) + radius * cosf(_angle);
-					_center_sp(1) = curr_pos_sp(1) + radius * sinf(_angle);
+					_circle_angle_init = false;
+				}
+				if(!_circle_angle_init && sqrtf((curr_pos_sp(0)-_pos(0))*(curr_pos_sp(0)-_pos(0)) + (curr_pos_sp(1)-_pos(1)) * (curr_pos_sp(1)-_pos(1)))< (radius + 1.0f))
+				{
+					_angle = _pos_sp_triplet.current.yaw;//_yaw;
+					_center_sp(0) = curr_pos_sp(0);//+ radius * cosf(_angle);
+					_center_sp(1) = curr_pos_sp(1);//+ radius * sinf(_angle);
 					_circle_angle_init = true;
 				}
-			    float angle_change = angle_speed * _dt;
+//				else if(!_circle_angle_init)
+//				{
+//					float cosdisf= (_pos(0) - curr_pos_sp(0)) / dissp;
+//					float sindisf= (_pos(1) - curr_pos_sp(1)) / dissp;
+//
+//					curr_pos_sp(0) = curr_pos_sp(0) + (radius+2.0f) * cosdisf;
+//					curr_pos_sp(1) = curr_pos_sp(1) + (radius+2.0f) * sindisf;
+//					warnx("tang =%.3f  %.3f %.3f",(double)dissp,(double)curr_pos_sp(0),(double)curr_pos_sp(1));
+//				}
+				if(_circle_angle_init)
+				{
+				float angle_change = angle_speed * _dt;
 			    _angle = _angle + angle_change;
 			    _angle = wrap_2pi(_angle);
-			    _att_sp.yaw_body = _angle;
+			    _pos_sp_triplet.current.yaw = _angle;
 			    curr_pos_sp(0)= _center_sp(0) - radius * cosf(_angle);
 			    curr_pos_sp(1)= _center_sp(1) - radius * sinf(_angle);
+				}
+
 			}
 			else
 			{
@@ -2225,7 +2243,8 @@ void MulticopterPositionControl::control_auto()
 
 			_run_pos_control = false;
 
-		} else {
+		}
+		else {
 			/* just go to the target point */;
 			_pos_sp = _curr_pos_sp;
 

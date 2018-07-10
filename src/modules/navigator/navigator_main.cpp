@@ -204,6 +204,9 @@ Navigator::run()
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
 
+
+	param_t _param_circle_radius= param_find("MPC_CIRCLE_RAD");
+
 	/* copy all topics first time */
 	vehicle_status_update();
 	vehicle_land_detected_update();
@@ -317,9 +320,67 @@ Navigator::run()
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 
+
 				// DO_GO_AROUND is currently handled by the position controller (unacknowledged)
 				// TODO: move DO_GO_AROUND handling to navigator
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			position_setpoint_triplet_s *rep = get_reposition_triplet();
+			position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
+
+			// store current position as previous position and goal as next
+			rep->previous.yaw = get_global_position()->yaw;
+			rep->previous.lat = get_global_position()->lat;
+			rep->previous.lon = get_global_position()->lon;
+			rep->previous.alt = get_global_position()->alt;
+
+			rep->current.loiter_radius = get_loiter_radius();
+			rep->current.loiter_direction = 1;
+			rep->current.type = position_setpoint_s::SETPOINT_TYPE_CIRCLE;
+			rep->current.cruising_speed = get_cruising_speed();
+			rep->current.cruising_throttle = get_cruising_throttle();
+
+			// Go on and check which changes had been requested
+			if (PX4_ISFINITE(cmd.param4)) {
+				rep->current.yaw = cmd.param4;
+
+			} else {
+				rep->current.yaw = NAN;
+			}
+
+			if (PX4_ISFINITE(cmd.param5)&& PX4_ISFINITE(cmd.param6)) {
+
+				// Position change with optional altitude change
+				rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+				rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
+				if (PX4_ISFINITE(cmd.param7)) {
+					rep->current.alt = cmd.param7;
+
+				} else {
+					rep->current.alt = get_global_position()->alt;
+				}
+
+			} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
+			&& PX4_ISFINITE(curr->current.lat)
+			&& PX4_ISFINITE(curr->current.lon)) {
+
+				// Altitude without position change
+				rep->current.lat = curr->current.lat;
+				rep->current.lon = curr->current.lon;
+				rep->current.alt = cmd.param7;
+
+			} else {
+				// All three set to NaN - hold in current position
+				rep->current.lat = get_global_position()->lat;
+				rep->current.lon = get_global_position()->lon;
+				rep->current.alt = get_global_position()->alt;
+			}
+
+			rep->previous.valid = true;
+			rep->current.valid = true;
+			rep->next.valid = false;
+;
+			param_set(_param_circle_radius, &(cmd.param1));
+			publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
