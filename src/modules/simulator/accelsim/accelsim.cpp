@@ -209,7 +209,7 @@ class ACCELSIM_mag : public VirtDevObj
 {
 public:
 	ACCELSIM_mag(ACCELSIM *parent);
-	~ACCELSIM_mag();
+	~ACCELSIM_mag() = default;
 
 	virtual ssize_t	devRead(void *buffer, size_t buflen);
 	virtual int	devIOCTL(unsigned long cmd, unsigned long arg);
@@ -601,9 +601,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		memcpy((struct accel_calibration_s *) arg, &(_accel_scale), sizeof(_accel_scale));
 		return OK;
 
-	case ACCELIOCSELFTEST:
-		return OK;
-
 	default:
 		/* give it to the superclass */
 		return VirtDevObj::devIOCTL(cmd, arg);
@@ -716,9 +713,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 		 * so always return 0.
 		 */
 		return 0;
-
-	case MAGIOCSELFTEST:
-		return OK;
 
 	default:
 		/* give it to the superclass */
@@ -861,7 +855,6 @@ ACCELSIM::_measure()
 	accel_report.z = raw_accel_report.z;
 
 	accel_report.scaling = _accel_range_scale;
-	accel_report.range_m_s2 = _accel_range_m_s2;
 
 	_accel_reports->force(&accel_report);
 
@@ -972,8 +965,6 @@ ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
 	m_id.dev_id_s.bus = 1;
 	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 }
-
-ACCELSIM_mag::~ACCELSIM_mag() = default;
 
 ssize_t
 ACCELSIM_mag::devRead(void *buffer, size_t buflen)

@@ -67,6 +67,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -157,6 +158,7 @@ private:
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
+	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
@@ -194,7 +196,7 @@ private:
 
 	Mavlink	*_mavlink;
 
-	MavlinkMissionManager		*_mission_manager;
+	MavlinkMissionManager		_mission_manager;
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
@@ -220,18 +222,19 @@ private:
 	orb_advert_t _flow_distance_sensor_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
-	orb_advert_t _actuator_controls_pub;
+	orb_advert_t _actuator_controls_pubs[4];
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
 	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _vision_attitude_pub;
-	orb_advert_t _telemetry_status_pub;
+	orb_advert_t _radio_status_pub;
 	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _obstacle_distance_pub;
+	orb_advert_t _trajectory_waypoint_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _landing_target_pose_pub;

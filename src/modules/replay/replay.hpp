@@ -58,9 +58,9 @@ namespace px4
 class Replay : public ModuleBase<Replay>
 {
 public:
-	Replay() {}
+	Replay() = default;
 
-	virtual ~Replay() {}
+	virtual ~Replay();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -205,7 +205,7 @@ protected:
 	 */
 	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
 
-	std::vector<Subscription> _subscriptions;
+	std::vector<Subscription *> _subscriptions;
 	std::vector<uint8_t> _read_buffer;
 
 private:
@@ -219,7 +219,7 @@ private:
 	/** keep track of file position to avoid adding a subscription multiple times. */
 	std::streampos _subscription_file_pos = 0;
 
-	uint64_t _read_until_file_position = 1ULL << 60; ///< read limit if log contains appended data
+	int64_t _read_until_file_position = 1ULL << 60; ///< read limit if log contains appended data
 
 	bool readFileHeader(std::ifstream &file);
 

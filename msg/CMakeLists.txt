@@ -52,11 +52,12 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_timestamps.msg
+	ekf_gps_drift.msg
+	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
 	follow_target.msg
-	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
@@ -79,11 +80,15 @@ set(msg_files
 	optical_flow.msg
 	parameter_update.msg
 	ping.msg
+	position_controller_landing_status.msg
+	position_controller_status.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
+	qshell_retval.msg
+	radio_status.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
@@ -106,6 +111,7 @@ set(msg_files
 	telemetry_status.msg
 	test_motor.msg
 	timesync_status.msg
+	trajectory_waypoint.msg
 	transponder_report.msg
 	tune_control.msg
 	uavcan_parameter_request.msg
@@ -117,6 +123,7 @@ set(msg_files
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
 	vehicle_command_ack.msg
+	vehicle_constraints.msg
 	vehicle_control_mode.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
@@ -128,6 +135,7 @@ set(msg_files
 	vehicle_roi.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	)
