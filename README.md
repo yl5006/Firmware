@@ -1,4 +1,4 @@
-# PX4 Pro Drone Autopilot
+# PX4 Drone Autopilot
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
 
@@ -6,7 +6,7 @@
 
 [![Slack](https://px4-slack.herokuapp.com/badge.svg)](http://slack.px4.io)
 
-This repository holds the [PX4 Pro](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/Firmware/tree/master/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
+This repository holds the [PX4](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/Firmware/tree/master/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
 
 * Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/Firmware/blob/master/LICENSE))
 * [Supported airframes](https://docs.px4.io/en/airframes/airframe_reference.html) ([portfolio](http://px4.io/#airframes)):
@@ -90,12 +90,11 @@ This repository contains code supporting these boards:
     * [Pixhawk](https://docs.px4.io/en/flight_controller/pixhawk.html)
     * [Pixhawk Mini](https://docs.px4.io/en/flight_controller/pixhawk_mini.html)
     * [Pixfalcon](https://docs.px4.io/en/flight_controller/pixfalcon.html)
-  * FMUv3.x [Pixhawk 2](https://pixhawk.org/modules/pixhawk2)
+  * FMUv3.x [Pixhawk 2](https://docs.px4.io/en/flight_controller/pixhawk-2.html)
   * FMUv4.x
     * [Pixracer](https://docs.px4.io/en/flight_controller/pixracer.html)
     * [Pixhawk 3 Pro](https://docs.px4.io/en/flight_controller/pixhawk3_pro.html)
   * FMUv5.x (ARM Cortex M7, future Pixhawk)
-  * [STM32F4Discovery](http://www.st.com/en/evaluation-tools/stm32f4discovery.html) (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
   * [Gumstix AeroCore](https://www.gumstix.com/aerocore-2/) (only v2)
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)

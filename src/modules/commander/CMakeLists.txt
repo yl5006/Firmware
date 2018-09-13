@@ -34,16 +34,15 @@ px4_add_module(
 	MODULE modules__commander
 	MAIN commander
 	STACK_MAIN 4096
-	STACK_MAX 2450
+	STACK_MAX 2500
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp
 		arm_auth.cpp
 		baro_calibration.cpp
 		calibration_routines.cpp
-		commander.cpp
+		Commander.cpp
 		commander_helper.cpp
 		esc_calibration.cpp
 		gyro_calibration.cpp
@@ -53,6 +52,7 @@ px4_add_module(
 		rc_calibration.cpp
 		rc_check.cpp
 		state_machine_helper.cpp
+		failure_detector/FailureDetector.cpp
 		commander_motor_test.cpp
 	DEPENDS
 		circuit_breaker

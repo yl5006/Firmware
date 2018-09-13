@@ -64,12 +64,14 @@
 #include <replay/definitions.hpp>
 #include <version/version.h>
 
-#ifdef __PX4_DARWIN
+#if defined(__PX4_DARWIN)
 #include <sys/param.h>
 #include <sys/mount.h>
 #else
 #include <sys/statfs.h>
 #endif
+
+typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
 
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
@@ -612,20 +614,19 @@ void Logger::add_default_topics()
 	add_topic("cpuload");
 	add_topic("distance_sensor", 100);
 	add_topic("ekf2_innovations", 200);
+	add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
-	add_topic("iridiumsbd_status");
 	add_topic("landing_target_pose");
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("optical_flow", 50);
-	add_topic("ping");
 	add_topic("position_setpoint_triplet", 200);
+	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 30);
-	add_topic("safety");
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
@@ -642,22 +643,23 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
+	add_topic("vehicle_trajectory_waypoint", 200);
+	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
-	add_topic("timesync_status");
 
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
 	add_topic("commander_state");
-	add_topic("fw_pos_ctrl_status");
 	add_topic("fw_virtual_attitude_setpoint");
-	add_topic("led_control");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
+	add_topic("position_controller_status");
+	add_topic("position_controller_landingstatus");
 	add_topic("offboard_control_mode");
 	add_topic("time_offset");
 	add_topic("vehicle_attitude_groundtruth", 10);
@@ -691,6 +693,7 @@ void Logger::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
+	add_topic("ekf_gps_position");
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
@@ -830,7 +833,8 @@ void Logger::run()
 	int log_message_sub = orb_subscribe(ORB_ID(log_message));
 	orb_set_interval(log_message_sub, 20);
 
-	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
+
+	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
 	if (ntopics > 0) {
 		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
@@ -888,7 +892,8 @@ void Logger::run()
 	}
 
 	//all topics added. Get required message buffer size
-	int max_msg_size = 0, ret;
+	int max_msg_size = 0;
+	int ret = 0;
 
 	for (const auto &subscription : _subscriptions) {
 		//use o_size, because that's what orb_copy will use
@@ -899,7 +904,7 @@ void Logger::run()
 
 	max_msg_size += sizeof(ulog_message_data_header_s);
 
-	if (sizeof(ulog_message_logging_s) > max_msg_size) {
+	if (sizeof(ulog_message_logging_s) > (size_t)max_msg_size) {
 		max_msg_size = sizeof(ulog_message_logging_s);
 	}
 
@@ -1161,7 +1166,7 @@ void Logger::run()
 
 			/* subscription update */
 			if (next_subscribe_topic_index != -1) {
-				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
 					next_subscribe_topic_index = -1;
 					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
 				}
@@ -1199,7 +1204,7 @@ void Logger::run()
 						try_to_subscribe_topic(_subscriptions[next_subscribe_topic_index], instance);
 					}
 				}
-				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
 					next_subscribe_topic_index = -1;
 					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
 				}
@@ -1310,7 +1315,7 @@ int Logger::create_log_dir(tm *tt)
 	if (tt) {
 		int n = snprintf(_log_dir, sizeof(_log_dir), "%s/", LOG_ROOT);
 
-		if (n >= sizeof(_log_dir)) {
+		if (n >= (int)sizeof(_log_dir)) {
 			PX4_ERR("log path too long");
 			return -1;
 		}
@@ -1331,7 +1336,7 @@ int Logger::create_log_dir(tm *tt)
 			/* format log dir: e.g. /fs/microsd/sess001 */
 			int n = snprintf(_log_dir, sizeof(_log_dir), "%s/sess%03u", LOG_ROOT, dir_number);
 
-			if (n >= sizeof(_log_dir)) {
+			if (n >= (int)sizeof(_log_dir)) {
 				PX4_ERR("log path too long (%i)", n);
 				return -1;
 			}
@@ -1866,6 +1871,12 @@ void Logger::write_version()
 	write_info("sys_toolchain", px4_toolchain_name());
 	write_info("sys_toolchain_ver", px4_toolchain_version());
 
+	const char* ecl_version = px4_ecl_lib_version_string();
+
+	if (ecl_version && ecl_version[0]) {
+		write_info("sys_lib_ecl_ver", ecl_version);
+	}
+
 	char revision = 'U';
 	const char *chip_name = nullptr;
 
@@ -2143,7 +2154,7 @@ int Logger::check_free_space()
 				     day_min);
 		}
 
-		if (n >= sizeof(directory_to_delete)) {
+		if (n >= (int)sizeof(directory_to_delete)) {
 			PX4_ERR("log path too long (%i)", n);
 			break;
 		}
@@ -2224,25 +2235,18 @@ int Logger::remove_directory(const char *dir)
 
 void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result)
 {
-	vehicle_command_ack_s vehicle_command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd->command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd->source_system,
-		.target_component = cmd->source_component
-	};
+	vehicle_command_ack_s vehicle_command_ack = {};
+	vehicle_command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack.command = cmd->command;
+	vehicle_command_ack.result = (uint8_t)result;
+	vehicle_command_ack.target_system = cmd->source_system;
+	vehicle_command_ack.target_component = cmd->source_component;
 
 	if (vehicle_command_ack_pub == nullptr) {
-		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
-					  vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
+		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	} else {
 		orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
 	}
-
 }
 
 } // namespace logger

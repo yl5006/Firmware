@@ -1,8 +1,6 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(config_uavcan_num_ifaces 1)
-
 set(config_module_list
 	#
 	# Board support modules
@@ -20,6 +18,7 @@ set(config_module_list
 	drivers/gps
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rc_input
 	drivers/rgbled
 	drivers/stm32
 	drivers/stm32/adc
@@ -29,7 +28,7 @@ set(config_module_list
 	#
 	# System commands
 	#
-	systemcmds/bl_update
+	#systemcmds/bl_update
 	systemcmds/config
 	systemcmds/esc_calib
 	systemcmds/hardfault_log
@@ -80,15 +79,15 @@ set(config_module_list
 	modules/ekf2
 	modules/landing_target_estimator
 	modules/local_position_estimator
-	modules/wind_estimator
+	#modules/wind_estimator
 
 	#
 	# Vehicle Control
 	#
 	modules/fw_att_control
 	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
 	modules/vtol_att_control
