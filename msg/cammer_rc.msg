@@ -19,5 +19,6 @@ uint8 RC_INPUT_MAX_CHANNELS = 18 	# Maximum number of R/C input channels in the 
 
 uint64 timestamp_last_signal		# last valid reception time
 uint32 channel_count			# number of channels actually being seen
+uint8 input_source			# Input source
 bool rc_failsafe			# explicit failsafe flag: true on TX failure or TX out of range , false otherwise. Only the true state is reliable, as there are some 
 uint16[18] values			# measured pulse widths for each of the supported channels

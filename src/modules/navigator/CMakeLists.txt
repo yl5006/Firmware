@@ -53,7 +53,7 @@ px4_add_module(
 		enginefailure.cpp
 		gpsfailure.cpp
 		follow_target.cpp
-		circle.cpp
+#		circle.cpp
 	DEPENDS
 		git_ecl
 		ecl_geo

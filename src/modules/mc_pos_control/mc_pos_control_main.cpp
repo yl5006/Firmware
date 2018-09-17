@@ -57,8 +57,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/horizontal_distance.h>
-#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
@@ -279,9 +277,6 @@ private:
 	 * Shim for calling task_main from task_create.
 	 */
 	static int	task_main_trampoline(int argc, char *argv[]);
-	
-	void adjust_manual(float vx,bool positive,float &manual) ;	
-	void obstacle_avoidance(struct manual_control_setpoint_s &manual);
 
 	/**
 	 * check if task should be switched because of failsafe
@@ -419,13 +414,6 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
-
-	orb_check(_horizontal_distance_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(horizontal_distance), _horizontal_distance_sub, &_horizontal_dis);
-	}
-
 
 	orb_check(_home_pos_sub, &updated);
 

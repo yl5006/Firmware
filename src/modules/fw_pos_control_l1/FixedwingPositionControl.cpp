@@ -648,7 +648,7 @@ FixedwingPositionControl::abort_landing(bool abort)
 {
 	// only announce changes
 	if (abort && !_land_abort) {
-		mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
+		mavlink_log_critical(&_mavlink_log_pub,451, "Landing aborted");
 	}
 
 	_land_abort = abort;

@@ -1801,6 +1801,7 @@ MavlinkReceiver::handle_message_cammer_rc(mavlink_message_t *msg)
 	mavlink_msg_cammer_rc_decode(msg, &man);
 
 	struct cammer_rc_s camrc = {};
+
 	camrc.timestamp = hrt_absolute_time();
 
 	camrc.timestamp_last_signal = camrc.timestamp;
@@ -1808,14 +1809,6 @@ MavlinkReceiver::handle_message_cammer_rc(mavlink_message_t *msg)
 	camrc.channel_count = 16;
 
 	camrc.rc_failsafe = false;
-
-	camrc.rc_lost = false;
-
-	camrc.rc_lost_frame_count = 0;
-
-	camrc.rc_total_frame_count = 1;
-
-	camrc.rc_ppm_frame_length = 0;
 
 	camrc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
 

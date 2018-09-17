@@ -653,9 +653,6 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 							main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_PRECLAND, status_flags, &internal_state);
 							break;
 
-						case PX4_CUSTOM_SUB_MODE_AUTO_CIRCLE:
-							main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_CIRCLE, status_flags, &internal_state);
-							break;
 						default:
 							main_ret = TRANSITION_DENIED;
 							mavlink_log_critical(&mavlink_log_pub,104,"Unsupported auto mode");
@@ -2300,7 +2297,7 @@ Commander::run()
 					// TODO: set force_failsafe flag
 
 					if (!_failure_detector_termination_printed) {
-						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+						mavlink_log_critical(&mavlink_log_pub,126, "Attitude failure detected: force failsafe");
 						_failure_detector_termination_printed = true;
 					}
 
@@ -3263,7 +3260,6 @@ set_control_mode()
 
 	/* fallthrough */
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_CIRCLE:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:

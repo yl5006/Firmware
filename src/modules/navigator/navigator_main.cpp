@@ -96,8 +96,7 @@ Navigator::Navigator() :
 	_dataLinkLoss(this),
 	_engineFailure(this),
 	_gpsFailure(this),
-	_follow_target(this),
-	_circle(this)
+	_follow_target(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -111,7 +110,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
-	_navigation_mode_array[11] = &_circle;
 }
 
 void
@@ -753,11 +751,6 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_follow_target;
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_CIRCLE:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_circle;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
