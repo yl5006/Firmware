@@ -200,6 +200,7 @@ private:
 	bool		_pwm_on;
 	uint32_t	_pwm_mask;
 	bool		_pwm_initialized;
+	bool		_test_mode;
 
 	MixerGroup	*_mixers;
 
@@ -315,6 +316,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_pwm_on(false),
 	_pwm_mask(0),
 	_pwm_initialized(false),
+	_test_mode(false),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -1185,7 +1187,7 @@ PX4FMU::cycle()
 				reorder_outputs(pwm_limited);
 
 				/* output to the servos */
-				if (_pwm_initialized) {
+				if (_pwm_initialized && !_test_mode) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						up_pwm_servo_set(i, pwm_limited[i]);
 					}
@@ -1194,7 +1196,7 @@ PX4FMU::cycle()
 				/* Trigger all timer's channels in Oneshot mode to fire
 				 * the oneshots with updated values.
 				 */
-				if (n_updates > 0) {
+				if (n_updates > 0 && !_test_mode) {
 					up_pwm_update();
 				}
 
@@ -1282,7 +1284,7 @@ PX4FMU::cycle()
 		if (updated) {
 			safety_s safety;
 
-			if (orb_copy(ORB_ID(actuator_armed), _safety_sub, &safety) == 0) {
+			if (orb_copy(ORB_ID(safety), _safety_sub, &safety) == 0) {
 				_safety_off = !safety.safety_switch_available || safety.safety_off;
 			}
 		}
@@ -1733,6 +1735,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				break;
 			}
 
+			if (_mixers == nullptr) {
+				PX4_ERR("error: no mixer loaded");
+				ret = -EIO;
+				break;
+			}
+
 			/* copy the trim values to the mixer offsets */
 			_mixers->set_trims((int16_t *)pwm->values, pwm->channel_count);
 			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
@@ -1743,7 +1751,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			pwm->channel_count = _mixers->get_trims((int16_t *)pwm->values);
+			if (_mixers == nullptr) {
+				memset(pwm, 0, sizeof(pwm_output_values));
+				PX4_WARN("warning: trim values not valid - no mixer loaded");
+
+			} else {
+
+				pwm->channel_count = _mixers->get_trims((int16_t *)pwm->values);
+			}
 
 			break;
 		}
@@ -2043,6 +2058,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			case PWM_SERVO_MODE_6CAP:
 				ret = set_mode(MODE_6CAP);
+				break;
+
+			case PWM_SERVO_ENTER_TEST_MODE:
+				_test_mode = true;
+				break;
+
+			case PWM_SERVO_EXIT_TEST_MODE:
+				_test_mode = false;
 				break;
 
 			default:
@@ -2591,7 +2614,8 @@ PX4FMU::test()
 	unsigned capture_count = 0;
 	unsigned pwm_value = 1000;
 	int	 direction = 1;
-	int	 ret;
+	int  ret;
+	int   rv = -1;
 	uint32_t rate_limit = 0;
 	struct input_capture_t {
 		bool valid;
@@ -2603,6 +2627,11 @@ PX4FMU::test()
 	if (fd < 0) {
 		PX4_ERR("open fail");
 		return -1;
+	}
+
+	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
+		PX4_ERR("Failed to Enter pwm test mode");
+		goto err_out_no_test;
 	}
 
 	if (::ioctl(fd, PWM_SERVO_ARM, 0) < 0) {
@@ -2768,12 +2797,17 @@ PX4FMU::test()
 		}
 	}
 
-	::close(fd);
-	return 0;
+	rv = 0;
 
 err_out:
+
+	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
+		PX4_ERR("Failed to Exit pwm test mode");
+	}
+
+err_out_no_test:
 	::close(fd);
-	return -1;
+	return rv;
 }
 
 int
