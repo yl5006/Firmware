@@ -1735,7 +1735,7 @@ void MulticopterPositionControl::control_auto()
 				float radius = _circle_radius.get();
 				float angle_speed = _cruise_speed_90.get() / ( radius);
 
-				if((curr_pos_sp(0)-_center_sp(0))>0.01f || (curr_pos_sp(1)-_center_sp(1))>0.01f)
+				if(fabsf(curr_pos_sp(0)-_center_sp(0))>0.01f || fabsf(curr_pos_sp(1)-_center_sp(1))>0.01f)
 				{
 					_circle_angle_init = false;
 				}
@@ -1746,15 +1746,6 @@ void MulticopterPositionControl::control_auto()
 					_center_sp(1) = curr_pos_sp(1);//+ radius * sinf(_angle);
 					_circle_angle_init = true;
 				}
-//				else if(!_circle_angle_init)
-//				{
-//					float cosdisf= (_pos(0) - curr_pos_sp(0)) / dissp;
-//					float sindisf= (_pos(1) - curr_pos_sp(1)) / dissp;
-//
-//					curr_pos_sp(0) = curr_pos_sp(0) + (radius+2.0f) * cosdisf;
-//					curr_pos_sp(1) = curr_pos_sp(1) + (radius+2.0f) * sindisf;
-//					warnx("tang =%.3f  %.3f %.3f",(double)dissp,(double)curr_pos_sp(0),(double)curr_pos_sp(1));
-//				}
 				if(_circle_angle_init)
 				{
 				float angle_change = angle_speed * _dt;
