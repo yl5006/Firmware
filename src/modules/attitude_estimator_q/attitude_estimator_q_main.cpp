@@ -311,7 +311,7 @@ void AttitudeEstimatorQ::task_main()
 				_accel(2) = sensors.accelerometer_m_s2[2];
 
 				if (_accel.length() < 0.01f) {
-					PX4_ERR("WARNING: degenerate accel!");
+					PX4_ERR("degenerate accel!");
 					continue;
 				}
 			}
@@ -324,7 +324,7 @@ void AttitudeEstimatorQ::task_main()
 		orb_check(_magnetometer_sub, &magnetometer_updated);
 
 		if (magnetometer_updated) {
-			vehicle_magnetometer_s magnetometer = {};
+			vehicle_magnetometer_s magnetometer;
 
 			if (orb_copy(ORB_ID(vehicle_magnetometer), _magnetometer_sub, &magnetometer) == PX4_OK) {
 				_mag(0) = magnetometer.magnetometer_ga[0];
@@ -332,7 +332,7 @@ void AttitudeEstimatorQ::task_main()
 				_mag(2) = magnetometer.magnetometer_ga[2];
 
 				if (_mag.length() < 0.01f) {
-					PX4_ERR("WARNING: degenerate mag!");
+					PX4_ERR("degenerate mag!");
 					continue;
 				}
 			}
@@ -429,16 +429,12 @@ void AttitudeEstimatorQ::task_main()
 		last_time = now;
 
 		if (update(dt)) {
-			vehicle_attitude_s att = {
-				.timestamp = sensors.timestamp,
-				.rollspeed = _rates(0),
-				.pitchspeed = _rates(1),
-				.yawspeed = _rates(2),
-
-				.q = {_q(0), _q(1), _q(2), _q(3)},
-				.delta_q_reset = {},
-				.quat_reset_counter = 0,
-			};
+			vehicle_attitude_s att = {};
+			att.timestamp = sensors.timestamp;
+			att.rollspeed = _rates(0);
+			att.pitchspeed = _rates(1);
+			att.yawspeed = _rates(2);
+			_q.copyTo(att.q);
 
 			/* the instance count is not used here */
 			int att_inst;

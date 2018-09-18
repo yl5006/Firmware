@@ -63,6 +63,7 @@ list(APPEND nuttx_libs
 
 if (CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
 endif()
 
 if (NOT LD_SCRIPT)
@@ -148,6 +149,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 	# upload helper
 	if (${BOARD} STREQUAL "aerofc-v1")
 		
+		# TODO: should be set only in aero config
 		add_custom_target(upload
 			COMMAND ${PX4_SOURCE_DIR}/Tools/aero_upload.sh ${fw_file}
 			DEPENDS ${fw_file}
@@ -155,41 +157,72 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			USES_TERMINAL
 		)
 	else()
-		set(serial_ports)
-		if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
-			list(APPEND serial_ports
-				/dev/serial/by-id/*_PX4_*
-				/dev/serial/by-id/usb-3D_Robotics*
-				/dev/serial/by-id/usb-The_Autopilot*
-				/dev/serial/by-id/usb-Bitcraze*
-				/dev/serial/by-id/pci-3D_Robotics*
-				/dev/serial/by-id/pci-Bitcraze*
-				/dev/serial/by-id/usb-Gumstix*
-				/dev/serial/by-id/usb-EWT*
-				)
-		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
-			list(APPEND serial_ports
-				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
-				)
-		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
-			list(APPEND serial_ports
-				/dev/ttyS*
-				)
-		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-			foreach(port RANGE 32 0)
+
+		# create upload target helper if NuttX USB CDCACM is present
+		if (CONFIG_CDCACM)
+
+			# NuttX CDCACM vendor and product strings
+			set(vendorstr_underscore)
+			set(productstr_underscore)
+			string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
+			string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
+
+			set(serial_ports)
+			if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
+
+				set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
+
 				list(APPEND serial_ports
-					"COM${port}")
-			endforeach()
+					# NuttX vendor + product string
+					/dev/serial/by-id/*-${px4_usb_path}*
+
+					# Bootloader
+					/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
+					/dev/serial/by-id/*BL_FMU*
+
+					# TODO: handle these per board
+					/dev/serial/by-id/usb-The_Autopilot*
+					/dev/serial/by-id/usb-Bitcraze*
+					/dev/serial/by-id/pci-Bitcraze*
+					/dev/serial/by-id/usb-Gumstix*
+					/dev/serial/by-id/usb-EWT*
+
+					)
+
+			elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+				list(APPEND serial_ports
+					/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
+					)
+			elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
+				list(APPEND serial_ports
+					/dev/ttyS*
+					)
+			elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
+				foreach(port RANGE 32 0)
+					list(APPEND serial_ports
+						"COM${port}")
+				endforeach()
+			endif()
+
+			px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
+
+			add_custom_target(upload
+				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
+				DEPENDS ${fw_file}
+				COMMENT "uploading px4"
+				VERBATIM
+				USES_TERMINAL
+				)
+
+			add_custom_target(force-upload
+				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
+				DEPENDS ${fw_file}
+				COMMENT "uploading px4 with --force"
+				VERBATIM
+				USES_TERMINAL
+				)
 		endif()
-		px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
-		add_custom_target(upload
-			COMMAND ${PYTHON_EXECUTABLE}
-				${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
-			DEPENDS ${fw_file}
-			COMMENT "uploading px4"
-			VERBATIM
-			USES_TERMINAL
-			)
+
 	endif()
 endif()
 
@@ -267,16 +300,111 @@ if (BLOATY_PROGRAM)
 endif()
 
 # debugger helpers
-configure_file(gdbinit.in .gdbinit)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 add_custom_target(debug
-	COMMAND ${GDB} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	COMMAND ${GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
-	
-add_custom_target(profile
-	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
-	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh
+
+file(GLOB_RECURSE black_magic_probe_path
+     FOLLOW_SYMLINKS
+     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if00
+     )
+file(GLOB_RECURSE black_magic_probe_console_path
+     FOLLOW_SYMLINKS
+     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if02
+     )
+
+if(black_magic_probe_path)
+
+	add_custom_target(blackmagic_debug
+		COMMAND ${GDB} --nh
+			-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+			-ex 'target extended-remote ${black_magic_probe_path}'
+			-ex 'monitor version'
+			-ex 'monitor connect_srst enable'
+			-ex 'monitor swdp_scan'
+			-ex 'attach 1'
+			-ex 'load'
+			-ex 'run'
+			$<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+		)
+
+	add_custom_target(blackmagic_upload
+		COMMAND ${GDB} --nx --batch
+			-ex 'target extended-remote ${black_magic_probe_path}'
+			-ex 'monitor version'
+			-ex 'monitor connect_srst enable'
+			-ex 'monitor swdp_scan'
+			-ex 'attach 1'
+			-ex 'load'
+			-ex 'kill'
+			$<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+		COMMENT "Uploading with Black Magic Probe"
+		)
+
+	add_custom_target(blackmagic_console
+		COMMAND screen -t "${BOARD} console" ${black_magic_probe_console_path} 57600 8N1
+		USES_TERMINAL
+		)
+
+endif()
+
+add_custom_target(jlink_upload
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
+	COMMAND ${GDB} --nx --batch
+		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+		-ex 'target remote localhost:2331'
+		-ex 'monitor reset'
+		-ex 'load'
+		-ex 'kill'
+		$<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
+	)
+
+add_custom_target(jlink_debug
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
+	COMMAND ${GDB} --nh
+		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+		-ex 'target remote localhost:2331'
+		-ex 'monitor reset'
+		-ex 'load'
+		-ex 'monitor reset'
+		-ex 'continue'
+		$<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
+	)
+
+# Poor man's profiler
+include(ExternalProject)
+ExternalProject_Add(FlameGraph
+	GIT_REPOSITORY "https://github.com/brendangregg/FlameGraph.git"
+	UPDATE_COMMAND ""
+	PATCH_COMMAND ""
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+	EXCLUDE_FROM_ALL 1
+	)
+
+add_custom_target(profile
+	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}"
+		${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
+	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh FlameGraph
+	USES_TERMINAL
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)

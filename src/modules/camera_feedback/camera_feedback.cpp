@@ -328,16 +328,20 @@ CameraFeedback::task_main()
 
 	}
 
-	PX4_INFO("Exiting.");
+	orb_unsubscribe(_trigger_sub);
+	orb_unsubscribe(_gpos_sub);
+	orb_unsubscribe(_att_sub);
+
 	close(fd);
 	_main_task = -1;
 
 }
 
-void
+int
 CameraFeedback::task_main_trampoline(int argc, char *argv[])
 {
 	camera_feedback::g_camera_feedback->task_main();
+	return 0;
 }
 
 static int usage()

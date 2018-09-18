@@ -39,7 +39,6 @@ px4_add_module(
 	STACK_MAIN 1200
 	STACK_MAX 1500
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
@@ -66,4 +65,6 @@ px4_add_module(
 		conversion
 		git_ecl
 		ecl_geo
+		version
+	UNITY_BUILD
 	)

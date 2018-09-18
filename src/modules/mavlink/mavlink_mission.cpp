@@ -480,6 +480,11 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 void
 MavlinkMissionManager::send(const hrt_abstime now)
 {
+	// do not send anything over high latency communication
+	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
+		return;
+	}
+
 	bool updated = false;
 	orb_check(_mission_result_sub, &updated);
 
@@ -1361,8 +1366,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
 				mission_item->params[0] = MAV_ROI_LOCATION;
 
-				mission_item->params[4] = mavlink_mission_item->x;
-				mission_item->params[5] = mavlink_mission_item->y;
 				mission_item->params[6] = mavlink_mission_item->z;
 
 			} else if ((int)mavlink_mission_item->param1 == MAV_ROI_NONE) {
@@ -1377,8 +1380,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_DO_SET_ROI_LOCATION:
 			mission_item->nav_cmd = NAV_CMD_DO_SET_ROI_LOCATION;
-			mission_item->params[4] = mavlink_mission_item->x;
-			mission_item->params[5] = mavlink_mission_item->y;
 			mission_item->params[6] = mavlink_mission_item->z;
 			break;
 
@@ -1714,6 +1715,11 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 void MavlinkMissionManager::check_active_mission()
 {
+	// do not send anything over high latency communication
+	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
+		return;
+	}
+
 	if (!(_my_dataman_id == _dataman_id)) {
 		PX4_DEBUG("WPM: New mission detected (possibly over different Mavlink instance) Updating");
 

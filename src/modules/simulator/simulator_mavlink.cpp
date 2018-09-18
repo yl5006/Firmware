@@ -85,6 +85,8 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
+	int _system_type = _param_system_type.get();
+
 	/* scale outputs depending on system type */
 	if (_system_type == MAV_TYPE_QUADROTOR ||
 	    _system_type == MAV_TYPE_HEXAROTOR ||
@@ -669,12 +671,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// udp socket data
 	struct sockaddr_in _myaddr;
 
-	if (udp_port < 1) {
-		int prt;
-		param_get(param_find("SITL_UDP_PRT"), &prt);
-		udp_port = prt;
-	}
-
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
@@ -682,12 +678,12 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	_myaddr.sin_port = htons(udp_port);
 
 	if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed\n");
+		PX4_ERR("create socket failed (%i)", errno);
 		return;
 	}
 
 	if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed\n");
+		PX4_ERR("bind for UDP port %i failed (%i)", udp_port, errno);
 		return;
 	}
 
@@ -1173,6 +1169,7 @@ int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
 	dist.id = dist_mavlink->id;
 	dist.orientation = dist_mavlink->orientation;
 	dist.covariance = dist_mavlink->covariance / 100.0f;
+	dist.signal_quality = -1;
 
 	int dist_multi;
 	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);

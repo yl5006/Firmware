@@ -48,6 +48,5 @@ px4_add_module(
 	DEPENDS
 		circuit_breaker
 		mixer
-		rc
 		pwm_limit
 	)

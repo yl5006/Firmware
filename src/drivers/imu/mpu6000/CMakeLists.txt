@@ -30,24 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if(${OS} STREQUAL "nuttx")
-        list(APPEND srcs
-                mpu6000.cpp
-		mpu6000_i2c.cpp
-                mpu6000_spi.cpp
-                )
-else()
-        list(APPEND srcs
-                mpu6000_posix.cpp
-                )
-endif()
-
 px4_add_module(
 	MODULE drivers__mpu6000
 	MAIN mpu6000
-	STACK_MAIN 1400
-	COMPILE_FLAGS
-	SRCS ${srcs}
-	DEPENDS
+	STACK_MAIN 1500
+	SRCS
+		mpu6000.cpp
+		mpu6000_i2c.cpp
+		mpu6000_spi.cpp
 	)
 

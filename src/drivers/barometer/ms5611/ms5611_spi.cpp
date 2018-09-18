@@ -67,7 +67,7 @@ class MS5611_SPI : public device::SPI
 {
 public:
 	MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf);
-	virtual ~MS5611_SPI();
+	virtual ~MS5611_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
@@ -141,10 +141,6 @@ MS5611_SPI::MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf) :
 {
 }
 
-MS5611_SPI::~MS5611_SPI()
-{
-}
-
 int
 MS5611_SPI::init()
 {
@@ -158,7 +154,7 @@ MS5611_SPI::init()
 	ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		goto out;
 	}
 
@@ -166,7 +162,7 @@ MS5611_SPI::init()
 	ret = _reset();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("reset failed");
+		PX4_DEBUG("reset failed");
 		goto out;
 	}
 
@@ -174,7 +170,7 @@ MS5611_SPI::init()
 	ret = _read_prom();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("prom readout failed");
+		PX4_DEBUG("prom readout failed");
 		goto out;
 	}
 
@@ -318,18 +314,18 @@ MS5611_SPI::_read_prom()
 			all_zero = false;
 		}
 
-		//DEVICE_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
+		//PX4_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
 	/* calculate CRC and return success/failure accordingly */
 	int ret = ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
 
 	if (ret != OK) {
-		DEVICE_DEBUG("crc failed");
+		PX4_DEBUG("crc failed");
 	}
 
 	if (all_zero) {
-		DEVICE_DEBUG("prom all zero");
+		PX4_DEBUG("prom all zero");
 		ret = -EIO;
 	}
 
