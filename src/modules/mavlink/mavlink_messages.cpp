@@ -4664,6 +4664,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static, &MavlinkStreamCameraTrigger::get_id_static),
 	StreamListItem(&MavlinkStreamCameraImageCaptured::new_instance, &MavlinkStreamCameraImageCaptured::get_name_static, &MavlinkStreamCameraImageCaptured::get_id_static),
 	StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static, &MavlinkStreamDistanceSensor::get_id_static),
+	StreamListItem(&MavlinkStreamHorizontalDistance::new_instance, &MavlinkStreamHorizontalDistance::get_name_static, &MavlinkStreamHorizontalDistance::get_id_static),
 	StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static, &MavlinkStreamExtendedSysState::get_id_static),
 	StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
 	StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),
