@@ -1166,7 +1166,7 @@ PX4FMU::cycle()
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
 				uint16_t pwm_limited[MAX_ACTUATORS];
 
-				pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
+				pwm_limit_calc(_throttle_armed, false /*arm_nothrottle()*/, mixed_num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */

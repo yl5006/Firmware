@@ -68,6 +68,7 @@ px4_add_romfs_files(
 	4080_zmr250
 	4090_nanomind
 	4900_crazyflie
+	4901_crazyflie
 	5001_quad_+
 	6001_hexa_x
 	7001_hexa_+
@@ -93,6 +94,7 @@ px4_add_romfs_files(
 	13010_claire
 	13012_convergence
 	13013_deltaquad
+	13020_e3
 	14001_tri_y_yaw+
 	14002_tri_y_yaw-
 	15001_coax_heli

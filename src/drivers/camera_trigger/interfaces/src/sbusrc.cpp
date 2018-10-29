@@ -61,6 +61,7 @@ void CameraInterfaceSBUS::setup()
 int
 CameraInterfaceSBUS::fd_open()
 {
+#ifdef	GROUNDSTATION_RC_SBUS
 	_rcs_fd = ::open(GROUNDSTATION_RC_SBUS, O_RDWR | O_NOCTTY |O_NONBLOCK);
 	if(_rcs_fd <= 0)
 	{
@@ -74,6 +75,8 @@ CameraInterfaceSBUS::fd_open()
 	t.c_cflag |= (CSTOPB | PARENB);
 	tcsetattr(_rcs_fd, TCSANOW, &t);
 	return _rcs_fd;
+#endif
+	return -1;
 }
 void
 CameraInterfaceSBUS::cycle_trampoline(void *arg)
