@@ -66,7 +66,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_bit = RCC_APB1ENR_TIM2EN,
 		.clock_freq = TIM2_CLKIN,
 		.first_channel_index = 0,
-		.last_channel_index = 2,
+		.last_channel_index = 3,
 		.handler = io_timer_handler0,
 		.vectorno =  STM32_IRQ_TIM2,
 	},
@@ -75,8 +75,8 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.clock_register = STM32_RCC_APB1ENR,
 		.clock_bit = RCC_APB1ENR_TIM4EN,
 		.clock_freq = TIM4_CLKIN,
-		.first_channel_index = 3,
-		.last_channel_index = 3,
+		.first_channel_index = 4,
+		.last_channel_index = 5,
 		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM4,
 	}
@@ -118,5 +118,23 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.timer_channel = 4,
 		.ccr_offset = STM32_GTIM_CCR4_OFFSET,
 		.masks  = GTIM_SR_CC4IF | GTIM_SR_CC4OF
+	},
+	{
+		// M5
+		.gpio_out = GPIO_TIM2_CH3OUT_2,
+		.gpio_in = GPIO_TIM2_CH3IN_2,
+		.timer_index = 0,
+		.timer_channel = 3,
+		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
+		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
+	},
+	{
+		// M6
+		.gpio_out = GPIO_TIM4_CH3OUT,
+		.gpio_in = GPIO_TIM4_CH3IN,
+		.timer_index = 1,
+		.timer_channel = 3,
+		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
+		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	},
 };
