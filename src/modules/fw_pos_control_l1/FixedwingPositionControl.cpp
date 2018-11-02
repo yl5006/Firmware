@@ -39,7 +39,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	ModuleParams(nullptr),
 	_sub_airspeed(ORB_ID(airspeed)),
 	_sub_sensors(ORB_ID(sensor_bias)),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw_l1_control")),
 	_launchDetector(this),
 	_runway_takeoff(this)
 {
@@ -568,8 +568,8 @@ FixedwingPositionControl::tecs_status_publish()
 	t.airspeed_sp = _tecs.TAS_setpoint_adj();
 	t.airspeed_filtered = _tecs.tas_state();
 
-	t.flight_path_angle_sp = _tecs.hgt_rate_setpoint();
-	t.flight_path_angle = _tecs.vert_vel_state();
+	t.height_rate_setpoint = _tecs.hgt_rate_setpoint();
+	t.height_rate = _tecs.vert_vel_state();
 
 	t.airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
 	t.airspeed_derivative = _tecs.speed_derivative();
