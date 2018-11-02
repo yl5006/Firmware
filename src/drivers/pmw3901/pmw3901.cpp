@@ -57,6 +57,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <float.h>
 
 #include <conversion/rotation.h>
 
@@ -78,16 +79,20 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_SPI_BUS_EXPANSION
+#if defined PX4_SPI_BUS_EXPANSION		// crazyflie
 #define PMW3901_BUS PX4_SPI_BUS_EXPANSION
+#elif defined PX4_SPI_BUS_EXTERNAL1		// fmu-v5
+#define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
 #else
-#define PMW3901_BUS 0
+#error "add the required spi bus from board_config.h here"
 #endif
 
-#ifdef PX4_SPIDEV_EXPANSION_2
+#if defined PX4_SPIDEV_EXPANSION_2		// crazyflie flow deck
 #define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
+#elif defined PX4_SPIDEV_EXTERNAL1_1		// fmu-v5 ext CS1
+#define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL1_1
 #else
-#define PMW3901_SPIDEV 0
+#error "add the required spi dev from board_config.h here"
 #endif
 
 #define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
@@ -601,7 +606,15 @@ PMW3901::collect()
 	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
 
 	report.sensor_id = 0;
-	report.quality = 255;
+
+	// This sensor doesn't provide any quality metric. However if the sensor is unable to calculate the optical flow it will
+	// output 0 for the delta. Hence, we set the measurement to "invalid" (quality = 0) if the values are smaller than FLT_EPSILON
+	if (fabsf(report.pixel_flow_x_integral) < FLT_EPSILON && fabsf(report.pixel_flow_y_integral) < FLT_EPSILON) {
+		report.quality = 0;
+
+	} else {
+		report.quality = 255;
+	}
 
 	/* No gyro on this board */
 	report.gyro_x_rate_integral = NAN;
