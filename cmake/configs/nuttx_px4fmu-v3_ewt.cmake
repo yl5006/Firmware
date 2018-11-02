@@ -7,6 +7,13 @@ set(LD_SCRIPT ld_full.script CACHE string "" FORCE)
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
 
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS3
+	TEL1:/dev/ttyS1
+	TEL2:/dev/ttyS2
+	TEL4:/dev/ttyS6)
+
 set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
@@ -15,7 +22,7 @@ set(config_module_list
 	#
 	drivers/barometer
 	drivers/differential_pressure
-	#drivers/distance_sensor
+	drivers/distance_sensor
 	drivers/magnetometer
 	drivers/telemetry
 
@@ -24,7 +31,7 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/gps
 #	drivers/imu/adis16448
-	drivers/imu/bmi160
+#	drivers/imu/bmi160
 #	drivers/imu/l3gd20
 #	drivers/imu/lsm303d
 	drivers/imu/mpu6000

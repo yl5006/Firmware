@@ -1,6 +1,12 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS3
+	TEL1:/dev/ttyS1
+	TEL2:/dev/ttyS2)
+
 set(config_uavcan_num_ifaces 1)
 
 set(config_module_list
@@ -21,6 +27,7 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/device
 	drivers/gps
+	drivers/heater
 	drivers/irlock
 	drivers/led
 	drivers/mkblctrl
@@ -31,6 +38,7 @@ set(config_module_list
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/rgbled
+	drivers/rc_input
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
@@ -70,7 +78,6 @@ set(config_module_list
 #	modules/commander/commander_tests
 #	lib/controllib/controllib_test
 #	modules/mavlink/mavlink_tests
-#	modules/mc_pos_control/mc_pos_control_tests
 #	modules/uORB/uORB_tests
 #	systemcmds/tests
 
@@ -95,6 +102,7 @@ set(config_module_list
 	modules/landing_target_estimator
 #	modules/local_position_estimator
 #	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
@@ -111,32 +119,11 @@ set(config_module_list
 	# Logging
 	#
 	modules/logger
-	modules/sdlog2
 
 	#
 	# Library modules
 	#
-	modules/systemlib/param
-	modules/systemlib
-	modules/uORB
 	modules/dataman
-
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/conversion
-	lib/DriverFramework/framework
-	lib/ecl
-	lib/geo
-	lib/geo_lookup
-	lib/led
-	lib/mathlib
-	lib/mixer
-	lib/rc
-	lib/terrain_estimation
-	lib/tunes
-	lib/version
 
 	#
 	# OBC challenge

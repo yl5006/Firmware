@@ -1287,7 +1287,7 @@ Mavlink::send_statustext_critical(const char *string)
 void
 Mavlink::send_statustext_emergency(uint16_t msgid,const char *string)
 {
-	mavlink_log_emergency(&_mavlink_log_pub, msgid, string);
+	mavlink_log_emergency(&_mavlink_log_pub, msgid,"%s", string);
 }
 
 void Mavlink::send_autopilot_capabilites()

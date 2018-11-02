@@ -3413,7 +3413,7 @@ print_reject_arm( uint16_t msgid,const char *msg)
 
 	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
-		mavlink_log_critical(&mavlink_log_pub,msgid, msg);
+		mavlink_log_critical(&mavlink_log_pub,msgid,"%s", msg);
 		tune_negative(true);
 	}
 }

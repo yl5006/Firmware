@@ -145,7 +145,7 @@ int do_commander_motor_test(struct vehicle_command_s cmd,orb_advert_t *mavlink_l
 	ret = write(fd, servos, sizeof(servos));
 
 	if (ret != (int)sizeof(servos)) {
-		PX4_ERR("error writing PWM servo data, wrote %lu got %d", sizeof(servos), ret);
+		PX4_ERR("error writing PWM servo data, wrote %d got %d", sizeof(servos), ret);
 	}
     close(fd);
 	return 1;

@@ -129,7 +129,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensor #%u missing", instance);
+			mavlink_log_critical(mavlink_log_pub,303, "Preflight Fail: Compass Sensor #%u missing", instance);
 		}
 	}
 
@@ -271,7 +271,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 				if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
 					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Range, hold still on arming");
+						mavlink_log_critical(mavlink_log_pub,308, "Preflight Fail: Accel Range, hold still on arming");
 					}
 
 					/* this is frickin' fatal */
@@ -282,7 +282,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Sensor #%u missing", instance);
+			mavlink_log_critical(mavlink_log_pub,306, "Preflight Fail: Accel Sensor #%u missing", instance);
 		}
 	}
 
@@ -329,7 +329,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyro Sensor #%u missing", instance);
+			mavlink_log_critical(mavlink_log_pub,309, "Preflight Fail: Gyro Sensor #%u missing", instance);
 		}
 	}
 
@@ -363,7 +363,7 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor #%u missing", instance);
+			mavlink_log_critical(mavlink_log_pub,311, "Preflight Fail: Baro Sensor #%u missing", instance);
 		}
 	}
 
@@ -644,7 +644,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 					if (enforce_gps_required) {
 						mavlink_log_critical(mavlink_log_pub,321, message, " Fail");
 					} else {
-						mavlink_log_warning(mavlink_log_pub,320, message, "");
+						mavlink_log_warning(mavlink_log_pub, message, "");
 					}
 				}
 			}
