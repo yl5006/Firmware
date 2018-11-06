@@ -51,6 +51,7 @@
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <lib/WeatherVane/WeatherVane.hpp>
 #include "SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
@@ -140,6 +141,12 @@ public:
 		updateParams();
 	}
 
+	/**
+	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
+	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
+	 */
+	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {};
+
 protected:
 
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
@@ -154,7 +161,7 @@ protected:
 	/*
 	 * Check and update local position
 	 */
-	bool _evaluateVehicleLocalPosition();
+	void _evaluateVehicleLocalPosition();
 
 	/**
 	 * Set constraints to default values

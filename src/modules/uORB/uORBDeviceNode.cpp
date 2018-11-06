@@ -123,9 +123,6 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 		/* If there were any previous publications, allow the subscriber to read them */
 		sd->generation = _generation - (_queue_size < _generation ? _queue_size : _generation);
 
-		/* set priority */
-		sd->set_priority(_priority);
-
 		FILE_PRIV(filp) = (void *)sd;
 
 		ret = CDev::open(filp);
@@ -214,9 +211,6 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 	if (sd->generation < _generation) {
 		++sd->generation;
 	}
-
-	/* set priority */
-	sd->set_priority(_priority);
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
@@ -362,7 +356,7 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		return PX4_OK;
 
 	case ORBIOCGPRIORITY:
-		*(int *)arg = sd->priority();
+		*(int *)arg = get_priority();
 		return PX4_OK;
 
 	case ORBIOCSETQUEUESIZE:
@@ -397,8 +391,8 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 	int ret;
 
-	/* check if the device handle is initialized */
-	if ((devnode == nullptr) || (meta == nullptr)) {
+	/* check if the device handle is initialized and data is valid */
+	if ((devnode == nullptr) || (meta == nullptr) || (data == nullptr)) {
 		errno = EFAULT;
 		return PX4_ERROR;
 	}
@@ -766,7 +760,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	int16_t ret = -1;
 
 	if (length != (int32_t)(_meta->o_size)) {
-		PX4_ERR("Received DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
+		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
 		return PX4_ERROR;
 	}
 
