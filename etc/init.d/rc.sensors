@@ -1,7 +1,0 @@
-echo $COMMAND_CONFIG
-echo "ms5611 -I start" >> $COMMAND_CONFIG
-echo "hmc5883 -I start" >> $COMMAND_CONFIG
-echo "mpu6000 -b 1 -c 0 start" >> $COMMAND_CONFIG
-echo "sleep 1" >> $COMMAND_CONFIG
-echo "sensors start" >> $COMMAND_CONFIG
-
