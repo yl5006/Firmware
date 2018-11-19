@@ -1,6 +1,17 @@
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4io-v2)
 
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS3
+	TEL1:/dev/ttyS1
+	TEL2:/dev/ttyS2
+	TEL4:/dev/ttyS6)
+
+set(px4_constrained_flash_build 1)
+
 #set(config_uavcan_num_ifaces 2)
+
+set(config_bl_file ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin)
 
 set(config_module_list
 	#
@@ -31,7 +42,6 @@ set(config_module_list
 	#drivers/distance_sensor/ulanding
 	#drivers/frsky_telemetry
 	drivers/gps
-	#drivers/hott
 	#drivers/imu/adis16448
 	#drivers/imu/bmi160
 	drivers/imu/l3gd20
@@ -41,7 +51,7 @@ set(config_module_list
 	#drivers/iridiumsbd
 	#drivers/irlock
 	drivers/magnetometer/hmc5883
-	drivers/magnetometer/lis3mdl
+	#drivers/magnetometer/lis3mdl
 	#drivers/mb12xx
 	#drivers/mkblctrl
 	#drivers/oreoled
@@ -62,7 +72,7 @@ set(config_module_list
 	#
 	# System commands
 	#
-	#systemcmds/bl_update
+	systemcmds/bl_update
 	#systemcmds/config
 	#systemcmds/dumpfile
 	#systemcmds/esc_calib
@@ -102,7 +112,6 @@ set(config_module_list
 	modules/commander
 	modules/events
 	#modules/gpio_led
-	#modules/uavcan
 	modules/land_detector
 	modules/load_mon
 	modules/mavlink
@@ -116,7 +125,8 @@ set(config_module_list
 	modules/ekf2
 	#modules/local_position_estimator
 	#modules/position_estimator_inav
-	modules/landing_target_estimator
+	#modules/landing_target_estimator
+	#modules/wind_estimator
 
 	#
 	# Vehicle Control

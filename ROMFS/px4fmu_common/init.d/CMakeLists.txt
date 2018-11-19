@@ -37,6 +37,7 @@ px4_add_romfs_files(
 	2100_standard_plane
 	2105_maja
 	2106_albatross
+	2200_mini_talon
 	24001_dodeca_cox
 	3000_generic_wing
 	3030_io_camflyer
@@ -100,8 +101,6 @@ px4_add_romfs_files(
 	50000_generic_ground_vehicle
 	50001_axialracing_ax10
 	50002_traxxas_stampede_2wd
-	rc.axialracing_ax10_apps
-	rc.axialracing_ax10_defaults
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface
