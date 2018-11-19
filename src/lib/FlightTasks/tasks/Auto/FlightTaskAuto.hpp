@@ -58,7 +58,8 @@ enum class WaypointType : int {
 	land,
 	idle,
 	offboard, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
-	follow_target
+	follow_target,
+	circle    // yaoling
 };
 
 enum class State {
@@ -102,7 +103,8 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
 					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated move to line
-					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE // defines how heading is executed
+					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed
+					(ParamFloat<px4::params::MPC_CIRCLE_RAD>) MPC_CIRCLE_RAD // defines orbit circle
 				       );
 
 private:
@@ -118,10 +120,15 @@ private:
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
+	matrix::Vector3f
+		_center_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
+
 	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
 	float _reference_altitude = NAN;  /**< Altitude relative to ground. */
 	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
 
+	float _angle;
+	bool _circle_angle_init = false;
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */

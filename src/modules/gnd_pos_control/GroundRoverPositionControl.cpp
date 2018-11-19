@@ -320,7 +320,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 					_att_sp.thrust = mission_throttle;
 			   case  NAVSTATE::GORIGHT:
 				        _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-				  	_att_sp.roll_body = _gnd_control.nav_roll();
+				  	_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 				  	_att_sp.pitch_body = 0.0f;
 				  	_att_sp.yaw_body = euler_angles.psi()+(float)M_PI/4;
 				  	_att_sp.fw_control_yaw = true;
@@ -328,7 +328,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 				  	break;
 			   case  NAVSTATE::GOBACK:
 				   	_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-				   	_att_sp.roll_body = _gnd_control.nav_roll();
+				   	_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 				   	_att_sp.pitch_body = 0.0f;
 				   	_att_sp.yaw_body = _gnd_control.nav_bearing();
 				   	_att_sp.fw_control_yaw = false;

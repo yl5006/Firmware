@@ -1249,9 +1249,9 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s pos = {};
-		actuator_armed_s armed = {};
-		airspeed_s airspeed = {};
+		static vehicle_local_position_s pos = {};
+		static actuator_armed_s armed = {};
+		static airspeed_s airspeed = {};
 
 		bool updated = false;
 		updated |= _pos_sub->update(&_pos_time, &pos);
@@ -1263,7 +1263,6 @@ protected:
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
 			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
 			msg.heading = math::degrees(wrap_2pi(pos.yaw));
-
 			if (armed.armed) {
 				actuator_controls_s act0 = {};
 				actuator_controls_s act1 = {};
@@ -1281,6 +1280,7 @@ protected:
 
 			} else {
 				msg.throttle = 0.0f;
+
 			}
 
 			if (pos.z_valid && pos.z_global) {

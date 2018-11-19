@@ -148,6 +148,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// TODO This is a hack and it would be much better if the navigator only sends out a waypoints once they have changed.
 
 	bool triplet_update = true;
+	float radius =  MPC_CIRCLE_RAD.get();
 
 	if (!(fabsf(_triplet_target(0) - tmp_target(0)) > 0.001f || fabsf(_triplet_target(1) - tmp_target(1)) > 0.001f
 	      || fabsf(_triplet_target(2) - tmp_target(2)) > 0.001f)) {
@@ -192,6 +193,43 @@ bool FlightTaskAuto::_evaluateTriplets()
 		}
 	}
 
+	if(_type == WaypointType::circle)
+	{
+		float  angle_speed = MPC_CRUISE_90.get() / radius ;
+		if(fabs(_triplet_target(0)-_center_target(0)) > 0.01f || fabs(_triplet_target(1)-_center_target(1)) > 0.01f ){
+			_circle_angle_init = false;
+			_center_target = _triplet_target;
+		}
+
+		if(!_circle_angle_init && sqrtf((_triplet_target(0)-_position(0))*(_triplet_target(0)-_position(0)) + (_triplet_target(1)-_position(1))*(_triplet_target(1)-_position(1))) < (radius+ 1.0f))
+		{
+			matrix::Vector2f v;
+			v = Vector2f(_triplet_target(0), _triplet_target(1)) - Vector2f(_position(0), _position(1));
+			if (PX4_ISFINITE(v.length()) && v.length() > SIGMA_NORM) {
+				v.normalize();
+				_angle =  math::sign(v(1)) * wrap_pi(acosf(v(0)));
+			}else
+			{
+				_angle =_yaw ;
+			}
+			_circle_angle_init = true ;
+
+		}
+		if(_circle_angle_init){
+			float angle_change = angle_speed * _deltatime;
+			_angle = _angle + angle_change;
+			_angle = wrap_2pi(_angle);
+			_triplet_target(0) = _center_target(0) - radius * cosf(_angle);
+			_triplet_target(1) = _center_target(1) - radius * sinf(_angle);
+		}
+
+	}else
+	{
+		if(_circle_angle_init)
+			_circle_angle_init = false;
+	}
+
+
 	// set heading
 	if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
 		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
@@ -200,14 +238,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 	} else {
 		if (_sub_triplet_setpoint->get().current.yaw_valid) {
 			_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
-
 		} else {
 			_set_heading_from_mode();
 		}
 
 		_yawspeed_setpoint = NAN;
 	}
-
 	// Calculate the current vehicle state and check if it has updated.
 	State previous_state = _current_state;
 	_current_state = _getCurrentState();
@@ -229,6 +265,10 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	case 0: { // Heading points towards the current waypoint.
 			v = Vector2f(_target(0), _target(1)) - Vector2f(_position(0), _position(1));
+			if(_type == WaypointType::circle)
+			{
+				v = Vector2f(_center_target(0), _center_target(1)) - Vector2f(_position(0), _position(1));
+			}
 			break;
 		}
 
@@ -401,7 +441,6 @@ State FlightTaskAuto::_getCurrentState()
 		return_state = State::offtrack;
 
 	}
-
 	return return_state;
 }
 

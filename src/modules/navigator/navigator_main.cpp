@@ -357,10 +357,10 @@ Navigator::run()
 				rep->current.alt = get_global_position()->alt;
 			}
 
-			rep->previous.valid = true;
+			rep->previous.valid = false;
 			rep->current.valid = true;
 			rep->next.valid = false;
-;
+
 			param_set(_param_circle_radius, &(cmd.param1));
 			publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 

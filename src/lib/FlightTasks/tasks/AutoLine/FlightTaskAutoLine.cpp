@@ -65,6 +65,12 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
 
+	if(_type == WaypointType::circle)
+	{
+		_position_setpoint(0) = _target(0);
+		_position_setpoint(1) = _target(1);
+	}else
+	{
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < NAV_ACC_RAD.get())) {
 
@@ -164,6 +170,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		Vector2f velocity_sp_xy = u_prev_to_dest * speed_sp_track;
 		_velocity_setpoint(0) =  velocity_sp_xy(0);
 		_velocity_setpoint(1) =  velocity_sp_xy(1);
+	}
 	}
 }
 
