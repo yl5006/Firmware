@@ -1,5 +1,6 @@
 /****************************************************************************
  *
+
  *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,8 +55,8 @@ bool FlightTaskAutoMapper::update()
 
 	_updateAltitudeAboveGround();
 
-	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
-	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
+	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position || _type == WaypointType::circle;
+	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position || _type == WaypointType::circle;
 
 	// 1st time that vehicle starts to follow line. Reset all setpoints to current vehicle state.
 	if (follow_line && !follow_line_prev) {

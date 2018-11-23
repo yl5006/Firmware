@@ -60,7 +60,8 @@ enum class WaypointType : int {
 	land,
 	idle,
 	offboard, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
-	follow_target
+	follow_target,
+	circle    // yaoling
 };
 
 enum class State {
@@ -111,7 +112,8 @@ protected:
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed,
-					(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID // obstacle avoidance active
+					(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, // obstacle avoidance active
+					(ParamFloat<px4::params::MPC_CIRCLE_RAD>) MPC_CIRCLE_RAD // defines orbit circle
 				       );
 
 private:
@@ -128,10 +130,16 @@ private:
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
+	matrix::Vector3f
+	_center_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
+
 	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
 	float _reference_altitude = NAN;  /**< Altitude relative to ground. */
 	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
+	
 
+	float _angle;
+	bool _circle_angle_init = false;
 	WeatherVane *_ext_yaw_handler =
 		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 

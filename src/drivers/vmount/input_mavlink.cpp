@@ -299,6 +299,28 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 						break;
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
+
+						_control_data.type = ControlData::Type::Angle;
+						_control_data.type_data.angle.is_speed[0] = false;
+						_control_data.type_data.angle.is_speed[1] = false;
+						_control_data.type_data.angle.is_speed[2] = false;
+						// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
+						_control_data.type_data.angle.angles[0] += vehicle_command.param2 * M_DEG_TO_RAD_F;
+						// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
+						_control_data.type_data.angle.angles[1] += vehicle_command.param1 * M_DEG_TO_RAD_F;
+						// both specs have yaw on channel 2
+						_control_data.type_data.angle.angles[2] += vehicle_command.param3 * M_DEG_TO_RAD_F;
+
+						// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
+						if (_control_data.type_data.angle.angles[0] > M_PI_F) {
+							_control_data.type_data.angle.angles[0] -= 2 * M_PI_F;
+						}
+						// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
+						if (_control_data.type_data.angle.angles[2] > M_PI_F) {
+							_control_data.type_data.angle.angles[2] -= 2 * M_PI_F;
+						}
+
+						*control_data = &_control_data;
 						break;
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
