@@ -41,6 +41,7 @@ px4_add_romfs_files(
 	
 	# [2000, 2999] Standard planes"
 	2100_standard_plane
+	2101_fat_plane
 	2105_maja
 	2106_albatross
 	2200_mini_talon
@@ -124,6 +125,8 @@ px4_add_romfs_files(
 	13010_claire
 	13012_convergence
 	13013_deltaquad
+	13014_nimbus1800
+	13020_e3
 
 	# [14000, 14999] Tri Y
 	14001_tri_y_yaw+
@@ -132,6 +135,7 @@ px4_add_romfs_files(
 	15001_coax_heli
 
 	16001_helicopter
+	16002_helicopter
 	
 	24001_dodeca_cox
 

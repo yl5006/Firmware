@@ -48,6 +48,7 @@
 #include <stdint.h>
 
 /* Run time Hardware detection */
+#define GROUNDSTATION_RC_SBUS "/dev/ttyS2"
 #define BOARD_HAS_SIMPLE_HW_VERSIONING 1
 #define HW_VER_PA8             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN8)
 #define HW_VER_PB4             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)

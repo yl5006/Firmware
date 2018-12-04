@@ -39,8 +39,8 @@ px4_add_board(
 		#md25
 		mkblctrl
 		oreoled
-		pca8574
-		pca9685
+		#pca8574
+		#pca9685
 		#pmw3901
 		protocol_splitter
 		pwm_input
@@ -57,11 +57,11 @@ px4_add_board(
 		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
-		test_ppm
+		#test_ppm
 		vmount
 
 	MODULES
-		attitude_estimator_q
+		#attitude_estimator_q
 		camera_feedback
 		commander
 		dataman
@@ -80,7 +80,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
-		position_estimator_inav
+		#position_estimator_inav
 		sensors
 		uavcan
 		vtol_att_control
@@ -113,17 +113,17 @@ px4_add_board(
 		ver
 
 	EXAMPLES
-		bottle_drop # OBC challenge
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		hello
-		hwtest # Hardware test
+		#bottle_drop # OBC challenge
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
+		#hwtest # Hardware test
 		#matlab_csv_serial
 		#publisher
-		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
-		rover_steering_control # Rover example app
-		segway
+		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
+		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		#rover_steering_control # Rover example app
+		#segway
 		#subscriber
-		uuv_example_app
+		#uuv_example_app
 
 	)

@@ -99,7 +99,8 @@ typedef enum {
 	GPS_DRIVER_MODE_NONE = 0,
 	GPS_DRIVER_MODE_UBX,
 	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH
+	GPS_DRIVER_MODE_ASHTECH,
+	GPS_DRIVER_MODE_NOVA
 } gps_driver_mode_t;
 
 /* struct for dynamic allocation of satellite info data */
@@ -717,12 +718,12 @@ GPS::run()
 				_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
 				break;
 
-			case GPS_DRIVER_MODE_NOVA:
-				_helper = new GPSDriverNova(&GPS::callback, this, &_report_gps_pos);
-				break;
-
 			case GPS_DRIVER_MODE_ASHTECH:
 				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
+				break;
+
+			case GPS_DRIVER_MODE_NOVA:
+				_helper = new GPSDriverNova(&GPS::callback, this, &_report_gps_pos);
 				break;
 
 			default:
@@ -810,14 +811,14 @@ GPS::run()
 					break;
 
 				case GPS_DRIVER_MODE_MTK:
-					_mode = GPS_DRIVER_MODE_NOVA;
-					break;
-
-				case GPS_DRIVER_MODE_NOVA:
 					_mode = GPS_DRIVER_MODE_ASHTECH;
 					break;
 
 				case GPS_DRIVER_MODE_ASHTECH:
+					_mode = GPS_DRIVER_MODE_NOVA;
+					break;
+
+				case GPS_DRIVER_MODE_NOVA:
 					_mode = GPS_DRIVER_MODE_UBX;
 					usleep(500000); // tried all possible drivers. Wait a bit before next round
 					break;
