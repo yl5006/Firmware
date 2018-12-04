@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_subdirectory(failure_detector)
+
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
@@ -52,11 +55,15 @@ px4_add_module(
 		rc_calibration.cpp
 		rc_check.cpp
 		state_machine_helper.cpp
-		failure_detector/FailureDetector.cpp
 		commander_motor_test.cpp
 	DEPENDS
 		circuit_breaker
 		df_driver_framework
+		failure_detector
 		git_ecl
 		ecl_geo
 	)
+
+if(PX4_TESTING)
+	add_subdirectory(commander_tests)
+endif()
