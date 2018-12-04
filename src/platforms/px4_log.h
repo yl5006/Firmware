@@ -168,11 +168,6 @@ __END_DECLS
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
 #define __px4__log_printline(level, ...)    printf(__VA_ARGS__)
 
-
-#ifndef MODULE_NAME
-#define MODULE_NAME "Unknown"
-#endif
-
 #define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
 #define __px4__log_level_fmt		"%-5s "
@@ -200,24 +195,6 @@ __END_DECLS
 #define PX4_LOG_COLORIZED_OUTPUT //if defined and output is a tty, colorize the output according to the log level
 #endif /* __PX4_POSIX */
 
-
-#ifdef PX4_LOG_COLORIZED_OUTPUT
-#include <unistd.h>
-#define PX4_LOG_COLOR_START \
-	int use_color = isatty(STDOUT_FILENO); \
-	if (use_color) printf("%s", __px4_log_level_color[level]);
-#define PX4_LOG_COLOR_MODULE \
-	if (use_color) printf(PX4_ANSI_COLOR_GRAY);
-#define PX4_LOG_COLOR_MESSAGE \
-	if (use_color) printf("%s", __px4_log_level_color[level]);
-#define PX4_LOG_COLOR_END \
-	if (use_color) printf(PX4_ANSI_COLOR_RESET);
-#else
-#define PX4_LOG_COLOR_START
-#define PX4_LOG_COLOR_MODULE
-#define PX4_LOG_COLOR_MESSAGE
-#define PX4_LOG_COLOR_END
-#endif /* PX4_LOG_COLORIZED_OUTPUT */
 
 /****************************************************************************
  * Output format macros
