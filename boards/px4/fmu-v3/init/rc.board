@@ -44,7 +44,7 @@ fi
 
 # External I2C bus
 hmc5883 -C -T -X start
-lis3mdl -X start
+#lis3mdl -X start
 ist8310 -C start
 
 # Internal I2C bus
@@ -133,8 +133,8 @@ else
 	# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 	fi
 
-	l3gd20 start
-	lsm303d start
+#	l3gd20 start
+#	lsm303d start
 fi
 
 px4flow start &
