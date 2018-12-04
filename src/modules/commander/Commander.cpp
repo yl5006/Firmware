@@ -4137,7 +4137,7 @@ void Commander::estimator_check(bool *status_changed)
 		const bool mag_fault = (estimator_status.control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT));
 
 		if (!mag_fault_prev && mag_fault) {
-			mavlink_log_critical(&mavlink_log_pub, "Stopping compass use, check calibration on landing");
+			mavlink_log_critical(&mavlink_log_pub,128, "Stopping compass use, check calibration on landing");
 		}
 
 		// Set the allowable position uncertainty based on combination of flight and estimator state

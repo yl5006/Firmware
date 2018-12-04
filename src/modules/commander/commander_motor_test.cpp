@@ -49,7 +49,6 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 #include "drivers/drv_pwm_output.h"
-#include <drivers/drv_gpio.h>
 
 #include <px4_posix.h>
 #include <px4_time.h>
@@ -108,7 +107,7 @@ int do_commander_motor_test(struct vehicle_command_s cmd,orb_advert_t *mavlink_l
 	unsigned	servo_count = 0;
 	int		ret;
 
-	fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
+	fd = open(PWM_OUTPUT0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
 		PX4_ERR("failed to open device");

@@ -136,7 +136,7 @@ void CollisionPrevention::update_range_constraints()
 		}
 
 	} else if (_last_message + MESSAGE_THROTTLE_US < hrt_absolute_time()) {
-		mavlink_log_critical(&_mavlink_log_pub, "No range data received");
+		mavlink_log_info(&_mavlink_log_pub, "No range data received");
 		_last_message = hrt_absolute_time();
 	}
 }
@@ -184,7 +184,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 				      || new_setpoint(1) > 1.05f * original_setpoint(1));
 
 	if (currently_interfering && (currently_interfering != _interfering)) {
-		mavlink_log_critical(&_mavlink_log_pub, "Collision Warning");
+		mavlink_log_critical(&_mavlink_log_pub,840, "Collision Warning");
 	}
 
 	_interfering = currently_interfering;

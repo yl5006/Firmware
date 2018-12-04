@@ -103,28 +103,6 @@ int UavcanDiffPressureBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 {
 
 	switch (cmd) {
-		case SENSORIOCSQUEUEDEPTH: {
-				return OK;			// Pretend that this stuff is supported to keep APM happy
-			}
-
-		case AIRSPEEDIOCSSCALE: {
-				std::memcpy(&_scale, reinterpret_cast<const void *>(arg), sizeof(_scale));
-//				warnx("AIRSPEEDIOCSSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
-//						static_cast<double>(_scale.offset_pa),
-//						static_cast<double>(_scale.scale)
-//					  );
-				return 0;
-			}
-
-		case AIRSPEEDIOCGSCALE: {
-				std::memcpy(reinterpret_cast<void *>(arg), &_scale, sizeof(_scale));
-//				warnx("AIRSPEEDIOCGSCALE  diffp_scale.offset_pa=%.7f, diffp_scale.scale=%.7f",
-//						static_cast<double>(_scale.offset_pa),
-//						static_cast<double>(_scale.scale)
-//					  );
-				return 0;
-			}
-
 		default: {
 				return CDev::ioctl(filp, cmd, arg);
 			}
