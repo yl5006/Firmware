@@ -80,7 +80,7 @@
 #include <parameters/param.h>
 
 #include <cmath>
-#include <cfloat>
+#include <float.h>
 #include <cstring>
 
 #include <uORB/topics/actuator_armed.h>
@@ -310,7 +310,7 @@ int commander_main(int argc, char *argv[])
 		unsigned i;
 
 		for (i = 0; i < max_wait_steps; i++) {
-			usleep(max_wait_us / max_wait_steps);
+			px4_usleep(max_wait_us / max_wait_steps);
 
 			if (thread_running) {
 				break;
@@ -1029,6 +1029,11 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
+		// Switch to orbit state and let the orbit task handle the command further
+		main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state);
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
@@ -1060,7 +1065,6 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
-	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1097,7 +1101,9 @@ Commander::set_home_position()
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
 
 			// Set home position
-			home_position_s &home = _home_pub.get();
+			home_position_s home{};
+
+			home.timestamp = hrt_absolute_time();
 
 			home.lat = gpos.lat;
 			home.lon = gpos.lon;
@@ -1112,16 +1118,15 @@ Commander::set_home_position()
 
 			home.yaw = lpos.yaw;
 
-			//Play tune first time we initialize HOME
+			home.manual_home = false;
+
+			// play tune first time we initialize HOME
 			if (!status_flags.condition_home_position_valid) {
 				tune_home_set(true);
 			}
 
-			/* mark home position as set */
-			status_flags.condition_home_position_valid = _home_pub.update();
-
-			home.timestamp = hrt_absolute_time();
-			home.manual_home = false;
+			// mark home position as set
+			status_flags.condition_home_position_valid = _home_pub.update(home);
 
 			return status_flags.condition_home_position_valid;
 		}
@@ -1195,6 +1200,9 @@ Commander::run()
 	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
 	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
 	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
+
+	param_t _param_airmode = param_find("MC_AIRMODE");
+	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
@@ -1387,6 +1395,8 @@ Commander::run()
 	int32_t geofence_action = 0;
 
 	int32_t flight_uuid = 0;
+	int32_t airmode = 0;
+	int32_t rc_map_arm_switch = 0;
 
 	/* RC override auto modes */
 	int32_t rc_override = 0;
@@ -1423,6 +1433,9 @@ Commander::run()
 	pthread_attr_destroy(&commander_low_prio_attr);
 
 	arm_auth_init(&mavlink_log_pub, &status.system_id);
+
+	// run preflight immediately to find all relevant parameters, but don't report
+	preflight_check(false);
 
 	while (!should_exit()) {
 
@@ -1519,6 +1532,18 @@ Commander::run()
 
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
+			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
+			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {
+				param_get(_param_airmode, &airmode);
+				param_get(_param_rc_map_arm_switch, &rc_map_arm_switch);
+
+				if (airmode == 2 && rc_map_arm_switch == 0) {
+					airmode = 1; // change to roll/pitch airmode
+					param_set(_param_airmode, &airmode);
+					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
+				}
+			}
+
 			param_init_forced = false;
 		}
 
@@ -1605,7 +1630,7 @@ Commander::run()
 					 * so lets reset to a classic non-usb state.
 					 */
 					mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting.")
-					usleep(400000);
+					px4_usleep(400000);
 					px4_shutdown_request(true, false);
 				}
 			}
@@ -2077,7 +2102,7 @@ Commander::run()
 										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 						if (arming_ret != TRANSITION_CHANGED) {
-							usleep(100000);
+							px4_usleep(100000);
 							print_reject_arm("NOT ARMING: Preflight checks failed");
 						}
 					}
@@ -2532,7 +2557,7 @@ Commander::run()
 
 		arm_auth_update(now, params_updated || param_init_forced);
 
-		usleep(COMMANDER_MONITORING_INTERVAL);
+		px4_usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
 	thread_should_exit = true;
@@ -3400,6 +3425,20 @@ set_control_mode()
 
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+		control_mode.flag_control_manual_enabled = false;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
+		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_climb_rate_enabled = true;
+		control_mode.flag_control_position_enabled = !status.in_transition_mode;
+		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
+		control_mode.flag_control_acceleration_enabled = false;
+		control_mode.flag_control_termination_enabled = false;
+		break;
+
 	default:
 		break;
 	}
@@ -3499,7 +3538,6 @@ void *commander_low_prio_loop(void *arg)
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
 
-	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
 	fds[0].fd = cmd_sub;
 	fds[0].events = POLLIN;
 
@@ -3536,19 +3574,19 @@ void *commander_low_prio_loop(void *arg)
 
 					if (((int)(cmd.param1)) == 1) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						usleep(100000);
+						px4_usleep(100000);
 						/* reboot */
 						px4_shutdown_request(true, false);
 
 					} else if (((int)(cmd.param1)) == 2) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						usleep(100000);
+						px4_usleep(100000);
 						/* shutdown */
 						px4_shutdown_request(false, false);
 
 					} else if (((int)(cmd.param1)) == 3) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						usleep(100000);
+						px4_usleep(100000);
 						/* reboot to bootloader */
 						px4_shutdown_request(true, true);
 
@@ -3695,7 +3733,7 @@ void *commander_low_prio_loop(void *arg)
 #ifdef __PX4_QURT
 						// TODO FIXME: on snapdragon the save happens too early when the params
 						// are not set yet. We therefore need to wait some time first.
-						usleep(1000000);
+						px4_usleep(1000000);
 #endif
 
 						int ret = param_save_default();
@@ -4077,7 +4115,7 @@ void Commander::battery_status_check()
 
 				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 					mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-					usleep(200000);
+					px4_usleep(200000);
 
 					int ret_val = px4_shutdown_request(false, false);
 
@@ -4085,7 +4123,7 @@ void Commander::battery_status_check()
 						mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
 
 					} else {
-						while (1) { usleep(1); }
+						while (1) { px4_usleep(1); }
 					}
 				}
 			}

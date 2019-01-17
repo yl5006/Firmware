@@ -15,15 +15,13 @@ px4_add_board(
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
+		#imu # all available imu drivers
+		lights/rgbled
 		linux_pwm_out
 		linux_sbus
-		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
-		ocpoc_adc
-		rgbled
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-		vmount
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		mpu9250
@@ -53,7 +51,7 @@ px4_add_board(
 		position_estimator_inav
 		sensors
 		#simulator
-		#uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

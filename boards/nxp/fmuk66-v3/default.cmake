@@ -17,14 +17,10 @@ px4_add_board(
 		barometer # all available barometer drivers
 		barometer/mpl3115a2
 		batt_smbus
-		blinkm
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
-		kinetis
-		kinetis/adc
-		kinetis/tone_alarm
 		#heater
 		#imu # all available imu drivers
 		imu/fxas21002c
@@ -33,21 +29,24 @@ px4_add_board(
 		imu/mpu6000
 		imu/mpu9250
 		irlock
+		kinetis
+		kinetis/adc
+		kinetis/tone_alarm
+		lights/blinkm
+		lights/oreoled
+		lights/rgbled
+		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		mkblctrl
-		oreoled
 		pca9685
 		#pwm_input # NOT Portable YET drivers
 		pwm_out_sim
 		px4flow
 		px4fmu
 		rc_input
-		rgbled
-		rgbled_pwm
 		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm # NOT Portable YET
-		vmount
 
 	MODULES
 		attitude_estimator_q
@@ -71,7 +70,7 @@ px4_add_board(
 		navigator
 		position_estimator_inav
 		sensors
-		uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

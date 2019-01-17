@@ -21,7 +21,6 @@ px4_add_board(
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
-		#blinkm
 		camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		differential_pressure/ms4525
@@ -30,33 +29,34 @@ px4_add_board(
 		distance_sensor/sf0x
 		gps
 		#heater
-		#imu # all available imu drivers
 		#imu/adis16448
+		#imu # all available imu drivers
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
 		imu/mpu9250
 		#iridiumsbd
 		#irlock
+		#lights/blinkm
+		#lights/oreoled
+		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#mkblctrl
-		#oreoled
-		#protocol_splitter
 		#pca9685
+		#protocol_splitter
 		#pwm_input
 		#pwm_out_sim
 		px4flow
 		px4fmu
 		px4io
-		rgbled
 		stm32
 		stm32/adc
 		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
-		vmount
+		#uavcan
 
 	MODULES
 		#attitude_estimator_q
@@ -80,7 +80,7 @@ px4_add_board(
 		navigator
 		#position_estimator_inav
 		sensors
-		#uavcan
+		vmount
 		vtol_att_control
 		#wind_estimator
 

@@ -216,6 +216,13 @@ include(${PX4_CONFIG_FILE})
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
+if (ENABLE_LOCKSTEP_SCHEDULER)
+	add_definitions(-DENABLE_LOCKSTEP_SCHEDULER)
+	message(STATUS "PX4 lockstep: enabled")
+else()
+	message(STATUS "PX4 lockstep: disabled")
+endif()
+
 # external modules
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
@@ -258,12 +265,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
 # For the catkin build process, unset build of dynamically-linked binaries
-if (CATKIN_DEVEL_PREFIX)
+# and do not change CMAKE_RUNTIME_OUTPUT_DIRECTORY
+if (NOT CATKIN_DEVEL_PREFIX)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
+else()
 	SET(BUILD_SHARED_LIBS OFF)
 endif()
 
@@ -412,6 +421,10 @@ add_subdirectory(src/platforms/common EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libraries in platform layer
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
 add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
+
+if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")
+	add_subdirectory(${PX4_BOARD_DIR})
+endif()
 
 foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
