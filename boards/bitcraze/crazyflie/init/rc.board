@@ -4,10 +4,14 @@
 #
 #------------------------------------------------------------------------------
 #
-
+# UART mapping on FMUv2:
+#
+# USART2        				CONSOLE
+# USART3        /dev/ttyS1      TELEM2 (flow control)
+# USART6		/dev/ttyS2		syslink
 if param compare SYS_AUTOSTART 0
 then
-	param set SYS_AUTOSTART 4900
+	param set SYS_AUTOSTART 4901
 	set AUTOCNF yes
 fi
 
@@ -18,12 +22,14 @@ fi
 
 set MIXER_AUX none
 
-# Onboard I2C
+# Onboard I2C SPI
 mpu9250 -R 12 start
-
+bmp280 start
 # I2C bypass of mpu
 lps25h start
 
 # Optical flow deck
-vl53lxx start
-pmw3901 start
+vl53lxx start -b 3
+
+ledline_control start
+#pmw3901 start

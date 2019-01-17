@@ -56,27 +56,28 @@
 /* LEDs */
 
 
-/* Radio TX indicator */
+/* ARMED_STATE_LED */
 #define GPIO_LED_RED_L       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
 			      GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN0)
-/* Radio RX indicator */
-#define GPIO_LED_GREEN_L       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+/* LED Line indicator */
+#define GPIO_LED_LINE_A       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
 				GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN1)
-#define GPIO_LED_GREEN_R       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+#define GPIO_LED_LINE_B       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
 				GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN2)
-#define GPIO_LED_RED_R       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+#define GPIO_LED_LINE_C       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
 			      GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
 
 /* PX4: armed state indicator ; Stock FW: Blinking while charging */
 #define GPIO_LED_BLUE_L		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN2)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS 1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_LED        LED_BLUE
-#define BOARD_ARMED_STATE_LED  LED_GREEN
+//#define BOARD_OVERLOAD_LED     LED_RED
+//#define BOARD_ARMED_LED        LED_BLUE
+#define BOARD_ARMED_STATE_LED  LED_RED//1   4//LED_GREEN
 
-#define LED_TX 4
-#define LED_RX 5
+#define LED_LINEA 0
+#define LED_LINEB 4
+#define LED_LINEC 5
 
 #define GPIO_FSYNC_MPU9250		(GPIO_OUTPUT|GPIO_PORTC|GPIO_PIN14) // Needs to be set low
 #define GPIO_DRDY_MPU9250		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
@@ -91,7 +92,7 @@
 #define PX4_I2C_BUS_ONBOARD	3
 #define PX4_I2C_BUS_EXPANSION	1
 
-#define PX4_I2C_BUS_ONBOARD_HZ      400000
+#define PX4_I2C_BUS_ONBOARD_HZ      100000
 #define PX4_I2C_BUS_EXPANSION_HZ      400000
 
 #define PX4_I2C_BUS_MTD	PX4_I2C_BUS_EXPANSION
@@ -112,7 +113,7 @@
 
 /*  SPI1 Bus */
 #define PX4_SPI_BUS_EXPANSION 						1
-
+#define PX4_SPI_BUS_SENSORS          1
 /* SPI1 CS */
 #define GPIO_SPI1_CS0_EXT    		/* PC12 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN12)
 #define GPIO_SPI1_CS1_EXT    		/* PB4  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN4)
@@ -134,11 +135,17 @@
 #define GPIO_SPI1_MOSI_OFF						_PIN_OFF(GPIO_SPI1_MOSI)
 
 
+/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
+#define PX4_SPIDEV_MPU               PX4_SPIDEV_EXPANSION_1
+
+
 /* Devices on the onboard bus.
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_MPU9250	0x69
+//#define PX4_I2C_OBDEV_MPU9250	0x68
+
+#define PX4_I2C_OBDEV_BMP280         0x76
 
 /* USB OTG FS
  *
@@ -151,12 +158,18 @@
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
-#define ADC_CHANNELS 0
+#define ADC1_GPIO(n)                GPIO_ADC1_IN##n
+
+#define PX4_ADC_GPIO  \
+	/* PA0 */  ADC1_GPIO(0),  \
+	/* PA4 */  ADC1_GPIO(4)
+
+#define ADC_CHANNELS (1 << 0) | (1 << 4)
 
 // ADC defines to be used in sensors.cpp to read from a particular channel
 // Crazyflie 2 performs battery sensing via the NRF module
-#define ADC_BATTERY_VOLTAGE_CHANNEL	((uint8_t)(-1))
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
+#define ADC_BATTERY_VOLTAGE_CHANNEL	((uint8_t)(0))
+#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(4))
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
 
 /* Tone alarm output : These are only applicable when the buzzer deck is attached */
@@ -209,12 +222,12 @@
 #define PX4_PWM_ALTERNATE_RANGES
 #define PWM_LOWEST_MIN 0
 #define PWM_MOTOR_OFF	0
-#define PWM_DEFAULT_MIN 20
+#define PWM_DEFAULT_MIN 0
 #define PWM_HIGHEST_MIN 0
-#define PWM_HIGHEST_MAX 255
-#define PWM_DEFAULT_MAX 255
-#define PWM_LOWEST_MAX 255
-#define PWM_DEFAULT_TRIM 1500
+#define PWM_HIGHEST_MAX 510
+#define PWM_DEFAULT_MAX 510
+#define PWM_LOWEST_MAX 510
+#define PWM_DEFAULT_TRIM 255
 
 
 /* High-resolution timer */
@@ -222,6 +235,11 @@
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+
+#define PX4_GPIO_INIT_LIST { \
+		PX4_ADC_GPIO,                     \
+	}
 
 __BEGIN_DECLS
 

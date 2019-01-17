@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,39 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(failure_detector)
-
 px4_add_module(
-	MODULE modules__commander
-	MAIN commander
-	STACK_MAIN 4096
-	STACK_MAX 2450
-	COMPILE_FLAGS
+	MODULE modules__ledline_control
+	MAIN ledline_control
+	STACK_MAIN 1100
 	SRCS
-		accelerometer_calibration.cpp
-		airspeed_calibration.cpp
-		arm_auth.cpp
-		baro_calibration.cpp
-		calibration_routines.cpp
-		Commander.cpp
-		commander_helper.cpp
-		esc_calibration.cpp
-		gyro_calibration.cpp
-		health_flag_helper.cpp
-		mag_calibration.cpp
-		PreflightCheck.cpp
-		rc_calibration.cpp
-		rc_check.cpp
-		state_machine_helper.cpp
+		ledline_control.cpp
 	DEPENDS
-		circuit_breaker
-		df_driver_framework
-		failure_detector
-		git_ecl
-		ecl_geo
 	)
 
-if(PX4_TESTING)
-	add_subdirectory(commander_tests)
-endif()

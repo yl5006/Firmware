@@ -1981,9 +1981,49 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		struct manual_control_setpoint_s manual = {};
 
 		manual.timestamp = hrt_absolute_time();
-		manual.x = man.x / 1000.0f;
+
+		if (man.x > 20) {
+			manual.x =  (float)(man.x - 20) /  (float)(
+						  1000 - 10);
+
+		} else if (man.x < - 20) {
+			manual.x =  (float)(man.x + 20) / (float)(
+						   1000 - 20);
+
+		} else {
+			/* in the configured dead zone, output zero */
+			manual.x = 0.0f;
+		}
+
+		if (man.r > 20) {
+			manual.r =  (float)(man.r -20) / (float)(
+						  1000 - 20);
+
+		} else if (man.r < - 20) {
+			manual.r =  (float)(man.r + 20) / (float)(
+						   1000 - 20);
+
+		} else {
+			/* in the configured dead zone, output zero */
+			manual.r = 0.0f;
+		}
+
+//		if (man.z > (500 + 10)) {
+//			manual.z =  (float)(man.z - 500 - 10) / (float)(
+//						  500 - 10) + 0.5f;
+//
+//		} else if( man.z < (500 - 10)) {
+//			manual.z =  (float)( man.z - 500 + 10) / (float)(
+//						  500 -10) + 0.5f;
+//
+//		} else {
+//			/* in the configured dead zone, output zero */
+//			manual.z = 0.5f;
+//		}
+
+	//	manual.x = man.x;// / 1000.0f;
 		manual.y = man.y / 1000.0f;
-		manual.r = man.r / 1000.0f;
+	//	manual.r = man.r;// / 1000.0f;
 		manual.z = man.z / 1000.0f;
 		manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 

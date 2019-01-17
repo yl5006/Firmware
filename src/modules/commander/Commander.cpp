@@ -59,7 +59,6 @@
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
 #include "health_flag_helper.h"
-#include "commander_motor_test.h"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
@@ -136,14 +135,12 @@ static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL = 500_ms;
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
 static orb_advert_t power_button_state_pub = nullptr;
-#define ARMDISARM_DEFAULT_TIMEOUT	(3 * 1000 * 1000)	/**< arm disarm time between */
 
 /* flags */
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
 static volatile bool thread_running = false;		/**< daemon status flag */
 
 static hrt_abstime commander_boot_timestamp = 0;
-static hrt_abstime armdisarm_change_timestamp = 0;
 
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
@@ -1059,7 +1056,6 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_LAND_START:
 	case vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND:
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
-	case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
 	case vehicle_command_s::VEHICLE_CMD_NAV_DELAY:
@@ -1069,6 +1065,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
+	case vehicle_command_s::VEHICLE_CMD_SET_LED_LINE_STATUS:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1351,7 +1348,6 @@ Commander::run()
 	status.is_vtol = is_vtol(&status);
 
 	commander_boot_timestamp = hrt_absolute_time();
-	armdisarm_change_timestamp = hrt_absolute_time();
 
 	// initially set to failed
 	_last_lpos_fail_time_us = commander_boot_timestamp;
@@ -2012,11 +2008,8 @@ Commander::run()
 			 * and we are in MANUAL, Rattitude, or AUTO_READY mode or (ASSIST mode and landed)
 			 * do it only for rotary wings in manual mode or fixed wing if landed.
 			 * Disable stick-disarming if arming switch or button is mapped */
-			//zhouhouxian-Control the aircraft to unlock and lock by the remote control lever
-			const bool stick_in_lower_right = (sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
-					&& sp_man.x <-STICK_ON_OFF_LIMIT
-					&& sp_man.y <-STICK_ON_OFF_LIMIT
-					&& !arm_switch_or_button_mapped);
+			const bool stick_in_lower_left = sp_man.r < -STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
+							 && !arm_switch_or_button_mapped;
 			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
 					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
 					sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF;
@@ -2024,7 +2017,7 @@ Commander::run()
 			if (in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
 			    (status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
-			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_disarm_transition)) {
+			    (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
 
 				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
 				    internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
@@ -2052,6 +2045,8 @@ Commander::run()
 			 * check if left stick is in lower right position or arm button is pushed or arm switch has transition from disarm to arm
 			 * and we're in MANUAL mode.
 			 * Disable stick-arming if arming switch or button is mapped */
+			const bool stick_in_lower_right = sp_man.r > STICK_ON_OFF_LIMIT && sp_man.z < 0.1f
+							  && !arm_switch_or_button_mapped;
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
 			 * for example for accidential in-air disarming */
 			const bool in_arming_grace_period = last_disarmed_timestamp != 0 && hrt_elapsed_time(&last_disarmed_timestamp) < 5_s;
@@ -2062,7 +2057,7 @@ Commander::run()
 
 			if (!in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)&& hrt_elapsed_time(&armdisarm_change_timestamp) > ARMDISARM_DEFAULT_TIMEOUT) {
+			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
 				if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
@@ -2091,9 +2086,6 @@ Commander::run()
 						if (arming_ret != TRANSITION_CHANGED) {
 							usleep(100000);
 							print_reject_arm(204,"NOT ARMING: Preflight checks failed");
-						}else
-						{
-							armdisarm_change_timestamp = hrt_absolute_time();
 						}
 					}
 				}
@@ -3459,10 +3451,7 @@ void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t 
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-		if(cmd.command != vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST)
-		{
-			tune_positive(true);
-		}
+		tune_positive(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
@@ -3547,10 +3536,7 @@ void *commander_low_prio_loop(void *arg)
 
 			/* only handle low-priority commands here */
 			switch (cmd.command) {
-			case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-					do_commander_motor_test(cmd,&mavlink_log_pub);
-				break;
+
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 				if (is_safe(safety, armed)) {
 

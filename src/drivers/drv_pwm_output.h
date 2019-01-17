@@ -83,7 +83,7 @@ struct pwm_output_values {
 /**
  * Lowest minimum PWM in us
  */
-#define PWM_LOWEST_MIN 90
+#define PWM_LOWEST_MIN 0
 
 /**
  * Default value for a shutdown motor

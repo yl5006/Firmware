@@ -132,6 +132,10 @@ stm32_boardinitialize(void)
 
 	board_autoled_initialize();
 
+	/* configure pins */
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	board_gpio_init(gpio, arraySize(gpio));
+
 	/* configure SPI interfaces */
 
 	stm32_spiinitialize();
@@ -193,11 +197,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* initial LED state */
 	drv_led_start();
-	led_off(LED_RED);
-	led_off(LED_GREEN);
-	led_off(LED_BLUE);
-	led_off(LED_TX);
-	led_off(LED_RX);
+	led_on(LED_BLUE);
+	led_on(LED_RED);
+	led_off(LED_LINEA);
+	led_off(LED_LINEB);
+	led_off(LED_LINEC);
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);

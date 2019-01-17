@@ -693,7 +693,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 	const bool hil_enabled = (status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
-	bool checkSensors = !hil_enabled;
+	bool checkSensors = false;//!hil_enabled;
 	const bool checkRC = (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 	const bool checkDynamic = !hil_enabled;
 	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);

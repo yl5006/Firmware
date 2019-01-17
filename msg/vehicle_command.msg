@@ -67,6 +67,7 @@ uint16 VEHICLE_CMD_MISSION_START = 300			# start running a mission |first_item: 
 uint16 VEHICLE_CMD_COMPONENT_ARM_DISARM = 400		# Arms / Disarms a component |1 to arm, 0 to disarm|
 uint16 VEHICLE_CMD_START_RX_PAIR = 500			# Starts receiver pairing |0:Spektrum| 0:Spektrum DSM2, 1:Spektrum DSMX|
 uint16 VEHICLE_CMD_SET_CAMERA_MODE = 530            # Set camera capture mode (photo, video, etc.)
+uint16 VEHICLE_CMD_SET_LED_LINE_STATUS=1000	    # led line control |Cmd| time interval| Reserved
 uint16 VEHICLE_CMD_DO_TRIGGER_CONTROL = 2003            # Enable or disable on-board camera triggering system
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000    # Command VTOL transition
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001    # Request arm authorization

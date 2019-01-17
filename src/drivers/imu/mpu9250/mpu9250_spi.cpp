@@ -184,6 +184,7 @@ MPU9250_SPI::probe()
 	}
 
 	switch (whoami) {
+	case MPU_WHOAMI_9255:
 	case MPU_WHOAMI_9250:
 	case MPU_WHOAMI_6500:
 		ret = 0;

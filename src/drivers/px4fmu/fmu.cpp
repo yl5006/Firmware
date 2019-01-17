@@ -238,6 +238,8 @@ private:
 	float _mot_t_max;	///< maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	///< thrust to pwm modelling factor
 	bool _airmode; 		///< multicopter air-mode
+	bool		_pwm_rev1;
+	bool		_pwm_rev2;
 	MotorOrdering _motor_ordering;
 
 	perf_counter_t	_perf_control_latency;
@@ -322,6 +324,8 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
 	_airmode(false),
+	_pwm_rev1(false),
+	_pwm_rev2(false),
 	_motor_ordering(MotorOrdering::PX4),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
@@ -1201,7 +1205,55 @@ PX4FMU::cycle()
 						pwm_limited[i] = _disarmed_pwm[i];
 					}
 				}
+				if(!_pwm_rev1)
+				{
+					if(pwm_limited[0] >= 255)
+					{
+						pwm_limited[0] = pwm_limited[0]-255;
+						pwm_limited[1] = 0;
+					}else
+					{
+						pwm_limited[0] = 0;
+						pwm_limited[1] = 255-pwm_limited[1];
+					}
+				}else
+				{
+					if(pwm_limited[0] >= 255)
+					{
+						pwm_limited[1] = pwm_limited[1]-255;
+						pwm_limited[0] = 0;
+					}else
+					{
+						pwm_limited[1] = 0;
+						pwm_limited[0] = 255-pwm_limited[0];
+					}
+				}
+				if(!_pwm_rev2)
+				{
+					if(pwm_limited[2] >= 255)
+					{
+						pwm_limited[2] = pwm_limited[2]-255;
+						pwm_limited[3] = 0;
+					}else
+					{
+						pwm_limited[2] = 0;
+						pwm_limited[3] = 255-pwm_limited[3];
+					}
+				}else
+				{
+					if(pwm_limited[2] >= 255)
+					{
+						pwm_limited[3] = pwm_limited[3]-255;
+						pwm_limited[2] = 0;
+					}else
+					{
+						pwm_limited[3] = 0;
+						pwm_limited[2] = 255-pwm_limited[2];
+					}
 
+				}
+					pwm_limited[4] = pwm_limited[4]/2;
+					pwm_limited[5] = 0;
 				/* apply _motor_ordering */
 				reorder_outputs(pwm_limited);
 
@@ -1211,7 +1263,7 @@ PX4FMU::cycle()
 						up_pwm_servo_set(i, pwm_limited[i]);
 					}
 				}
-
+				px4_arch_gpiowrite(GPIO_TIM4_CH3OUT, false);
 				/* Trigger all timer's channels in Oneshot mode to fire
 				 * the oneshots with updated values.
 				 */
@@ -1386,6 +1438,25 @@ void PX4FMU::update_params()
 		param_get(param_handle, &val);
 		_airmode = val > 0;
 		PX4_DEBUG("%s: %d", "MC_AIRMODE", _airmode);
+	}
+
+	// multicopter air-mode
+	param_handle = param_find("PWM_MAIN_1REV");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		_pwm_rev1 = val > 0;
+		PX4_DEBUG("%s: %d", "PWM_MAIN_1REV", _pwm_rev1);
+	}
+	// multicopter air-mode
+	param_handle = param_find("PWM_MAIN_2REV");
+
+	if (param_handle != PARAM_INVALID) {
+		int32_t val;
+		param_get(param_handle, &val);
+		_pwm_rev2 = val > 0;
+		PX4_DEBUG("%s: %d", "PWM_MAIN_2REV", _pwm_rev2);
 	}
 
 	// motor ordering
@@ -1669,21 +1740,25 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
 				if (pwm->values[i] == 0) {
 					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MIN) {
+				} else
+				PX4_INFO("MIN_PWM %d", pwm->values[i]);
+				if (pwm->values[i] > PWM_HIGHEST_MIN) {
 					_min_pwm[i] = PWM_HIGHEST_MIN;
-
+					PX4_INFO("MINa_PWM %d",_min_pwm[i]);
 				}
 
 #if PWM_LOWEST_MIN > 0
 
 				else if (pwm->values[i] < PWM_LOWEST_MIN) {
 					_min_pwm[i] = PWM_LOWEST_MIN;
+					PX4_INFO("MINb_PWM %d %d",_min_pwm[i],PWM_LOWEST_MIN);
 				}
 
 #endif
 
 				else {
 					_min_pwm[i] = pwm->values[i];
+					PX4_INFO("MINc_PWM %d",_min_pwm[i]);
 				}
 			}
 

@@ -607,6 +607,28 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS8, -1);
 *                                PWM_MAIN_REV                                 *
 ******************************************************************************/
 
+
+/**
+ * Invert direction of main output channel 1-2
+ *
+ * Enable to invert the channel.
+ *
+ * @boolean
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_1REV, 0);
+
+
+/**
+ * Invert direction of main output channel 3-4
+ *
+ * Enable to invert the channel.
+ *
+ * @boolean
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_2REV, 0);
+
 /**
  * Invert direction of main output channel 1
  *

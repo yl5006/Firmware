@@ -144,7 +144,7 @@ else
 	# REBOOTWORK this needs to start in parallel.
 	#
 	# TODO: fix board override $DATAMAN_OPT
-	dataman start $DATAMAN_OPT
+#	dataman start $DATAMAN_OPT
 
 	#
 	# Start the socket communication send_event handler.

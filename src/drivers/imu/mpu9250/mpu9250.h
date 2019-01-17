@@ -177,6 +177,7 @@
 #define BIT_I2C_SLV2_DLY_EN         0x04
 #define BIT_I2C_SLV3_DLY_EN         0x08
 
+#define MPU_WHOAMI_9255			0x73
 #define MPU_WHOAMI_9250			0x71
 #define MPU_WHOAMI_6500			0x70
 
