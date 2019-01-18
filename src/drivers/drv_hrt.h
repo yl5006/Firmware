@@ -85,7 +85,7 @@ __EXPORT extern hrt_abstime hrt_absolute_time(void);
 /**
  * Convert a timespec to absolute time.
  */
-__EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
+__EXPORT extern hrt_abstime ts_to_abstime(const struct timespec *ts);
 
 /**
  * Convert absolute time to a timespec.
@@ -173,23 +173,9 @@ __EXPORT extern void	hrt_init(void);
 
 #ifdef __PX4_POSIX
 
-/**
- * Start to delay the HRT return value.
- *
- * Until hrt_stop_delay() is called the HRT calls will return the timestamp
- * at the instance then hrt_start_delay() was called.
- */
-__EXPORT extern	void	hrt_start_delay(void);
+__EXPORT extern hrt_abstime hrt_reset(void);
 
-/**
- * Stop to delay the HRT.
- */
-__EXPORT extern void	hrt_stop_delay(void);
-
-/**
- * Stop to delay the HRT, but with an exact delta time.
- */
-__EXPORT extern void	hrt_stop_delay_delta(hrt_abstime delta);
+__EXPORT extern hrt_abstime hrt_absolute_time_offset(void);
 
 #endif
 

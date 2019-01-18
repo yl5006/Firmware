@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name 3DR DIY Quad
 #
@@ -8,7 +8,10 @@
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
-sh /etc/init.d/4001_quad_x
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set PWM_OUT 1234
 
 if [ $AUTOCNF = yes ]
 then
@@ -16,7 +19,7 @@ then
 	param set MC_ROLLRATE_P 0.14
 	param set MC_ROLLRATE_I 0.1
 	param set MC_ROLLRATE_D 0.004
-	param set MC_PITCH_P 6.0
+	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.14
 	param set MC_PITCHRATE_I 0.09
 	param set MC_PITCHRATE_D 0.004

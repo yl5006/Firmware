@@ -17,15 +17,9 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-		vmount
 
-		linux_gpio
 		linux_pwm_out
 		linux_sbus
-		navio_adc
-		navio_rgbled
-		navio_sysfs_rc_in
-		rpi_rc_in
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		hmc5883
@@ -58,7 +52,7 @@ px4_add_board(
 		position_estimator_inav
 		sensors
 		#simulator
-		#uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

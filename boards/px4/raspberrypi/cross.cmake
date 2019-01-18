@@ -19,9 +19,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-		vmount
 
-		linux_gpio
 		linux_pwm_out
 		linux_sbus
 		rpi_rc_in
@@ -48,7 +46,7 @@ px4_add_board(
 		navigator
 		position_estimator_inav
 		sensors
-		#uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

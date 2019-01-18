@@ -305,7 +305,7 @@ MS5611::init()
 			break;
 		}
 
-		usleep(MS5611_CONVERSION_INTERVAL);
+		px4_usleep(MS5611_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
 			ret = -EIO;
@@ -318,7 +318,7 @@ MS5611::init()
 			break;
 		}
 
-		usleep(MS5611_CONVERSION_INTERVAL);
+		px4_usleep(MS5611_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
 			ret = -EIO;
@@ -421,7 +421,7 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
-		usleep(MS5611_CONVERSION_INTERVAL);
+		px4_usleep(MS5611_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
 			ret = -EIO;
@@ -434,7 +434,7 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
-		usleep(MS5611_CONVERSION_INTERVAL);
+		px4_usleep(MS5611_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
 			ret = -EIO;

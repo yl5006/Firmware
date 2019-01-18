@@ -67,6 +67,11 @@ enum PX4_CUSTOM_SUB_MODE_AUTO {
 
 };
 
+enum PX4_CUSTOM_SUB_MODE_POSCTL {
+	PX4_CUSTOM_SUB_MODE_POSCTL_POSCTL = 0,
+	PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT
+};
+
 union px4_custom_mode {
 	struct {
 		uint16_t reserved;

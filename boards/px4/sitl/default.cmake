@@ -18,7 +18,7 @@ px4_add_board(
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 		tone_alarm_sim
-		vmount
+		#uavcan
 
 	MODULES
 		attitude_estimator_q
@@ -44,7 +44,7 @@ px4_add_board(
 		replay
 		sensors
 		simulator
-		#uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 
@@ -97,3 +97,5 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
+
+set(ENABLE_LOCKSTEP_SCHEDULER yes)

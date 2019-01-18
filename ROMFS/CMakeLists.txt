@@ -70,7 +70,7 @@ endfunction()
 add_subdirectory(${romfs_src_dir})
 
 # directory setup
-# copy all romfs files, process airframes, prune comments
+# copy all romfs files, process airframes
 get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
@@ -84,6 +84,9 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d-posix
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/mixers-sitl
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/mixers/CMakeLists.txt
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/CMakeLists.txt
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/airframes/CMakeLists.txt
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -92,17 +95,14 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files} #--verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		--folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
 	DEPENDS
 		${jinja_templates}
 		${module_config_files}
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
-	COMMENT "ROMFS: copying, generating airframes, pruning"
+	COMMENT "ROMFS: copying, generating airframes"
 	)
 
 # copy extras into ROMFS
@@ -126,19 +126,32 @@ if(config_bl_file)
 		)
 endif()
 
-if(EXISTS "${PX4_BOARD_DIR}/init/rc.board")
-	add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.board
-		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/rc.board ${romfs_gen_root_dir}/init.d/rc.board
-		DEPENDS
-			${PX4_BOARD_DIR}/init/rc.board
-			${romfs_gen_root_dir}/init.d/rcS
-		COMMENT "ROMFS: copying rc.board"
+set(OPTIONAL_BOARD_RC)
+list(APPEND OPTIONAL_BOARD_RC
+	rc.board_defaults
+	rc.board_sensors
+	rc.board_extras
+)
+
+foreach(board_rc_file ${OPTIONAL_BOARD_RC})
+
+	if(EXISTS "${PX4_BOARD_DIR}/init/${board_rc_file}")
+		message(STATUS "ROMFS: Adding ${board_rc_file}")
+
+		add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			DEPENDS
+				${PX4_BOARD_DIR}/init/${board_rc_file}
+				${romfs_gen_root_dir}/init.d/rcS
+			COMMENT "ROMFS: copying ${board_rc_file}"
 		)
 
-	list(APPEND extras_dependencies
-		${romfs_gen_root_dir}/init.d/rc.board
-		)
-endif()
+		list(APPEND extras_dependencies
+			${romfs_gen_root_dir}/init.d/${board_rc_file}
+			)
+	endif()
+
+endforeach()
 
 add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
@@ -152,6 +165,17 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMENT "ROMFS: copying extras"
 	)
 
+add_custom_command(OUTPUT romfs_pruned.stamp
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+		--folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+	DEPENDS
+		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_gen_root_dir}/init.d/rc.autostart
+		romfs_extras.stamp
+		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+	COMMENT "ROMFS: pruning"
+	)
+
 # create romfs.img
 find_program(GENROMFS genromfs)
 if(NOT GENROMFS)
@@ -161,9 +185,7 @@ add_custom_command(OUTPUT romfs.img romfs.txt
 	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
 	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
 	DEPENDS
-		${romfs_gen_root_dir}/init.d/rcS
-		${romfs_gen_root_dir}/init.d/rc.autostart
-		romfs_extras.stamp
+		romfs_pruned.stamp
 	COMMENT "ROMFS: generating image"
 	)
 

@@ -14,33 +14,36 @@ px4_add_board(
 	UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
-		GPS1:/dev/ttyS0
+		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
-		TEL4:/dev/ttyS3
+		TEL4:/dev/ttyS6
 
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		blinkm
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		#imu # all available imu drivers
 		imu/adis16448
+		#imu # all available imu drivers
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
 		imu/mpu9250
 		irlock
+		lights/blinkm
+		lights/oreoled
+		lights/rgbled
+		lights/rgbled_ncp5623c
+		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		oreoled
-		#pca8574
-		#pca9685
+		lights/pca8574
+		pca9685
 		#pmw3901
 		protocol_splitter
 		pwm_input
@@ -48,17 +51,14 @@ px4_add_board(
 		px4flow
 		px4fmu
 		px4io
-		rgbled
-		rgbled_ncp5623c
-		#rgbled_pwm
 		roboclaw
 		stm32
 		stm32/adc
 		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
-		#test_ppm
-		vmount
+#		test_ppm
+		uavcan
 
 	MODULES
 		#attitude_estimator_q
@@ -82,7 +82,7 @@ px4_add_board(
 		navigator
 		#position_estimator_inav
 		sensors
-		uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

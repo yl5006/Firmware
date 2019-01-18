@@ -68,6 +68,7 @@ set(msg_files
 	input_rc.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
+	landing_gear.msg
 	landing_target_innovations.msg
 	landing_target_pose.msg
 	led_control.msg
@@ -81,6 +82,7 @@ set(msg_files
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	optical_flow.msg
+	orbit_status.msg
 	parameter_update.msg
 	ping.msg
 	position_controller_landing_status.msg
