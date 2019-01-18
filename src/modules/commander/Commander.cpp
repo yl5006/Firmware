@@ -1549,7 +1549,7 @@ Commander::run()
 				if (airmode == 2 && rc_map_arm_switch == 0) {
 					airmode = 1; // change to roll/pitch airmode
 					param_set(_param_airmode, &airmode);
-					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
+					mavlink_log_critical(&mavlink_log_pub,120, "Yaw Airmode requires the use of an Arm Switch")
 				}
 			}
 
