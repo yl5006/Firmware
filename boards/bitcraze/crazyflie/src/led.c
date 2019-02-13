@@ -66,7 +66,6 @@ static uint32_t g_ledmap[] = {
 	0,				  // Indexed by LED_SAFETY
 	GPIO_LED_LINE_A,  // Indexed by LED_LINEA
 	GPIO_LED_LINE_B,  // Indexed by LED_LINEB
-	GPIO_LED_LINE_C   // Indexed by LED_LINEC
 };
 
 

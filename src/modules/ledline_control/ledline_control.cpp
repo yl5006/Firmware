@@ -118,6 +118,7 @@ private:
 	float			_interval;
 	int 			_mode;
 	int  			_loop;
+	bool 			_intervalcall;
 
 	int			_command_sub;
 
@@ -158,6 +159,7 @@ LedLineControl::LedLineControl() :
 	_interval(1000.0f /* ms */),
 	_mode(LINE_AB),
 	_loop(0),
+	_intervalcall(false),
 	_command_sub(-1),
 	_cmd_ack_pub(nullptr)
 {
@@ -168,8 +170,6 @@ LedLineControl::LedLineControl() :
 LedLineControl::~LedLineControl()
 {
 	ledline_control::g_ledline_control = nullptr;
-}
-
 }
 
 void
@@ -244,20 +244,26 @@ LedLineControl::cycle_trampoline(void *arg)
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_SET_LED_LINE_STATUS) {
 
 			int controlcmd = commandParamToInt(cmd.param1);
-
+			if(trig->_intervalcall)
+			{
+				hrt_cancel(&trig->_engagecall);
+				hrt_cancel(&trig->_disengagecall);
+				trig->_intervalcall = false;
+			}
 			switch(controlcmd)
 			{
 			case LINE_A:
-				_mode = LINE_A;
+				trig->_mode = LINE_A;
 				if(cmd.param2 > 0)
 				{
-					_interval = cmd.param2 * 1000;
-					_activation_time = cmd.param4 * 1000;
-					if(_activation_time < 1.0)
+					trig->_interval = cmd.param2 * 1000;
+					trig->_activation_time = cmd.param4 * 1000;
+					if(trig->_activation_time < 1.0f)
 					{
-						_activation_time = 200; // 200ms
+						trig->_activation_time = 200; // 200ms
 					}
-
+					trig->update_intervalometer();
+					trig->_intervalcall = true;
 				}else
 				{
 					if(commandParamToInt(cmd.param3)> 0)
@@ -270,16 +276,17 @@ LedLineControl::cycle_trampoline(void *arg)
 				}
 				break ;
 			case LINE_B:
-				_mode = LINE_B;
+				trig->_mode = LINE_B;
 				if(cmd.param2 > 0)
 				{
-					_interval = cmd.param2 * 1000;
-					_activation_time = cmd.param4 * 1000;
-					if(_activation_time < 1.0)
+					trig->_interval = cmd.param2 * 1000;
+					trig->_activation_time = cmd.param4 * 1000;
+					if(trig->_activation_time < 1.0f)
 					{
-						_activation_time = 200; // 200ms
+						trig->_activation_time = 200; // 200ms
 					}
-
+					trig->update_intervalometer();
+					trig->_intervalcall = true;
 				}else{
 					if(commandParamToInt(cmd.param3)> 0)
 					{
@@ -291,16 +298,17 @@ LedLineControl::cycle_trampoline(void *arg)
 				}
 				break ;
 			case LINE_AB:
-				_mode = LINE_AB;
+				trig->_mode = LINE_AB;
 				if(cmd.param2 > 0)
 				{
-					_interval = cmd.param2 * 1000;
-					_activation_time = cmd.param4 * 1000;
-					if(_activation_time < 1.0)
+					trig->_interval = cmd.param2 * 1000;
+					trig->_activation_time = cmd.param4 * 1000;
+					if(trig->_activation_time < 1.0f)
 					{
-						_activation_time = 200; // 200ms
+						trig->_activation_time = 200; // 200ms
 					}
-
+					trig->update_intervalometer();
+					trig->_intervalcall = true;
 				}else{
 					if(commandParamToInt(cmd.param3)> 0)
 					{
@@ -314,12 +322,17 @@ LedLineControl::cycle_trampoline(void *arg)
 				}
 				break ;
 			case LINE_A_B:
-				_mode = LINE_A_B;
+				trig->_mode = LINE_A_B;
 				if(cmd.param2 > 0)
 				{
-					_interval = cmd.param2 * 1000;
-					_activation_time = cmd.param4 * 1000;
-
+					trig->_interval = cmd.param2 * 1000;
+					trig->_activation_time = cmd.param4 * 1000;
+					if(trig->_activation_time < 1.0f)
+					{
+						trig->_activation_time = 200; // 200ms
+					}
+					trig->update_intervalometer();
+					trig->_intervalcall = true;
 				}
 				break ;
 			default :
@@ -366,13 +379,13 @@ LedLineControl::engage(void *arg)
 		led_on(LED_LINEB);
 		break ;
 	case LINE_A_B:
-		if(_loop == 0){
+		if(trig->_loop == 0){
 			led_on(LED_LINEA);
 		}else
 		{
 			led_on(LED_LINEB);
 		}
-		_loop = 1 -_loop;
+		trig->_loop = 1 -trig->_loop;
 		break ;;
 	default :
 		break ;
@@ -382,7 +395,7 @@ LedLineControl::engage(void *arg)
 void
 LedLineControl::disengage(void *arg)
 {
-	CameraTrigger *trig = reinterpret_cast<LedLineControl *>(arg);
+	LedLineControl *trig = reinterpret_cast<LedLineControl *>(arg);
 
 	switch(trig->_mode)
 	{
@@ -393,11 +406,13 @@ LedLineControl::disengage(void *arg)
 		led_off(LED_LINEB);
 		break ;
 	case LINE_AB:
-		led_off(LED_LINEA)
-		led_off(LED_LINEB)
+		led_off(LED_LINEA);
+		led_off(LED_LINEB);
 		break ;
 	case LINE_A_B:
-		break ;;
+		led_off(LED_LINEA);
+		led_off(LED_LINEB);
+		break ;
 	default :
 		break ;
 	}
