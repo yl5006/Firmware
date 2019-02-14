@@ -128,6 +128,7 @@ px4_add_romfs_files(
 	13013_deltaquad
 	13014_nimbus1800
 	13020_e3
+	13021_vtol_standard_hexa
 
 	# [14000, 14999] Tri Y
 	14001_tri_y_yaw+
