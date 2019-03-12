@@ -11,7 +11,7 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 		
 	DRIVERS
-		barometer/lps25h
+		#barometer/lps25h
 		barometer/bmp280
 		distance_sensor/vl53lxx
 		gps
@@ -36,7 +36,7 @@ px4_add_board(
 		#gnd_pos_control
 		land_detector
 		#landing_target_estimator
-		load_mon
+		#load_mon
 		#local_position_estimator
 		#logger
 		mavlink
@@ -66,11 +66,11 @@ px4_add_board(
 		perf
 		pwm
 		reboot
-		reflect
+		#reflect
 		sd_bench
-		shutdown
+		#shutdown
 		#tests # tests and test runner
-		top
+		#top
 		#topic_listener
 		tune_control
 		#usb_connected

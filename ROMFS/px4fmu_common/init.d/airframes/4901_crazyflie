@@ -65,16 +65,6 @@ then
 	param set PWM_DISARMED 0
 	param set PWM_MIN 0
 	param set PWM_MAX 510
-	param set PWM_MAIN_DIS1	255
-	param set PWM_MAIN_DIS2	255
-	param set PWM_MAIN_DIS3	255
-	param set PWM_MAIN_DIS4	255
-	param set PWM_MAIN_DIS5	0
-	param set PWM_MAIN_FAIL1 255
-	param set PWM_MAIN_FAIL2 255
-	param set PWM_MAIN_FAIL3 255
-	param set PWM_MAIN_FAIL4 255
-	param set PWM_MAIN_FAIL5 0
 	param set PWM_MAIN_MAX1	510
 	param set PWM_MAIN_MAX2	510
 	param set PWM_MAIN_MAX3	510
