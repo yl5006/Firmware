@@ -24,12 +24,12 @@ set MIXER_AUX none
 
 # Onboard I2C SPI
 mpu9250 -R 12 start
-bmp280 start
+#bmp280 start
 # I2C bypass of mpu
-lps25h start
+#lps25h start
 
 # Optical flow deck
-vl53lxx start -b 3
+#vl53lxx start -b 3
 
 ledline_control start
 #pmw3901 start

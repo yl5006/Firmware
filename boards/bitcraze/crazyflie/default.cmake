@@ -13,17 +13,17 @@ px4_add_board(
 	DRIVERS
 		#barometer/lps25h
 		barometer/bmp280
-		distance_sensor/vl53lxx
+		#distance_sensor/vl53lxx
 		gps
 		imu/mpu9250
-		#imu/mpu6000
+		imu/mpu6000
 		#pmw3901
 		px4fmu
 		stm32
 		stm32/adc
 
 	MODULES
-		#attitude_estimator_q
+		attitude_estimator_q
 		#camera_feedback
 		commander
 		dataman
@@ -37,13 +37,13 @@ px4_add_board(
 		land_detector
 		#landing_target_estimator
 		#load_mon
-		#local_position_estimator
+		local_position_estimator
 		#logger
 		mavlink
 		mc_att_control
 		mc_pos_control
 		navigator
-		#position_estimator_inav
+		position_estimator_inav
 		sensors
 		#syslink
 		#uavcan

@@ -321,7 +321,7 @@ void AttitudeEstimatorQ::task_main()
 		}
 
 		// Update magnetometer
-		bool magnetometer_updated = false;
+	/*	bool magnetometer_updated = false;
 		orb_check(_magnetometer_sub, &magnetometer_updated);
 
 		if (magnetometer_updated) {
@@ -338,7 +338,7 @@ void AttitudeEstimatorQ::task_main()
 				}
 			}
 
-		}
+		}*/
 
 		// Update vision and motion capture heading
 		bool vision_updated = false;
