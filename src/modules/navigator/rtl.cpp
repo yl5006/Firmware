@@ -167,6 +167,7 @@ RTL::set_rtl_item()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.lat = home.lat;
 			_mission_item.lon = home.lon;
+			_mission_item.vtol_back_transition = true;
 			_mission_item.altitude = return_alt;
 			_mission_item.altitude_is_relative = false;
 
@@ -200,6 +201,7 @@ RTL::set_rtl_item()
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.lat = home.lat;
 			_mission_item.lon = home.lon;
+			_mission_item.vtol_back_transition = true;
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
