@@ -24,6 +24,7 @@ set MIXER_AUX none
 
 # Onboard I2C SPI
 mpu9250 -R 12 start
+mpu6000 -R 12 start
 #bmp280 start
 # I2C bypass of mpu
 #lps25h start

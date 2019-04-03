@@ -27,7 +27,7 @@ px4_add_board(
 		#camera_feedback
 		commander
 		dataman
-		ekf2
+		#ekf2
 		events
 		ledline_control
 		#fw_att_control
