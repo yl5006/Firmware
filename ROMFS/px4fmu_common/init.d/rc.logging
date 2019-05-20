@@ -24,4 +24,4 @@ then
 	set LOGGER_ARGS "-f"
 fi
 
-logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
+#logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
