@@ -246,7 +246,7 @@ static px4_sem_t g_sys_state_mutex_mission;
 static px4_sem_t g_sys_state_mutex_fence;
 
 /* The data manager store file handle and file name */
-static const char *default_device_path = PX4_STORAGEDIR "/dataman";
+static const char *default_device_path = "/fs/mtd_waypoints";//PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
 
 #if defined(FLASH_BASED_DATAMAN)
