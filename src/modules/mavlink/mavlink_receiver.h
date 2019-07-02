@@ -60,6 +60,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/cammer_rc.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/optical_flow.h>
@@ -158,6 +159,7 @@ private:
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
+	void handle_message_cammer_rc(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
@@ -251,6 +253,7 @@ private:
 	orb_advert_t _radio_status_pub{nullptr};
 	orb_advert_t _rates_sp_pub{nullptr};
 	orb_advert_t _rc_pub{nullptr};
+	orb_advert_t _cammer_rc_pub;
 	orb_advert_t _trajectory_waypoint_pub{nullptr};
 	orb_advert_t _transponder_report_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};

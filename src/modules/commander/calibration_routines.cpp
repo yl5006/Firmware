@@ -827,7 +827,7 @@ static void calibrate_answer_command(orb_advert_t *mavlink_log_pub, struct vehic
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
+		mavlink_log_critical(mavlink_log_pub,101,"command denied during calibration: %u", cmd.command);
 		tune_negative(true);
 		break;
 
@@ -857,7 +857,7 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 			    (int)cmd.param5 == 0 &&
 			    (int)cmd.param6 == 0) {
 				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
+				mavlink_log_info(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 				return true;
 
 			} else {

@@ -556,7 +556,7 @@ PX4IO::detect()
 
 			} else {
 				PX4_ERR("IO version error");
-				mavlink_log_emergency(&_mavlink_log_pub, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+				mavlink_log_emergency(&_mavlink_log_pub,1010, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
 			}
 
 			return -1;
@@ -612,12 +612,12 @@ PX4IO::init()
 
 	/* if the error still persists after timing out, we give up */
 	if (protocol == _io_reg_get_error) {
-		mavlink_log_emergency(&_mavlink_log_pub, "Failed to communicate with IO, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub,1011, "Failed to communicate with IO, abort.");
 		return -1;
 	}
 
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		mavlink_log_emergency(&_mavlink_log_pub, "IO protocol/firmware mismatch, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub,1012, "IO protocol/firmware mismatch, abort.");
 		return -1;
 	}
 
@@ -634,7 +634,7 @@ PX4IO::init()
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		PX4_ERR("config read error");
-		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.");
+		mavlink_log_emergency(&_mavlink_log_pub,1013, "[IO] config read fail, abort.");
 
 		// ask IO to reboot into bootloader as the failure may
 		// be due to mismatched firmware versions and we want
@@ -684,7 +684,7 @@ PX4IO::init()
 		/* get a status update from IO */
 		io_get_status();
 
-		mavlink_log_emergency(&_mavlink_log_pub, "RECOVERING FROM FMU IN-AIR RESTART");
+		mavlink_log_emergency(&_mavlink_log_pub,1014, "RECOVERING FROM FMU IN-AIR RESTART");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -713,7 +713,7 @@ PX4IO::init()
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 3000) {
-				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (1), abort");
+				mavlink_log_emergency(&_mavlink_log_pub,1015, "Failed to recover from in-air restart (1), abort");
 				return 1;
 			}
 
@@ -761,7 +761,7 @@ PX4IO::init()
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
-				mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (2), abort");
+				mavlink_log_emergency(&_mavlink_log_pub,1016, "Failed to recover from in-air restart (2), abort");
 				return 1;
 			}
 
@@ -808,7 +808,7 @@ PX4IO::init()
 			ret = io_set_rc_config();
 
 			if (ret != OK) {
-				mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail");
+				mavlink_log_critical(&_mavlink_log_pub,1, "IO RC config upload fail");
 				return ret;
 			}
 		}
@@ -1026,7 +1026,7 @@ PX4IO::task_main()
 						int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
 
 						if (pret != OK) {
-							mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
+							mavlink_log_critical(&_mavlink_log_pub,3, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
 						}
 					}
 				}
@@ -1592,7 +1592,7 @@ PX4IO::io_set_rc_config()
 
 		/* check the IO initialisation flag */
 		if (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
-			mavlink_log_critical(&_mavlink_log_pub, "config for RC%u rejected by IO", i + 1);
+			mavlink_log_critical(&_mavlink_log_pub,4, "config for RC%u rejected by IO", i + 1);
 			break;
 		}
 
@@ -1666,7 +1666,7 @@ PX4IO::dsm_bind_ioctl(int dsmMode)
 				(dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 
 		if (ret) {
-			mavlink_log_critical(&_mavlink_log_pub, "binding failed.");
+			mavlink_log_critical(&_mavlink_log_pub,5, "binding failed.");
 		}
 
 	} else {

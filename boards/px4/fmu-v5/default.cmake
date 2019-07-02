@@ -115,16 +115,16 @@ px4_add_board(
 		ver
 
 	EXAMPLES
-		bottle_drop # OBC challenge
-		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		hello
-		hwtest # Hardware test
+#		bottle_drop # OBC challenge
+#		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+#		hello
+#		hwtest # Hardware test
 		#matlab_csv_serial
-		position_estimator_inav
-		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		rover_steering_control # Rover example app
-		segway
-		uuv_example_app
+#		position_estimator_inav
+#		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+#		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+#		rover_steering_control # Rover example app
+#		segway
+#		uuv_example_app
 
 	)

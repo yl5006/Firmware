@@ -51,7 +51,7 @@
 #define MAVLINK_LOG_QUEUE_SIZE 5
 
 
-__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
+__EXPORT void mavlink_vasprintf(int severity,uint16_t msgid , orb_advert_t *mavlink_log_pub, const char *fmt, ...)
 {
 	// TODO: add compile check for maxlen
 
@@ -66,6 +66,8 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 	struct mavlink_log_s log_msg;
 
 	log_msg.severity = severity;
+
+	log_msg.msgid = msgid;
 
 	log_msg.timestamp = hrt_absolute_time();
 

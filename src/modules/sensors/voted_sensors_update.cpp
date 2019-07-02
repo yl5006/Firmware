@@ -906,7 +906,7 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 
 		} else {
 			if (failover_index != -1) {
-				mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!",
+				mavlink_log_emergency(&_mavlink_log_pub,1300, "%s #%i fail: %s%s%s%s%s!",
 						      sensor_name,
 						      failover_index,
 						      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),

@@ -286,7 +286,7 @@ FixedwingPositionControl::parameters_update()
 	    (_parameters.airspeed_trim < _parameters.airspeed_min) ||
 	    (_parameters.airspeed_trim > _parameters.airspeed_max)) {
 
-		mavlink_log_critical(&_mavlink_log_pub, "Airspeed parameters invalid");
+		mavlink_log_critical(&_mavlink_log_pub, 450,"Airspeed parameters invalid");
 
 		return PX4_ERROR;
 	}
@@ -658,7 +658,7 @@ FixedwingPositionControl::abort_landing(bool abort)
 {
 	// only announce changes
 	if (abort && !_land_abort) {
-		mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
+		mavlink_log_critical(&_mavlink_log_pub,451, "Landing aborted");
 	}
 
 	_land_abort = abort;
@@ -796,7 +796,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
-		*pitch_limit_min = radians(10.0f);
+		*pitch_limit_min = radians(15.0f);
 
 	} else {
 		*pitch_limit_min = _parameters.pitch_limit_min;
@@ -1341,7 +1341,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 
 				/* Inform user that launchdetection is running every 4s */
 				if (hrt_elapsed_time(&_launch_detection_notify) > 4e6) {
-					mavlink_log_critical(&_mavlink_log_pub, "Launch detection running");
+					mavlink_log_info(&_mavlink_log_pub, "Launch detection running");
 					_launch_detection_notify = hrt_absolute_time();
 				}
 

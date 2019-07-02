@@ -219,11 +219,60 @@ Mission::on_active()
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
 			set_mission_item_reached();
 		}
-
+		if(position_contains_command(_mission_item))   //add by yaoling
+		{
+			issue_command(_mission_item);
+		}
+        //跳转航线在此执行
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
-			advance_mission();
-			set_mission_items();
+			/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
+			if (_mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
+				/* select onboard/offboard mission */
+					int *mission_index_ptr = &_current_mission_index;
+					dm_item_t dm_item;
+					const ssize_t len = sizeof(struct mission_item_s);
+					const bool execute_jumps = _mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_NORMAL;
+					dm_item = (dm_item_t)_mission.dataman_id;
+				/* do DO_JUMP as many times as requested */
+				if ((_mission_item.do_jump_current_count < _mission_item.do_jump_repeat_count) && execute_jumps) {
+
+					/* only raise the repeat count if this is for the current mission item*/
+					(_mission_item.do_jump_current_count)++;
+
+					/* save repeat count */
+					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET,
+							&_mission_item, len) != len) {
+						/* not supposed to happen unless the datamanager can't access the
+						 * dataman */
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),700, "ERROR DO JUMP waypoint could not be written");
+					}
+					report_do_jump_mission_changed(*mission_index_ptr, _mission_item.do_jump_repeat_count);
+
+					/* set new mission item index and repeat
+					 * we don't have to validate here, if it's invalid, we should realize this later .*/
+					*mission_index_ptr = _mission_item.do_jump_mission_index;
+
+				} else {
+					if (execute_jumps) {
+						mavlink_log_info(_navigator->get_mavlink_log_pub(), "DO JUMP repetitions completed.");
+					}
+
+					/* no more DO_JUMPS, therefore just try to continue with next mission item */
+					if (_mission_execution_mode == mission_result_s::MISSION_EXECUTION_MODE_REVERSE) {
+						(*mission_index_ptr)--;
+
+					} else {
+						(*mission_index_ptr)++;
+					}
+				}
+				set_mission_items();
+			}
+			else
+			{
+				advance_mission();
+				set_mission_items();
+			}
 		}
 
 	} else if (_mission_type != MISSION_TYPE_NONE && _param_mis_altmode.get() == MISSION_ALTMODE_FOH) {
@@ -646,10 +695,10 @@ Mission::set_mission_items()
 
 			if (_navigator->get_land_detected()->landed) {
 				/* landed, refusing to take off without a mission */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff.");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),701, "No valid mission available, refusing takeoff.");
 
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, loitering.");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),702, "No valid mission available, loitering.");
 			}
 
 			user_feedback_done = true;
@@ -915,7 +964,7 @@ Mission::set_mission_items()
 					_mission_item.time_inside = 0.0f;
 
 				} else {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "MissionReverse: Got a non-position mission item, ignoring it");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),709, "MissionReverse: Got a non-position mission item, ignoring it");
 				}
 
 				break;
@@ -1015,7 +1064,10 @@ Mission::set_mission_items()
 	}
 
 	/* issue command if ready (will do nothing for position mission items) */
-	issue_command(_mission_item);
+	if(!item_contains_position(_mission_item))
+	{
+		issue_command(_mission_item);
+	}
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
@@ -1444,11 +1496,11 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 
 	/* Repeat this several times in case there are several DO JUMPS that we need to follow along, however, after
 	 * 10 iterations we have to assume that the DO JUMPS are probably cycling and give up. */
-	for (int i = 0; i < 10; i++) {
+//	for (int i = 0; i < 10; i++) {
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)_mission.count) {
 			/* mission item index out of bounds - if they are equal, we just reached the end */
 			if ((*mission_index_ptr != (int)_mission.count) && (*mission_index_ptr != -1)) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item index out of bound, index: %d, max: %d.",
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),703, "Mission item index out of bound, index: %d, max: %d.",
 						     *mission_index_ptr, _mission.count);
 			}
 
@@ -1463,9 +1515,12 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Waypoint could not be read.");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),704, "Waypoint could not be read.");
 			return false;
 		}
+		memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
+		return true;
+
 
 		/* check for DO_JUMP item, and whether it hasn't not already been repeated enough times */
 		if (mission_item_tmp.nav_cmd == NAV_CMD_DO_JUMP) {
@@ -1482,7 +1537,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 					/* save repeat count */
 					if (dm_write(dm_item, *mission_index_ptr, DM_PERSIST_POWER_ON_RESET, &mission_item_tmp, len) != len) {
 						/* not supposed to happen unless the datamanager can't access the dataman */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),705, "DO JUMP waypoint could not be written.");
 						return false;
 					}
 
@@ -1512,10 +1567,10 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 			memcpy(mission_item, &mission_item_tmp, sizeof(struct mission_item_s));
 			return true;
 		}
-	}
+//	}
 
 	/* we have given up, we don't want to cycle forever */
-	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP is cycling, giving up.");
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(),706, "DO JUMP is cycling, giving up.");
 	return false;
 }
 
@@ -1556,7 +1611,7 @@ Mission::save_mission_state()
 		mission_state.count = _mission.count;
 		mission_state.current_seq = _current_mission_index;
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid mission state.");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),708, "Invalid mission state.");
 
 		/* write modified state only if changed */
 		if (dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission_state,
@@ -1661,7 +1716,7 @@ Mission::reset_mission(struct mission_s &mission)
 			}
 
 		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Could not read mission.");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),710, "Could not read mission.");
 
 			/* initialize mission state in dataman */
 			mission.timestamp = hrt_absolute_time();

@@ -417,10 +417,10 @@ VtolAttitudeControl::is_fixed_wing_requested()
  * Abort front transition
  */
 void
-VtolAttitudeControl::abort_front_transition(const char *reason)
+VtolAttitudeControl::abort_front_transition(uint16_t msgid,const char *reason)
 {
 	if (!_abort_front_transition) {
-		mavlink_log_critical(&_mavlink_log_pub, "Abort: %s", reason);
+		mavlink_log_critical(&_mavlink_log_pub,msgid, "Abort: %s", reason);
 		_abort_front_transition = true;
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
@@ -678,9 +678,9 @@ void VtolAttitudeControl::task_main()
 			v19_rolldir_warning_counter += 1;
 
 			if ((v19_rolldir_warning_counter % v19_rolldir_warning_throttling) == 0) {
-				mavlink_log_critical(&_mavlink_log_pub,
+				mavlink_log_critical(&_mavlink_log_pub,836,
 						     "The VTOL roll commands were inverted in v1.9!");
-				mavlink_log_critical(&_mavlink_log_pub,
+				mavlink_log_critical(&_mavlink_log_pub,837,
 						     "Check roll mixing, then set V19_VT_ROLLDIR to 0");
 			}
 

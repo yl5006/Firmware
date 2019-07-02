@@ -56,6 +56,7 @@ px4_add_module(
 		rc_calibration.cpp
 		rc_check.cpp
 		state_machine_helper.cpp
+		commander_motor_test.cpp
 	DEPENDS
 		circuit_breaker
 		df_driver_framework

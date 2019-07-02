@@ -63,6 +63,8 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/horizontal_distance.h>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/uORB.h>
 
 using matrix::Dcmf;
@@ -103,13 +105,22 @@ private:
 	int		_manual_control_sub{-1};		/**< notification of manual control updates */
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
-
+	int		_horizontal_distance_sub{-1};   //add by yaoling
+	int		_att_sub{-1};					/**< control state subscription */
+    	enum NAVSTATE
+    	{
+        	NAVGATION = 0,
+        	GORIGHT,
+        	GOBACK,
+   	}navstate,newstate;
+    	float t1 =0;
 	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_control_mode{};			/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
-
+	horizontal_distance_s 			_horizontal_dis{};      //add by yaoling
+	vehicle_attitude_s				_att {};	/**< control state */
 	Subscription<vehicle_attitude_s>	_sub_attitude;
 	Subscription<sensor_bias_s>	_sub_sensors;
 
@@ -185,7 +196,7 @@ private:
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();
 	void		vehicle_control_mode_poll();
-
+	void		horizontal_dis_poll();
 	/**
 	 * Control position.
 	 */

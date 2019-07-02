@@ -128,7 +128,7 @@ EngineFailure::advance_ef()
 {
 	switch (_ef_state) {
 	case EF_STATE_NONE:
-		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "Engine failure. Loitering down");
+		mavlink_log_emergency(_navigator->get_mavlink_log_pub(),1200, "Engine failure. Loitering down");
 		_ef_state = EF_STATE_LOITERDOWN;
 		break;
 

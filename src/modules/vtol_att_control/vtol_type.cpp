@@ -192,7 +192,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_min_alt > FLT_EPSILON) {
 
 			if (-(_local_pos->z) < _params->fw_min_alt) {
-				_attc->abort_front_transition("QuadChute: Minimum altitude breached");
+				_attc->abort_front_transition(831,"QuadChute: Minimum altitude breached");
 			}
 		}
 
@@ -210,7 +210,7 @@ void VtolType::check_quadchute_condition()
 				    (_ra_hrate < -1.0f) &&
 				    (_ra_hrate_sp > 1.0f)) {
 
-					_attc->abort_front_transition("QuadChute: loss of altitude");
+					_attc->abort_front_transition(835,"QuadChute: loss of altitude");
 				}
 
 			} else {
@@ -218,7 +218,7 @@ void VtolType::check_quadchute_condition()
 				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
 
 				if (height_error && height_rate_error) {
-					_attc->abort_front_transition("QuadChute: large altitude error");
+					_attc->abort_front_transition(834,"QuadChute: large altitude error");
 				}
 			}
 		}
@@ -227,7 +227,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_pitch > 0) {
 
 			if (fabsf(euler.theta()) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
-				_attc->abort_front_transition("Maximum pitch angle exceeded");
+				_attc->abort_front_transition(832,"Maximum pitch angle exceeded");
 			}
 		}
 
@@ -235,7 +235,7 @@ void VtolType::check_quadchute_condition()
 		if (_params->fw_qc_max_roll > 0) {
 
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
-				_attc->abort_front_transition("Maximum roll angle exceeded");
+				_attc->abort_front_transition(833,"Maximum roll angle exceeded");
 			}
 		}
 	}

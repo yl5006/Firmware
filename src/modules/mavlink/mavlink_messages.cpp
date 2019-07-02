@@ -67,6 +67,7 @@
 #include <uORB/topics/debug_array.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/horizontal_distance.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -422,6 +423,7 @@ protected:
 			if (_mavlink->get_logbuffer()->get(&mavlink_log)) {
 
 				mavlink_statustext_t msg;
+				msg.msgid = mavlink_log.msgid;
 				msg.severity = mavlink_log.severity;
 				strncpy(msg.text, (const char *)mavlink_log.text, sizeof(msg.text));
 				msg.text[sizeof(msg.text) - 1] = '\0';
@@ -1257,9 +1259,9 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s pos = {};
-		actuator_armed_s armed = {};
-		airspeed_s airspeed = {};
+		static vehicle_local_position_s pos = {};
+		static actuator_armed_s armed = {};
+		static airspeed_s airspeed = {};
 
 		bool updated = false;
 		updated |= _pos_sub->update(&_pos_time, &pos);
@@ -2754,6 +2756,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_act_sub;
+	MavlinkOrbSubscription *_act_sub1;
 	uint64_t _act_time;
 
 	/* do not allow top copying this class */
@@ -2762,7 +2765,8 @@ private:
 
 protected:
 	explicit MavlinkStreamServoOutputRaw(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs), N)),
+		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs), 0)),
+		_act_sub1(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs), 1)),
 		_act_time(0)
 	{}
 
@@ -2785,15 +2789,17 @@ protected:
 			msg.servo6_raw = act.output[5];
 			msg.servo7_raw = act.output[6];
 			msg.servo8_raw = act.output[7];
-			msg.servo9_raw = act.output[8];
-			msg.servo10_raw = act.output[9];
-			msg.servo11_raw = act.output[10];
-			msg.servo12_raw = act.output[11];
-			msg.servo13_raw = act.output[12];
-			msg.servo14_raw = act.output[13];
-			msg.servo15_raw = act.output[14];
-			msg.servo16_raw = act.output[15];
-
+			if (_act_sub1->update(&_act_time, &act))
+			{
+				msg.servo9_raw = act.output[0];
+				msg.servo10_raw = act.output[1];
+				msg.servo11_raw = act.output[2];
+				msg.servo12_raw = act.output[3];
+				msg.servo13_raw = act.output[4];
+				msg.servo14_raw = act.output[5];
+				msg.servo15_raw = act.output[6];
+				msg.servo16_raw = act.output[7];
+			}
 			mavlink_msg_servo_output_raw_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
@@ -4185,6 +4191,9 @@ protected:
 			case MAV_DISTANCE_SENSOR_INFRARED:
 				msg.type = MAV_DISTANCE_SENSOR_INFRARED;
 				break;
+			case MAV_DISTANCE_SENSOR_MILLIWAVE: 			//add for Avoidance by yaoling
+				msg.type = MAV_DISTANCE_SENSOR_MILLIWAVE;
+				break;
 
 			default:
 				msg.type = MAV_DISTANCE_SENSOR_LASER;
@@ -4198,6 +4207,104 @@ protected:
 			msg.covariance = dist_sensor.variance * 1e4f; // m^2 to cm^2
 
 			mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+class MavlinkStreamHorizontalDistance : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamHorizontalDistance::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "HORIZONTAL_DISTANCE";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_HORIZONTAL_DISTANCE;
+	}
+
+	uint16_t get_id()
+    {
+        return get_id_static();
+    }
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamHorizontalDistance(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _horizontal_distance_sub->is_published() ? (MAVLINK_MSG_ID_HORIZONTAL_DISTANCE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_horizontal_distance_sub;
+	uint64_t _dist_sensor_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamHorizontalDistance(MavlinkStreamHorizontalDistance &);
+	MavlinkStreamHorizontalDistance& operator = (const MavlinkStreamHorizontalDistance &);
+
+protected:
+	explicit MavlinkStreamHorizontalDistance(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_horizontal_distance_sub(_mavlink->add_orb_subscription(ORB_ID(horizontal_distance))),
+		_dist_sensor_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct horizontal_distance_s dist_sensor;
+
+		if (_horizontal_distance_sub->update(&_dist_sensor_time, &dist_sensor)) {
+
+			mavlink_horizontal_distance_t msg;
+
+			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
+
+			/* TODO: use correct ID here */
+			msg.id = 0;
+
+			switch (dist_sensor.type) {
+			case MAV_DISTANCE_SENSOR_ULTRASOUND:
+				msg.type = MAV_DISTANCE_SENSOR_ULTRASOUND;
+				break;
+
+			case MAV_DISTANCE_SENSOR_LASER:
+				msg.type = MAV_DISTANCE_SENSOR_LASER;
+				break;
+
+			case MAV_DISTANCE_SENSOR_INFRARED:
+				msg.type = MAV_DISTANCE_SENSOR_INFRARED;
+				break;
+			case MAV_DISTANCE_SENSOR_MILLIWAVE: 			//add for Avoidance by yaoling
+				msg.type = MAV_DISTANCE_SENSOR_MILLIWAVE;
+				break;
+
+			default:
+				msg.type = MAV_DISTANCE_SENSOR_LASER;
+				break;
+			}
+
+			msg.orientation = dist_sensor.orientation;
+			msg.min_distance = dist_sensor.min_distance * 100.0f; /* m to cm */
+			msg.max_distance = dist_sensor.max_distance * 100.0f; /* m to cm */
+			msg.current_distance[0] = dist_sensor.current_distance[0] * 100.0f; /* m to cm */
+			msg.current_distance[1] = dist_sensor.current_distance[1] * 100.0f; /* m to cm */
+			msg.current_distance[2] = dist_sensor.current_distance[2] * 100.0f; /* m to cm */
+			msg.current_distance[3] = dist_sensor.current_distance[3] * 100.0f; /* m to cm */
+			msg.covariance = dist_sensor.covariance;
+			mavlink_msg_horizontal_distance_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
@@ -4869,6 +4976,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static, &MavlinkStreamCameraTrigger::get_id_static),
 	StreamListItem(&MavlinkStreamCameraImageCaptured::new_instance, &MavlinkStreamCameraImageCaptured::get_name_static, &MavlinkStreamCameraImageCaptured::get_id_static),
 	StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static, &MavlinkStreamDistanceSensor::get_id_static),
+	StreamListItem(&MavlinkStreamHorizontalDistance::new_instance, &MavlinkStreamHorizontalDistance::get_name_static, &MavlinkStreamHorizontalDistance::get_id_static),
 	StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static, &MavlinkStreamExtendedSysState::get_id_static),
 	StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
 	StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),

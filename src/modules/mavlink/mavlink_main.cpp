@@ -1201,14 +1201,14 @@ Mavlink::send_statustext_info(const char *string)
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	mavlink_log_critical(&_mavlink_log_pub, "%s", string);
+	mavlink_log_info(&_mavlink_log_pub, "%s", string);
 	PX4_ERR("%s", string);
 }
 
 void
-Mavlink::send_statustext_emergency(const char *string)
+Mavlink::send_statustext_emergency(uint16_t msgid,const char *string)
 {
-	mavlink_log_emergency(&_mavlink_log_pub, "%s", string);
+	mavlink_log_emergency(&_mavlink_log_pub, msgid,"%s", string);
 }
 
 void
@@ -1659,14 +1659,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	case MAVLINK_MODE_NORMAL:
 		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
 		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("ATTITUDE", 20.0f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
+		configure_stream_local("ATTITUDE", 10.0f); //20 to 10
+		configure_stream_local("ATTITUDE_TARGET", 1.0f);//2 to 1
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("DEBUG", 1.0f);
 		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
 		configure_stream_local("DEBUG_VECT", 1.0f);
 		configure_stream_local("DISTANCE_SENSOR", 0.5f);
+		configure_stream_local("HORIZONTAL_DISTANCE", 1.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
@@ -1686,7 +1687,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
-		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
+		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 2.0f); //5 to 2
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("WIND_COV", 1.0f);

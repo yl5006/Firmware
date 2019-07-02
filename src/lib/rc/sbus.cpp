@@ -150,6 +150,32 @@ sbus_init(const char *device, bool singlewire)
 }
 
 int
+sbus_initrc(const char *device, bool singlewire)
+{
+	int sbus_fd = open(device, O_RDWR | O_NOCTTY);
+	if(sbus_fd <= 0)
+	{
+		printf("sbus_fd open:%d\r\n",errno);
+	}
+ 	struct termios t;
+		/* 100000bps, even parity, two stop bits */
+	tcgetattr(sbus_fd, &t);
+	cfsetspeed(&t, 100000);
+ 	t.c_cflag  &= ~ONLCR;
+ 	t.c_cflag  &= ~CRTSCTS ;
+ 	t.c_cflag  &= ~(PARENB|CSTOPB);
+	tcsetattr(sbus_fd, TCSANOW, &t);
+/*
+	 	cfsetispeed(&t, B115200);
+	 	cfsetospeed(&t, B115200);
+	 	t.c_cflag  |= CS8;
+	 	t.c_cflag  &= ~CRTSCTS ;
+     	t.c_cflag  &= ~(PARENB|CSTOPB);
+	 	tcsetattr(sbus_fd, TCSANOW, &t);
+	 	*/
+	return sbus_fd;
+}
+int
 sbus_config(int sbus_fd, bool singlewire)
 {
 #if defined(__PX4_POSIX_OCPOC)
@@ -251,7 +277,7 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 		* currently ignoring single bit channels.  */
 
 		for (unsigned i = 0; (i < num_values) && (i < 16); ++i) {
-			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
+			value =values[i];// (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
 
 			/*protect from out of bounds values and limit to 11 bits*/
 			if (value > 0x07ff) {

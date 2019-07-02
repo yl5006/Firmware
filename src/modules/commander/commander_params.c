@@ -212,7 +212,7 @@ PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
  * @decimal 2
  * @increment 0.5
  */
-PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_H_T, 3.0f);
 
 /**
  * Home set vertical threshold
@@ -226,7 +226,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
  * @decimal 2
  * @increment 0.5
  */
-PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_V_T, 5.0f);
 
 /**
  * RC control input mode
@@ -273,7 +273,7 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 1.0f);
 
 /**
  * Allow arming without GPS

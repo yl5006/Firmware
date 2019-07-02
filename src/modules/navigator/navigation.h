@@ -49,7 +49,7 @@
 #elif defined(__PX4_POSIX)
 #  define NUM_MISSIONS_SUPPORTED (UINT16_MAX-1) // This is allocated as needed.
 #else
-#  define NUM_MISSIONS_SUPPORTED 2000 // This allocates a file of around 181 kB on the SD card.
+#  define NUM_MISSIONS_SUPPORTED 1000 // This allocates a file of around 181 kB on the SD card.
 #endif
 
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
@@ -80,8 +80,9 @@ enum NAV_CMD {
 	NAV_CMD_DO_DIGICAM_CONTROL = 203,
 	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
 	NAV_CMD_DO_MOUNT_CONTROL = 205,
-	NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL = 214,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
+	NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL = 214,
+	NAV_CMD_COMPONENT_ARM_DISARM=400,
 	NAV_CMD_SET_CAMERA_MODE = 530,
 	NAV_CMD_IMAGE_START_CAPTURE = 2000,
 	NAV_CMD_IMAGE_STOP_CAPTURE = 2001,
@@ -153,13 +154,19 @@ struct mission_item_s {
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
 			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
-			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			float cruise_speed;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
 			float yaw;				/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 			float ___lat_float;			/**< padding */
 			float ___lon_float;			/**< padding */
 			float altitude;				/**< altitude in meters	(AMSL)			*/
+			union {
+				float loiter_radius;	//add for command param by yaoling
+				float param8;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			};
+			float param9;
+			float param10;
 		};
-		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
+		float params[10];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
 	};
 
 	uint16_t nav_cmd;				/**< navigation command					*/
@@ -184,7 +191,7 @@ struct mission_item_s {
 			 _padding0 : 4;				/**< padding remaining unused bits  */
 	};
 
-	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */
+	uint8_t _padding1[6];				/**< padding struct size to alignment boundary  */
 };
 
 /**

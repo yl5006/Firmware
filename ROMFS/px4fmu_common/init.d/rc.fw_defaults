@@ -33,6 +33,7 @@ then
 	param set RTL_RETURN_ALT 100
 	param set RTL_DESCEND_ALT 100
 	param set RTL_LAND_DELAY -1
+	param set CBRK_IO_SAFETY 22027
 
 	#
 	# FW uses L1 distance for acceptance radius.

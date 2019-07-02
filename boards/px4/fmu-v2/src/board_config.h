@@ -65,7 +65,7 @@
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
-
+#define GROUNDSTATION_RC_SBUS	"/dev/ttyS2"
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"

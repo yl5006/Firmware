@@ -44,7 +44,10 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <poll.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 
@@ -60,6 +63,10 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+using matrix::Eulerf;
+using matrix::Quatf;
 
 
 class CameraFeedback
@@ -86,7 +93,8 @@ public:
 	 * Stop the task.
 	 */
 	void		stop();
-
+	bool		get_log_time(struct tm *tt, bool boot_time);
+	int 		create_log_dir(tm *tt);
 private:
 
 	bool		_task_should_exit;		/**< if true, task should exit */
@@ -95,13 +103,22 @@ private:
 	int			_trigger_sub;
 	int			_gpos_sub;
 	int			_att_sub;
-
+	int32_t 	utc_offset{0};
 	orb_advert_t	_capture_pub;
 
 	param_t			_p_camera_capture_feedback;
 
 	int32_t _camera_capture_feedback;
+	
+	param_t			_log_utc_offset{PARAM_INVALID};
 
+	char 		_log_dir[256] {};
+	char 		time[100];
+	char    	line[300];
+	char    	camera_file[256];
+	int 		_fd;
+	bool 		init;
+	time_t 		utc_time_sec;
 	void		task_main();
 
 	/**

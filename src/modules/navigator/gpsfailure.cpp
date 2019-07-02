@@ -155,12 +155,12 @@ GpsFailure::advance_gpsf()
 	switch (_gpsf_state) {
 	case GPSF_STATE_NONE:
 		_gpsf_state = GPSF_STATE_LOITER;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Global position failure: fixed bank loiter");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),620, "Global position failure: fixed bank loiter");
 		break;
 
 	case GPSF_STATE_LOITER:
 		_gpsf_state = GPSF_STATE_TERMINATE;
-		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "no GPS recovery, terminating flight");
+		mavlink_log_emergency(_navigator->get_mavlink_log_pub(),1250, "no GPS recovery, terminating flight");
 		break;
 
 	case GPSF_STATE_TERMINATE:

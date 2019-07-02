@@ -1,0 +1,31 @@
+# E-flite Convergence Tricopter Y-Configuration Mixer
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 0  10000  10000      0 -10000  10000
+S: 1 6  10000  10000      0 -10000  10000
+
+
+V-tail mixers
+-------------
+Three scalers total (output, roll, pitch).
+
+On the assumption that the two tail servos are physically reversed, the pitch
+input is inverted between the two servos.
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 2  -7000  -7000      0 -10000  10000
+S: 1 1  -8000  -8000      0 -10000  10000
+
+Z:
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 2  -7000  -7000      0 -10000  10000
+S: 1 1   8000   8000      0 -10000  10000
+
+
+# Motors
+R: 3y 10000 10000 10000 0
+

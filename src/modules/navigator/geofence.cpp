@@ -50,12 +50,16 @@
 
 #include "navigator.h"
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
+#define GEOFENCE_RANGE_WARNING_LIMIT 8000000
 
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
 	_navigator(navigator),
-	_sub_airdata(ORB_ID(vehicle_air_data))
+	_sub_airdata(ORB_ID(vehicle_air_data)),
+	_maxindex(0),
+	_startindex(0),
+	_checkindex(0),
+	_indexinit(false)
 {
 	// we assume there's no concurrent fence update on startup
 	_updateFence();
@@ -238,8 +242,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 		if (max_vertical_distance > FLT_EPSILON && (dist_z > max_vertical_distance)) {
 			if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum altitude above home exceeded by %.1f m",
-						     (double)(dist_z - max_vertical_distance));
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),610,"Maximum altitude above home exceeded by %.1f m",(double)(dist_z - max_vertical_distance));
 				_last_vertical_range_warning = hrt_absolute_time();
 			}
 
@@ -248,7 +251,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 		if (max_horizontal_distance > FLT_EPSILON && (dist_xy > max_horizontal_distance)) {
 			if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum distance from home exceeded by %.1f m",
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),611, "Maximum distance from home exceeded by %.1f m",
 						     (double)(dist_xy - max_horizontal_distance));
 				_last_horizontal_range_warning = hrt_absolute_time();
 			}
@@ -431,6 +434,141 @@ Geofence::valid()
 {
 	return true; // always valid
 }
+bool
+Geofence::intsideEwtFile(const struct vehicle_global_position_s &global_position)
+{
+	if(!_indexinit)
+		return false;
+	FILE		*fp;
+	forbidden 	place;
+	bool inside_fence=false;
+	/* open the mixer definition file */
+	fp = fopen(GEOFENCE_EWT, "rb");
+
+	if (fp == nullptr) {
+		warnx("load error");
+		return PX4_ERROR;
+	}
+	/* create geofence points from valid lines and store in DM */
+	fseek(fp, _checkindex*112, SEEK_SET);
+	int lat=(int)(global_position.lat*10000000);
+	int lon=(int)(global_position.lon*10000000);
+	for (int k=0;k < 10 && _checkindex < _maxindex;k++,_checkindex++) {
+		if(fread(&place, 112, 1, fp)){};  //读取112个字节
+		if( lat >place.maxlat ||lat <  place.minlat|| lon <place.minlon || lon > place.maxlon)
+		{
+                continue ;
+		}
+		else
+		{
+			if(place.shape==0)
+			{
+				bool c = false;
+				/* Read until fence is finished */
+				for (int i = 0, j = place.numpoint-1; i < place.numpoint; j = i++) {
+
+					// skip vertex 0 (return point)
+					if (((double)place.pt.polygon[i].lon*1e-7 >= global_position.lon) != ((double)place.pt.polygon[j].lon *1e-7>= global_position.lon) &&
+					    (global_position.lat <= ((double)place.pt.polygon[j].lat*1e-7 - (double)place.pt.polygon[i].lat*1e-7) * (global_position.lon -  (double)place.pt.polygon[i].lon*1e-7) /
+					     ((double)place.pt.polygon[j].lon*1e-7- (double)place.pt.polygon[i].lon*1e-7) + (double)place.pt.polygon[i].lat*1e-7)) {
+						c = !c;
+					}
+
+				}
+				inside_fence=c;
+				if(inside_fence){
+					if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+						_last_horizontal_range_warning = hrt_absolute_time();
+						if(place.type==4||place.type==5)
+						{
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(),612, "Fly in forbidden place %d,type %d",
+										place.cno,place.type);
+						}else
+						{
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(),613, "Fly in forbidden place %d,type %d",
+										place.cno,place.type);
+						}
+					}
+					if(place.type==4||place.type==5)
+					{
+						inside_fence=false;   //not forbid fly
+					}
+				}
+			}else if(place.shape==1)  //circle
+			{
+				float dist_xy = -1.0f;
+				float dist_z = -1.0f;
+				get_distance_to_point_global_wgs84(global_position.lat, global_position.lon, global_position.alt,
+						(double)place.pt.cir.center.lat*1e-7, (double)place.pt.cir.center.lon*1e-7, global_position.alt,
+											   &dist_xy, &dist_z);
+
+					if ((int)dist_xy < place.pt.cir.radius) {
+							if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
+								if(place.type==4||place.type==5)
+										{
+											mavlink_log_critical(_navigator->get_mavlink_log_pub(),614, "Fly in forbidden place %d,type %d",
+														place.cno,place.type);
+										}else
+										{
+											mavlink_log_critical(_navigator->get_mavlink_log_pub(),615, "Fly in forbidden place %d,type %d",
+														place.cno,place.type);
+										}
+								_last_horizontal_range_warning = hrt_absolute_time();
+							}
+							inside_fence= true;
+					}
+			}else if(place.shape==2)//sector
+			{
+
+			}
+		}
+	}
+	if(_checkindex==_maxindex)
+	{
+		_checkindex=_startindex;
+	}
+	fclose(fp);
+	return inside_fence;
+}
+int
+Geofence::loadFromEwtFile(const struct vehicle_global_position_s &global_position)
+{
+	static bool havefile=true;
+	if(!_indexinit&&havefile)
+	{
+		FILE		*fp;
+		forbidden 	place;
+		/* Make sure no data is left in the datamanager */
+		clearDm();
+
+		/* open the mixer definition file */
+		fp = fopen(GEOFENCE_EWT, "rb");
+
+		if (fp == nullptr) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),616, "fence load error");
+			havefile=false;
+			return PX4_ERROR;
+		}
+		/* create geofence points from valid lines and store in DM */
+		fseek(fp, _maxindex*112, SEEK_SET);
+		for (int i=0;i<100;i++,_maxindex++) {
+			if(fread(&place, 112, 1, fp)){};  //读取112个字节
+			if(_startindex==0&&(int)(global_position.lat*1e7-60000000) < place.minlat)
+				{
+				_startindex=_maxindex;
+				_checkindex=_startindex;
+				}
+			if((int)(global_position.lat*1e7+10000000) < place.minlat)
+			{
+				_indexinit=true;
+				break ;
+			}
+		}
+		fclose(fp);
+		return PX4_OK;
+	}
+	return PX4_OK;
+}
 
 int
 Geofence::loadFromFile(const char *filename)
@@ -549,7 +687,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		PX4_ERR("Geofence: import error");
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence import error");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(),617, "Geofence import error");
 	}
 
 	updateFence();

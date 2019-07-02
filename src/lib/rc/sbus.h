@@ -54,6 +54,7 @@ typedef   uint8_t sbus_frame_t[SBUS_FRAME_SIZE + (SBUS_FRAME_SIZE / 2)];
 
 __EXPORT int	sbus_init(const char *device, bool singlewire);
 
+__EXPORT int	sbus_initrc(const char *device, bool singlewire);
 /**
  * Parse serial bytes on the S.BUS bus
  *

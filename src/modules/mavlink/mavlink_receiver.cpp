@@ -195,6 +195,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_rc_channels_override(msg);
 		break;
 
+	case MAVLINK_MSG_ID_CAMMER_RC:
+		handle_message_cammer_rc(msg);
+		break;
+
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		handle_message_heartbeat(msg);
 		break;
@@ -1805,6 +1809,53 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	int instance; // provides the instance ID or the publication
 	ORB_PRIO priority = ORB_PRIO_HIGH; // since it is an override, set priority high
 	orb_publish_auto(ORB_ID(input_rc), &_rc_pub, &rc, &instance, priority);
+}
+
+void
+MavlinkReceiver::handle_message_cammer_rc(mavlink_message_t *msg)
+{
+	mavlink_cammer_rc_t man;
+	mavlink_msg_cammer_rc_decode(msg, &man);
+
+	struct cammer_rc_s camrc = {};
+
+	camrc.timestamp = hrt_absolute_time();
+
+	camrc.timestamp_last_signal = camrc.timestamp;
+
+	camrc.channel_count = 16;
+
+	camrc.rc_failsafe = false;
+
+	camrc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+
+	/* channels */
+	camrc.values[0] = man.chan1_raw;
+	camrc.values[1] = man.chan2_raw;
+	camrc.values[2] = man.chan3_raw;
+	camrc.values[3] = man.chan4_raw;
+	camrc.values[4] = man.chan5_raw;
+	camrc.values[5] = man.chan6_raw;
+	camrc.values[6] = man.chan7_raw;
+	camrc.values[7] = man.chan8_raw;
+	camrc.values[8] = man.chan9_raw;
+	camrc.values[9] = man.chan10_raw;
+	camrc.values[10] = man.chan11_raw;
+	camrc.values[11] = man.chan12_raw;
+	camrc.values[12] = man.chan13_raw;
+	camrc.values[13] = man.chan14_raw;
+	camrc.values[14] = man.chan15_raw;
+	camrc.values[15] = man.chan16_raw;
+	camrc.values[16] = man.chan17_raw;
+	camrc.values[17] = man.chan18_raw;
+
+	if (_cammer_rc_pub == nullptr) {
+		_cammer_rc_pub = orb_advertise(ORB_ID(cammer_rc), &camrc);
+
+	} else {
+		orb_publish(ORB_ID(cammer_rc), _cammer_rc_pub, &camrc);
+	}
+
 }
 
 void

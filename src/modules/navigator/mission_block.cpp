@@ -75,8 +75,8 @@ MissionBlock::is_mission_item_reached()
 	/* handle non-navigation or indefinite waypoints */
 
 	switch (_mission_item.nav_cmd) {
-	case NAV_CMD_DO_SET_SERVO:
-		return true;
+//	case NAV_CMD_DO_SET_SERVO:
+//		return true;
 
 	case NAV_CMD_LAND: /* fall through */
 	case NAV_CMD_VTOL_LAND:
@@ -88,7 +88,7 @@ MissionBlock::is_mission_item_reached()
 
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
-	case NAV_CMD_DO_DIGICAM_CONTROL:
+//	case NAV_CMD_DO_DIGICAM_CONTROL:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 	case NAV_CMD_VIDEO_START_CAPTURE:
@@ -99,8 +99,8 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case NAV_CMD_DO_SET_ROI_NONE:
-	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
-	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
+//	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+//	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
 		return true;
 
@@ -120,10 +120,11 @@ MissionBlock::is_mission_item_reached()
 		} else {
 			return false;
 		}
-
+#if 0
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
 		return true;
+#endif
 
 	default:
 		/* do nothing, this is a 3D waypoint */
@@ -351,7 +352,7 @@ MissionBlock::is_mission_item_reached()
 			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
 			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
 
-				_navigator->set_mission_failure("unable to reach heading within timeout");
+				_navigator->set_mission_failure(725,"unable to reach heading within timeout");
 			}
 
 		} else {
@@ -398,6 +399,10 @@ MissionBlock::is_mission_item_reached()
 								   &curr_sp.lat, &curr_sp.lon);
 			}
 
+			if(_mission_item.cruise_speed > NAV_EPSILON_POSITION)
+			{
+				_navigator->set_cruising_speed(_mission_item.cruise_speed);
+			}
 			return true;
 		}
 	}
@@ -420,9 +425,9 @@ MissionBlock::reset_mission_item_reached()
 void
 MissionBlock::issue_command(const mission_item_s &item)
 {
-	if (item_contains_position(item)) {
-		return;
-	}
+//	if (item_contains_position(item)) {
+//		return;
+//	}
 
 	// NAV_CMD_DO_LAND_START is only a marker
 	if (item.nav_cmd == NAV_CMD_DO_LAND_START) {
@@ -438,7 +443,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
+		actuators.control[(int)item.param8] = 1.0f / 2000 * -item.param9;
 
 		if (_actuator_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
@@ -456,10 +461,21 @@ MissionBlock::issue_command(const mission_item_s &item)
 		// (MAV_FRAME_MISSION mission item)
 		vehicle_command_s vcmd = {};
 		vcmd.command = item.nav_cmd;
-		vcmd.param1 = item.params[0];
-		vcmd.param2 = item.params[1];
-		vcmd.param3 = item.params[2];
-		vcmd.param4 = item.params[3];
+		if(position_contains_command(item))
+		{
+			vcmd.param1 = item.param8;
+			vcmd.param2 = item.param9;
+			vcmd.param3 = item.param10;
+			vcmd.param4 = item.params[3];
+		}else
+		{
+			vcmd.param1 = item.params[0];
+			vcmd.param2 = item.params[1];
+			vcmd.param3 = item.params[2];
+			vcmd.param4 = item.params[3];
+		}
+
+
 
 		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION && item.altitude_is_relative) {
 			vcmd.param5 = item.lat;
@@ -493,7 +509,15 @@ MissionBlock::get_time_inside(const mission_item_s &item) const
 bool
 MissionBlock::item_contains_position(const mission_item_s &item)
 {
-	return item.nav_cmd == NAV_CMD_WAYPOINT ||
+	return item.nav_cmd == NAV_CMD_DO_JUMP ||
+	       item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+	       item.nav_cmd == NAV_CMD_COMPONENT_ARM_DISARM ||
+	       item.nav_cmd == NAV_CMD_DO_SET_SERVO ||
+	       item.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+	       item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+	       item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
+	       item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
+	       item.nav_cmd == NAV_CMD_WAYPOINT ||
 	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	       item.nav_cmd == NAV_CMD_LAND ||
@@ -502,6 +526,24 @@ MissionBlock::item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_VTOL_LAND ||
 	       item.nav_cmd == NAV_CMD_DO_FOLLOW_REPOSITION;
+}
+
+bool
+MissionBlock::position_contains_command(const mission_item_s &item)
+{
+	// XXX: first to test this three cmd
+	if (item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+		item.nav_cmd == NAV_CMD_COMPONENT_ARM_DISARM ||
+		item.nav_cmd == NAV_CMD_DO_SET_SERVO ||
+		item.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+		item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH ||
+		item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
+		item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ){
+
+		return true;
+	}
+
+	return false;
 }
 
 bool

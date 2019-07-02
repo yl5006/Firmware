@@ -29,5 +29,8 @@ fi
 
 set MIXER AETRFG
 
+set PWM_OUT 3
+set PWM_DISARMED 900
+
 # Rate must be set by group (see pwm info).
 # Throttle is in the same group as servos.

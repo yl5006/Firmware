@@ -287,7 +287,7 @@ else
 					tune_control stop
 					if px4io checkcrc ${IOFW}
 					then
-						echo "PX4IO CRC OK after updating" >> $LOG_FILE
+						echo "IOBoard CRC OK after updating" >> $LOG_FILE
 						#tune MLL8CDE Program PX4IO success
 						tune_control play -t 19
 						set IO_PRESENT yes
@@ -296,7 +296,7 @@ else
 
 				if [ $IO_PRESENT = no ]
 				then
-					echo "PX4IO update failed" >> $LOG_FILE
+					echo "IOBoard update failed" >> $LOG_FILE
 					# Error tune.
 					tune_control play -t 20
 				fi
@@ -314,7 +314,7 @@ else
 
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
-		echo "PX4IO not found" >> $LOG_FILE
+		echo "IOBoard not found" >> $LOG_FILE
 		# Error tune.
 		tune_control play -t 2
 	fi

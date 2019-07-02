@@ -1,0 +1,62 @@
+Aileron/v-tail/throttle VTOL mixer for E3
+=======================================================
+
+This file defines mixers suitable for controlling a fixed wing aircraft with
+aileron, v-tail (rudder, elevator) and throttle using E3
+The configuration assumes the aileron servos are connected to E3
+AUX servo output 0 and 1, the tail servos to output 2 and 3, the throttle
+to output 4.
+
+Tilt mechanism servo mixer
+---------------------------
+
+#RIGHT up:2000 down:1000
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 4      0 -20000  10000 -10000  10000
+S: 0 2   7000   7000      0 -10000  10000
+
+#LEFT up:1000 down:2000
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 4      0  20000 -10000 -10000  10000
+S: 0 2   7000   7000      0 -10000  10000
+
+Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
+(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps) 6 (flaperon).
+
+Aileron mixer (roll + flaperon)
+---------------------------------
+
+This mixer assumes that the aileron servos are set up correctly mechanically;
+depending on the actual configuration it may be necessary to reverse the scaling
+factors (to reverse the servo movement) and adjust the offset, scaling and
+endpoints to suit.
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 0  10000  10000      0 -10000  10000
+S: 1 6  10000  10000      0 -10000  10000
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 0  10000  10000      0 -10000  10000
+S: 1 6 -10000 -10000      0 -10000  10000
+
+
+V-tail mixers
+-------------
+Three scalers total (output, roll, pitch).
+
+On the assumption that the two tail servos are physically reversed, the pitch
+input is inverted between the two servos.
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 2  -7000  -7000      0 -10000  10000
+S: 1 1  -8000  -8000      0 -10000  10000
+
+M: 2
+O:      10000  10000      0 -10000  10000
+S: 1 2  -7000  -7000      0 -10000  10000
+S: 1 1   8000   8000      0 -10000  10000

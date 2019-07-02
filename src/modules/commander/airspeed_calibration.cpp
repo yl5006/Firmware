@@ -94,7 +94,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			paramreset_successful = true;
 
 		} else {
-			calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset zero failed");
+			calibration_log_critical(mavlink_log_pub, "[cal] [air]01 airspeed offset zero failed");
 		}
 
 		px4_close(fd);
@@ -109,7 +109,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
 
 		if (fabsf(analog_scaling) < 0.1f) {
-			calibration_log_critical(mavlink_log_pub, "[cal] No airspeed sensor found");
+			calibration_log_critical(mavlink_log_pub, "[cal] [air]02 No airspeed sensor found");
 			goto error_return;
 		}
 
@@ -120,7 +120,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		}
 	}
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
+	calibration_log_critical(mavlink_log_pub, "[cal] [air]03 Ensure sensor is not measuring wind");
 	px4_usleep(500 * 1000);
 
 	while (calibration_counter < calibration_count) {
@@ -144,9 +144,9 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")",
+				calibration_log_critical(mavlink_log_pub, "[cal] [air]04 Airspeed sensor is reporting errors (%" PRIu64 ")",
 							 diff_pres.error_count);
-				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
+				calibration_log_critical(mavlink_log_pub, "[cal] [air]05 Check your wiring before trying again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
 			}
@@ -171,7 +171,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (fd_scale > 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
-				calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset update failed");
+				calibration_log_critical(mavlink_log_pub, "[cal] [air]06 airspeed offset update failed");
 			}
 
 			px4_close(fd_scale);
@@ -200,7 +200,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	/* wait 500 ms to ensure parameter propagated through the system */
 	px4_usleep(500 * 1000);
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Blow across front of pitot without touching");
+	calibration_log_info(mavlink_log_pub, "[cal] [air]07 Blow across front of pitot without touching");// all critical change to info
 
 	calibration_counter = 0;
 
@@ -223,15 +223,15 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			if (fabsf(diff_pres.differential_pressure_filtered_pa) > 50.0f) {
 				if (diff_pres.differential_pressure_filtered_pa > 0) {
-					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
+					calibration_log_info(mavlink_log_pub, "[cal] [air]08 Positive pressure: OK (%d Pa)",
 							     (int)diff_pres.differential_pressure_filtered_pa);
 					break;
 
 				} else {
 					/* do not allow negative values */
-					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
+					calibration_log_critical(mavlink_log_pub, "[cal] [air]09 Negative pressure difference detected (%d Pa)",
 								 (int)diff_pres.differential_pressure_filtered_pa);
-					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
+					calibration_log_critical(mavlink_log_pub, "[cal] [air]10 Swap static and dynamic ports!");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
 					diff_pres_offset = 0.0f;
@@ -251,7 +251,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			if (calibration_counter % 500 == 0) {
-				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
+				calibration_log_info(mavlink_log_pub, "[cal] [air]11 Create air pressure! (got %d, wanted: 50 Pa)",
 						     (int)diff_pres.differential_pressure_filtered_pa);
 				tune_neutral(true);
 			}

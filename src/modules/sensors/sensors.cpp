@@ -157,7 +157,7 @@ public:
 
 private:
 	DevHandle 	_h_adc;				/**< ADC driver handle */
-
+	int		_adc{-1};
 	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
 
 	const bool	_hil_enabled;			/**< if true, HIL is active */
@@ -420,12 +420,53 @@ Sensors::adc_poll()
 
 	hrt_abstime t = hrt_absolute_time();
 
-	/* rate limit to 100 Hz */
-	if (t - _last_adc >= 10000) {
+	/* rate limit to 100 Hz */  //change to 10Hz by yaoling
+	if (t - _last_adc >= 100000) {
 		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
 		px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+
+#if defined(ADC_BATTERY_VOLTAGE_CHANNEL) && defined(__PX4_POSIX_TI)
+	char adcname[128] = {0};
+	char value_str[10] = {0};
+	sprintf(adcname,"/sys/bus/iio/devices/iio:device0/in_voltage%d_raw",ADC_BATTERY_VOLTAGE_CHANNEL);
+	_adc = ::open(adcname, O_RDWR);
+		if (_adc < 0) {
+				warnx("Failed to open   %s for writing!\n",adcname);
+				return ;
+		}
+	ret =read(_adc,value_str,10);
+	if(ret<0)
+	{
+		warnx("fail to read adc");
+		return ;
+	}
+	float adc_voltage = (float)atof(value_str)/(4096.0f / 1.8f);  //we use 1.8 Vref
+//	warnx("read adc %.3f v,%.6f,%.6f",(double)adc_voltage,(double)_parameters.battery_n_cells,(double)_parameters.battery_v_charged);
+	bat_voltage_v = adc_voltage * _parameters.battery_n_cells*(float)6.666;//*_parameters.battery_v_charged;
+	::close(_adc);
+	if (bat_voltage_v > 0.5f)
+	{
+		updated_battery = true;
+	}
+	if (updated_battery) {
+				actuator_controls_s ctrl;
+				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+							     _armed, &_battery_status);
+
+				/* announce the battery status if needed, just publish else */
+				if (_battery_pub != nullptr) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
+		}
+
+	_last_adc = t;
+
+#else
 
 #if BOARD_NUMBER_BRICKS > 0
 		//todo:abosorb into new class Power
@@ -574,6 +615,7 @@ Sensors::adc_poll()
 
 			_last_adc = t;
 		}
+#endif
 	}
 }
 

@@ -217,6 +217,8 @@ Navigator::run()
 		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 	}
+	
+	param_t _param_circle_radius= param_find("MPC_CIRCLE_RAD");
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -328,7 +330,64 @@ Navigator::run()
 
 				// DO_GO_AROUND is currently handled by the position controller (unacknowledged)
 				// TODO: move DO_GO_AROUND handling to navigator
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			position_setpoint_triplet_s *rep = get_reposition_triplet();
+			position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
+
+			// store current position as previous position and goal as next
+			rep->previous.yaw = get_global_position()->yaw;
+			rep->previous.lat = get_global_position()->lat;
+			rep->previous.lon = get_global_position()->lon;
+			rep->previous.alt = get_global_position()->alt;
+
+			rep->current.loiter_radius = get_loiter_radius();
+			rep->current.loiter_direction = 1;
+			rep->current.type = position_setpoint_s::SETPOINT_TYPE_CIRCLE;
+			rep->current.cruising_speed = get_cruising_speed();
+			rep->current.cruising_throttle = get_cruising_throttle();
+
+			// Go on and check which changes had been requested
+			if (PX4_ISFINITE(cmd.param4)) {
+				rep->current.yaw = cmd.param4;
+
+			} else {
+				rep->current.yaw = NAN;
+			}
+
+			if (PX4_ISFINITE(cmd.param5)&& PX4_ISFINITE(cmd.param6)) {
+
+				// Position change with optional altitude change
+				rep->current.lat = (cmd.param5 < 1000) ? cmd.param5 : cmd.param5 / (double)1e7;
+				rep->current.lon = (cmd.param6 < 1000) ? cmd.param6 : cmd.param6 / (double)1e7;
+
+				if (PX4_ISFINITE(cmd.param7)) {
+					rep->current.alt = cmd.param7;
+
+				} else {
+					rep->current.alt = get_global_position()->alt;
+				}
+
+			} else if (PX4_ISFINITE(cmd.param7) && curr->current.valid
+			&& PX4_ISFINITE(curr->current.lat)
+			&& PX4_ISFINITE(curr->current.lon)) {
+
+				// Altitude without position change
+				rep->current.lat = curr->current.lat;
+				rep->current.lon = curr->current.lon;
+				rep->current.alt = cmd.param7;
+
+			} else {
+				// All three set to NaN - hold in current position
+				rep->current.lat = get_global_position()->lat;
+				rep->current.lon = get_global_position()->lon;
+				rep->current.alt = get_global_position()->alt;
+			}
+
+			rep->previous.valid = false;
+			rep->current.valid = true;
+			rep->next.valid = false;
+
+			param_set(_param_circle_radius, &(cmd.param1));
+			publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
@@ -552,13 +611,16 @@ Navigator::run()
 			_geofence_result.geofence_action = _geofence.getGeofenceAction();
 			_geofence_result.home_required = _geofence.isHomeRequired();
 
-			if (!inside) {
+			_geofence.loadFromEwtFile(_global_pos);
+			bool insidefile =  _geofence.intsideEwtFile(_global_pos);
+
+			if (!inside||insidefile) {
 				/* inform other apps via the mission result */
 				_geofence_result.geofence_violated = true;
 
 				/* Issue a warning about the geofence violation once */
-				if (!_geofence_violation_warning_sent) {
-					mavlink_log_critical(&_mavlink_log_pub, "Geofence violation");
+				if (false) {//!_geofence_violation_warning_sent
+					mavlink_log_critical(&_mavlink_log_pub,721, "Geofence violation");
 					_geofence_violation_warning_sent = true;
 				}
 
@@ -1120,14 +1182,14 @@ void Navigator::check_traffic()
 						}
 
 					case 1: {
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately",
+							mavlink_log_critical(&_mavlink_log_pub,722, "WARNING TRAFFIC %s at heading %d, land immediately",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction);
 							break;
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home",
+							mavlink_log_critical(&_mavlink_log_pub,723, "AVOIDING TRAFFIC %s heading %d, returning home",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction);
 
@@ -1280,12 +1342,12 @@ Navigator::publish_geofence_result()
 }
 
 void
-Navigator::set_mission_failure(const char *reason)
+Navigator::set_mission_failure(uint16_t msgid,const char *reason)
 {
 	if (!_mission_result.failure) {
 		_mission_result.failure = true;
 		set_mission_result_updated();
-		mavlink_log_critical(&_mavlink_log_pub, "%s", reason);
+		mavlink_log_critical(&_mavlink_log_pub,msgid, "%s", reason);
 	}
 }
 

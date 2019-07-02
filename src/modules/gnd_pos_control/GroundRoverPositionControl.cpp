@@ -88,6 +88,8 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
 
 	/* fetch initial parameter values */
+	navstate=NAVSTATE::NAVGATION;
+	newstate=NAVSTATE::NAVGATION;
 	parameters_update();
 }
 
@@ -186,6 +188,16 @@ GroundRoverPositionControl::position_setpoint_triplet_poll()
 	}
 }
 
+void GroundRoverPositionControl::horizontal_dis_poll()
+{
+	bool horizontal_dis_updated;
+	orb_check(_horizontal_distance_sub, &horizontal_dis_updated);
+
+	if (horizontal_dis_updated) {
+		orb_copy(ORB_ID(horizontal_distance), _horizontal_distance_sub, &_horizontal_dis);
+	}
+}
+
 bool
 GroundRoverPositionControl::control_position(const matrix::Vector2f &current_position,
 		const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
@@ -221,6 +233,8 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 
 		matrix::Vector2f ground_speed_2d(ground_speed);
 
+		Eulerf euler_angles(matrix::Quatf(_sub_attitude.get().q));
+
 		float mission_throttle = _parameters.throttle_cruise;
 
 		/* Just control the throttle */
@@ -241,6 +255,11 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			const float x_vel = vel(0);
 			const float x_acc = _sub_sensors.get().accel_x;
 
+			float dis=get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),curr_wp(1));
+			if(dis<10)
+			{
+				mission_target_speed = dis / 10 * mission_target_speed;
+			}
 			// Compute airspeed control out and just scale it as a constant
 			mission_throttle = _parameters.throttle_speed_scaler
 					   * pid_calculate(&_speed_ctrl, mission_target_speed, x_vel, x_acc, dt);
@@ -256,24 +275,68 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 				mission_throttle = _pos_sp_triplet.current.cruising_throttle;
 			}
 		}
+// Avoidance state  For Rover byy yaoling
+		if(_horizontal_dis.type == horizontal_distance_s::MAV_DISTANCE_SENSOR_INFRARED){
+			if(_horizontal_dis.current_distance[0]<1.0f)
+			{
+				newstate=NAVSTATE::GOBACK;
+			}else if(_horizontal_dis.current_distance[0]<5.0f)
+			{
+				newstate=NAVSTATE::GORIGHT;
+			}else
+			{
+				newstate=NAVSTATE::NAVGATION;
+			}
+
+			if(navstate ==NAVSTATE::NAVGATION && newstate ==NAVSTATE::GORIGHT )
+			{
+				navstate = newstate;
+			}else if (navstate!=newstate)
+			{
+				t1=t1+dt;
+				if(t1>1.0f)
+				{
+					navstate=newstate;
+					t1=0;
+				}
+			}
+		}
 
 		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust_body[0] = 0.0f;
+			_att_sp.thrust_body[0] = 0.5f;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
-
-			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
-			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
-			_att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = _gnd_control.nav_bearing();
-			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust_body[0] = mission_throttle;
-
+			switch(navstate)
+			{
+			   case  NAVSTATE::NAVGATION:
+				/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
+					_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+					_att_sp.roll_body = _gnd_control.get_roll_setpoint();
+					_att_sp.pitch_body = 0.0f;
+					_att_sp.yaw_body = _gnd_control.nav_bearing();
+					_att_sp.fw_control_yaw = true;
+					_att_sp.thrust_body[0] = mission_throttle;
+			   case  NAVSTATE::GORIGHT:
+				        _gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				  	_att_sp.roll_body = _gnd_control.get_roll_setpoint();
+				  	_att_sp.pitch_body = 0.0f;
+				  	_att_sp.yaw_body = euler_angles.psi()+(float)M_PI/4;
+				  	_att_sp.fw_control_yaw = true;
+				  	_att_sp.thrust_body[0] = mission_throttle;
+				  	break;
+			   case  NAVSTATE::GOBACK:
+				   	_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+				   	_att_sp.roll_body = _gnd_control.get_roll_setpoint();
+				   	_att_sp.pitch_body = 0.0f;
+				   	_att_sp.yaw_body = _gnd_control.nav_bearing();
+				   	_att_sp.fw_control_yaw = false;
+				   	_att_sp.thrust_body[0] = 0.45;
+				   	break;
+			}
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint so we want to stop*/
@@ -284,7 +347,14 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust_body[0] = 0.0f;
+			float dis=get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),curr_wp(1));
+			if(dis<3.0f)
+			{
+				_att_sp.thrust_body[0] = 0.5f;
+			}else
+			{
+				_att_sp.thrust_body[0] = mission_throttle;
+			}
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -299,7 +369,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = 0.0f;
 		_att_sp.fw_control_yaw = true;
-		_att_sp.thrust_body[0] = 0.0f;
+		_att_sp.thrust_body[0] = 0.5f;
 
 		/* do not publish the setpoint */
 		setpoint = false;
@@ -316,6 +386,7 @@ GroundRoverPositionControl::task_main()
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_horizontal_distance_sub = orb_subscribe(ORB_ID(horizontal_distance));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -391,6 +462,7 @@ GroundRoverPositionControl::task_main()
 
 			manual_control_setpoint_poll();
 			position_setpoint_triplet_poll();
+			horizontal_dis_poll();
 			_sub_attitude.update();
 			_sub_sensors.update();
 

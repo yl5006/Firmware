@@ -263,7 +263,7 @@ public:
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
 
-	void 		set_mission_failure(const char *reason);
+	void 		set_mission_failure(uint16_t msgid,const char *reason);
 
 	// MISSION
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }

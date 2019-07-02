@@ -41,6 +41,9 @@
 
 #include "camera_feedback.hpp"
 
+#define EPOCH_SECS ((time_t)1234567890ULL)
+#define MOUNTPOINT PX4_ROOTFSDIR"/fs/microsd/log"
+static const char *log_root = MOUNTPOINT;
 namespace camera_feedback
 {
 CameraFeedback	*g_camera_feedback;
@@ -53,7 +56,9 @@ CameraFeedback::CameraFeedback() :
 	_gpos_sub(-1),
 	_att_sub(-1),
 	_capture_pub(nullptr),
-	_camera_capture_feedback(false)
+	_camera_capture_feedback(false),
+	 _fd(-1),
+	 init(false)
 {
 
 	// Parameters
@@ -61,6 +66,10 @@ CameraFeedback::CameraFeedback() :
 
 	param_get(_p_camera_capture_feedback, (int32_t *)&_camera_capture_feedback);
 
+	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
+	if (_log_utc_offset != PARAM_INVALID) {
+		param_get(_log_utc_offset, &utc_offset);
+	}
 }
 
 CameraFeedback::~CameraFeedback()
@@ -119,6 +128,81 @@ CameraFeedback::stop()
 }
 
 
+bool
+CameraFeedback::get_log_time(struct tm *tt, bool boot_time)
+{
+	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+
+	if (vehicle_gps_position_sub < 0) {
+		return false;
+	}
+
+	/* Get the latest GPS publication */
+	vehicle_gps_position_s gps_pos;
+	bool use_clock_time = true;
+
+	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) == 0) {
+		utc_time_sec = gps_pos.time_utc_usec / 1e6;
+
+		if (gps_pos.fix_type >= 2 && utc_time_sec >= EPOCH_SECS) {
+			use_clock_time = false;
+		}
+	}
+
+	orb_unsubscribe(vehicle_gps_position_sub);
+
+	if (use_clock_time) {
+		/* take clock time if there's no fix (yet) */
+		struct timespec ts = {};
+		px4_clock_gettime(CLOCK_REALTIME, &ts);
+		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+
+		if (utc_time_sec < EPOCH_SECS) {
+			return false;
+		}
+	}
+
+	/* strip the time elapsed since boot */
+	if (boot_time) {
+		utc_time_sec -= hrt_absolute_time() / 1e6;
+	}
+
+
+	if (_log_utc_offset != PARAM_INVALID) {
+		param_get(_log_utc_offset, &utc_offset);
+	}
+
+	/* apply utc offset */
+	utc_time_sec += utc_offset * 60;
+
+	return gmtime_r(&utc_time_sec, tt) != nullptr;
+}
+
+int CameraFeedback::create_log_dir(tm *tt)
+{
+	/* create dir on sdcard if needed */
+	int mkdir_ret;
+
+	if (tt) {
+		uint n = snprintf(_log_dir, sizeof(_log_dir), "%s/", log_root);
+
+		if (n >= sizeof(_log_dir)) {
+			PX4_ERR("log path too long");
+			return -1;
+		}
+
+		strftime(_log_dir + n, sizeof(_log_dir) - n, "%Y-%m-%d", tt);
+		mkdir_ret = mkdir(_log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
+
+		if (mkdir_ret != OK && errno != EEXIST) {
+			PX4_ERR("failed creating new dir: %s", _log_dir);
+			return -1;
+		}
+
+	}
+	return 1;
+}
+
 void
 CameraFeedback::task_main()
 {
@@ -173,7 +257,32 @@ CameraFeedback::task_main()
 				// reject until we have valid data
 				continue;
 			}
+			tm tt = {};
 
+			if(!init)
+			{
+				if(get_log_time(&tt,false))
+				{
+					create_log_dir(&tt);
+					strftime(time, sizeof(time), "%H_%M_%S", &tt);
+					snprintf(camera_file, sizeof(camera_file), "%s/%s.txt", _log_dir, time);
+					_fd = open(camera_file, O_CREAT | O_WRONLY | O_DSYNC ,PX4_O_MODE_666);
+					if(_fd>0)
+					{
+						init = true;
+					}
+				}
+			}
+			time_t 	time_sec = utc_time_sec+trig.timestamp / 1e6;
+			gmtime_r(&time_sec, &tt);
+			strftime(time, sizeof(time), "%H_%M_%S", &tt);
+			Eulerf euler_angles(matrix::Quatf(att.q));
+			size_t n=snprintf(line, sizeof(line),"%d\t%s\t%.7f\t%.7f\t%.2f\t%.3f\t%.3f\t%.3f\r\n",trig.seq,time,gpos.lat,gpos.lon,(double)gpos.alt,(double)euler_angles.phi()/M_PI*180.0,(double)euler_angles.theta()/M_PI*180.0,(double)euler_angles.psi()/M_PI*180.0);
+			if(init)
+			{
+				n = write(_fd,line,n);
+				fsync(_fd);
+			}
 			struct camera_capture_s capture = {};
 
 			// Fill timestamps
@@ -224,6 +333,7 @@ CameraFeedback::task_main()
 	orb_unsubscribe(_gpos_sub);
 	orb_unsubscribe(_att_sub);
 
+	close(_fd);
 	_main_task = -1;
 
 }
