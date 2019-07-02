@@ -48,6 +48,9 @@
  */
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
+#include <matrix/matrix/math.hpp>
+
+using namespace matrix;
 
 namespace VTOL_att_control
 {
@@ -701,6 +704,14 @@ void VtolAttitudeControl::task_main()
 			_vtol_type->fill_actuator_outputs();
 		}
 
+		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+		if (!_v_control_mode.flag_armed) {
+			Quatf().copyTo(_mc_virtual_att_sp.q_d);
+			Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+			Quatf().copyTo(_v_att_sp.q_d);
+			Vector3f().copyTo(_v_att_sp.thrust_body);
+		}
+
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
 		    _v_control_mode.flag_control_rates_enabled ||
@@ -752,7 +763,7 @@ VtolAttitudeControl::start()
 	_control_task = px4_task_spawn_cmd("vtol_att_control",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_ATTITUDE_CONTROL + 1,
-					   1230,
+					   1320,
 					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
 					   nullptr);
 
