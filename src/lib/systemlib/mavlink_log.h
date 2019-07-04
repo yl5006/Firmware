@@ -51,7 +51,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-__EXPORT void mavlink_vasprintf(int severity,uint16_t msgid, orb_advert_t *mavlink_log_pub, const char *fmt, ...);
+__EXPORT void mavlink_vasprintf(int severity, uint16_t msgid, orb_advert_t *mavlink_log_pub, const char *fmt, ...);
 #ifdef __cplusplus
 }
 #endif
@@ -78,7 +78,7 @@ __EXPORT void mavlink_vasprintf(int severity,uint16_t msgid, orb_advert_t *mavli
  * @param _pub		Pointer to the uORB advert;
  * @param _text		The text to log;
  */
-#define mavlink_log_info(_pub, _text, ...)	mavlink_vasprintf(_MSG_PRIO_INFO, 0 , _pub, _text, ##__VA_ARGS__);
+#define mavlink_log_info(_pub, _text, ...)	mavlink_vasprintf(_MSG_PRIO_INFO, 0, _pub, _text, ##__VA_ARGS__);
 
 /**
  * Send a mavlink warning message and print to console.
@@ -88,7 +88,7 @@ __EXPORT void mavlink_vasprintf(int severity,uint16_t msgid, orb_advert_t *mavli
  */
 #define mavlink_log_warning(_pub, _text, ...) \
 	do { \
-		mavlink_vasprintf(_MSG_PRIO_WARNING, 0 , _pub, _text, ##__VA_ARGS__); \
+		mavlink_vasprintf(_MSG_PRIO_WARNING, 0, _pub, _text, ##__VA_ARGS__); \
 		PX4_WARN(_text, ##__VA_ARGS__); \
 	} while(0);
 
