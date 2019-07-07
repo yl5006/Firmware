@@ -727,13 +727,14 @@ def main():
 
     # We need to check for pyserial because the import itself doesn't
     # seem to fail, at least not on macOS.
+
     try:
         if serial.__version__ or serial.VERSION:
             pass
     except:
         print("Error: pyserial not installed!")
         print("    (Install using: sudo pip install pyserial)")
-        sys.exit(1)
+#        sys.exit(1)
 
     # Load the firmware file
     fw = firmware(args.firmware)
