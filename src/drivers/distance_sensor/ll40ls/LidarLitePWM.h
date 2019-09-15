@@ -54,6 +54,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/pwm_input.h>
 
 
 
@@ -112,9 +113,11 @@ private:
 	ringbuffer::RingBuffer	*_reports;
 	int			_class_instance;
 	int			_orb_class_instance;
+	int			_pwm_orb_class_instance;
 	int			_pwmSub;
 	struct pwm_input_s	_pwm;
 	orb_advert_t	        _distance_sensor_topic;
+	orb_advert_t	        _pwm_input_topic;
 	struct distance_sensor_s _range;
 
 	perf_counter_t	        _sample_perf;

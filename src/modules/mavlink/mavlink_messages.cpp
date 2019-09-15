@@ -106,6 +106,7 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/pwm_input.h>
 #include <uORB/uORB.h>
 
 using matrix::wrap_2pi;
@@ -1253,6 +1254,9 @@ private:
 
 	MavlinkOrbSubscription *_air_data_sub;
 
+	uint64_t _pwminput_time;
+	MavlinkOrbSubscription *_pwm_input_sub;
+
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &) = delete;
 	MavlinkStreamVFRHUD &operator = (const MavlinkStreamVFRHUD &) = delete;
@@ -1267,7 +1271,9 @@ protected:
 		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
 		_airspeed_time(0),
-		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data)))
+		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data))),
+		_pwminput_time(0),
+		_pwm_input_sub(_mavlink->add_orb_subscription(ORB_ID(pwm_input)))
 	{}
 
 	bool send(const hrt_abstime t)
@@ -1275,12 +1281,13 @@ protected:
 		static vehicle_local_position_s pos = {};
 		static actuator_armed_s armed = {};
 		static airspeed_s airspeed = {};
+		static pwm_input_s pwm_input = {};
 
 		bool updated = false;
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
-
+		updated |= _airspeed_sub->update(&_pwminput_time, &pwm_input);
 		if (updated) {
 			mavlink_vfr_hud_t msg = {};
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
@@ -1323,6 +1330,13 @@ protected:
 			if (pos.v_z_valid) {
 				msg.climb = -pos.vz;
 			}
+
+			if(pwm_input.period > 60000) {
+				msg.engine_speed = 0;
+			} else {
+				msg.engine_speed = 60000000 / (pwm_input.period);   /* 10 usec = 1 cm distance for LIDAR-Lite */
+			}
+
 
 			mavlink_msg_vfr_hud_send_struct(_mavlink->get_channel(), &msg);
 

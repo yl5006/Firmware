@@ -107,11 +107,16 @@ int LidarLitePWM::init()
 	struct distance_sensor_s ds_report = {};
 	measure();
 	_reports->get(&ds_report);
+
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 				 &_orb_class_instance, ORB_PRIO_LOW);
+	_pwm_input_topic = orb_advertise(ORB_ID(pwm_input), &_pwm);
 
 	if (_distance_sensor_topic == nullptr) {
 		PX4_DEBUG("failed to create distance_sensor object. Did you start uOrb?");
+	}
+	if (_pwm_input_topic == nullptr) {
+		PX4_DEBUG("failed to create _pwm_input object. Did you start uOrb?");
 	}
 
 	return PX4_OK;
@@ -195,8 +200,11 @@ int LidarLitePWM::measure()
 //		return reset_sensor();
 	}
 
-	if (_distance_sensor_topic != nullptr) {
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
+//	if (_distance_sensor_topic != nullptr) {
+//			orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &_range);
+//		}
+	if (_pwm_input_topic != nullptr) {
+			orb_publish(ORB_ID(pwm_input), _pwm_input_topic, &_pwm);
 	}
 
 	_reports->force(&_range);
