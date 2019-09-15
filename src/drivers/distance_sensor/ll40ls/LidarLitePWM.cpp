@@ -177,7 +177,12 @@ int LidarLitePWM::measure()
 	_range.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	_range.max_distance = get_maximum_distance();
 	_range.min_distance = get_minimum_distance();
-	_range.current_distance = 60 / (float(_pwm.period) * 1e-6f);   /* 10 usec = 1 cm distance for LIDAR-Lite */
+	if(_pwm.period > 60000) {
+		_range.current_distance = 0;
+	} else {
+		_range.current_distance = 60000000 / (_pwm.period);   /* 10 usec = 1 cm distance for LIDAR-Lite */
+	}
+
 	_range.variance = 0.0f;
 	_range.orientation = _rotation;
 	/* TODO: set proper ID */
@@ -187,7 +192,7 @@ int LidarLitePWM::measure()
 	if (_range.current_distance <= 0.0f) {
 		perf_count(_sensor_zero_resets);
 		perf_end(_sample_perf);
-		return reset_sensor();
+//		return reset_sensor();
 	}
 
 	if (_distance_sensor_topic != nullptr) {
