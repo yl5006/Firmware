@@ -180,7 +180,7 @@ int LidarLitePWM::measure()
 	if(_pwm.period > 60000) {
 		_range.current_distance = 0;
 	} else {
-		_range.current_distance = 60000000 / (_pwm.period);   /* 10 usec = 1 cm distance for LIDAR-Lite */
+		_range.current_distance = 600000 / (_pwm.period);   /* 10 usec = 1 cm distance for LIDAR-Lite */
 	}
 
 	_range.variance = 0.0f;
