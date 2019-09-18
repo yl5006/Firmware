@@ -1287,7 +1287,7 @@ protected:
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
-		updated |= _airspeed_sub->update(&_pwminput_time, &pwm_input);
+		updated |= _pwm_input_sub->update(&_pwminput_time, &pwm_input);
 		if (updated) {
 			mavlink_vfr_hud_t msg = {};
 			msg.airspeed = airspeed.indicated_airspeed_m_s;
